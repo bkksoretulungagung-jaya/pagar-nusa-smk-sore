@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     'assets/galeri-4.svg.jpeg?v=21',
     'assets/galeri-1.svg.jpeg?v=21',
     'assets/galeri-2.svg.jpeg?v=21',
-    'assets/galeri-7.svg?v=21'
+    'assets/galeri-7.svg?v=22'
   ];
   document.querySelectorAll('#gallerySection .galleryItem img').forEach((img,i)=>{
     if(galleryThumbs[i]){
@@ -64,4 +64,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v21: gallery uses latest JPEG photos with cache busting.
+// Build marker v22: foto galeri ke-6 diperbarui.
