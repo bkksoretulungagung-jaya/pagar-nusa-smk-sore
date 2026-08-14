@@ -9,7 +9,7 @@ $('drop').addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.drop
 function toggleDatabasePanel(force){const drawer=document.getElementById('dbDrawer'),backdrop=document.getElementById('dbBackdrop');if(!drawer||!backdrop)return;const open=typeof force==='boolean'?force:!drawer.classList.contains('open');drawer.classList.toggle('open',open);backdrop.classList.toggle('open',open);drawer.setAttribute('aria-hidden',open?'false':'true')}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleDatabasePanel(false)});
 
-const galleryImages=['assets/galeri-6.svg.jpeg?v=21','assets/galeri-3.svg.jpeg?v=21','assets/galeri-4.svg.jpeg?v=21','assets/galeri-1.svg.jpeg?v=21','assets/galeri-2.svg.jpeg?v=21','assets/galeri-7.svg?v=24'];
+const galleryImages=['assets/galeri-6.svg.jpeg?v=21','assets/galeri-3.svg.jpeg?v=21','assets/galeri-4.svg.jpeg?v=21','assets/galeri-1.svg.jpeg?v=21','assets/galeri-2.svg.jpeg?v=21','assets/galeri-7.jpg?v=25'];
 let galleryIndex=0;
 function openGallery(i){galleryIndex=i;const box=$('galleryLightbox'),img=$('galleryLightboxImg'),cap=$('galleryCaption');if(!box||!img)return;img.src=galleryImages[i];cap.textContent='Dokumentasi Kegiatan Pagar Nusa • Foto '+(i+1)+' dari '+galleryImages.length;box.classList.add('open');box.setAttribute('aria-hidden','false');document.body.style.overflow='hidden'}
 function closeGallery(){const box=$('galleryLightbox');if(!box)return;box.classList.remove('open');box.setAttribute('aria-hidden','true');document.body.style.overflow=''}

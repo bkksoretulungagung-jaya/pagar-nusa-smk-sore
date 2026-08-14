@@ -8,7 +8,7 @@
   document.head.appendChild(link);
 })();
 
-document.write('<script src="js/ui-v9-core.js?v=17"><\/script>');
+document.write('<script src="js/ui-v9-core.js?v=25"><\/script>');
 
 document.addEventListener('DOMContentLoaded',()=>{
   const adminUser=document.getElementById('adminUser');
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     'assets/galeri-4.svg.jpeg?v=21',
     'assets/galeri-1.svg.jpeg?v=21',
     'assets/galeri-2.svg.jpeg?v=21',
-    'assets/galeri-7.svg?v=24'
+    'assets/galeri-7.jpg?v=25'
   ];
   document.querySelectorAll('#gallerySection .galleryItem img').forEach((img,i)=>{
     if(galleryThumbs[i]){
@@ -74,4 +74,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v24: force refresh gallery photo 6.
+// Build marker v25: force refresh gallery photo 6.
