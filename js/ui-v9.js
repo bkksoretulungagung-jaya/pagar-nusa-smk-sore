@@ -1,3 +1,13 @@
+(()=>{
+  const old=document.getElementById('pnMobileCss');
+  if(old)old.remove();
+  const link=document.createElement('link');
+  link.id='pnMobileCss';
+  link.rel='stylesheet';
+  link.href='mobile-v23.css?v=23';
+  document.head.appendChild(link);
+})();
+
 document.write('<script src="js/ui-v9-core.js?v=17"><\/script>');
 
 document.addEventListener('DOMContentLoaded',()=>{
@@ -64,4 +74,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v22: foto galeri ke-6 diperbarui.
+// Build marker v23: responsive handphone stylesheet enabled.
