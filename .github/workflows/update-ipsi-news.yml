@@ -1,4 +1,4 @@
-name: Update second organization news
+name: Update third training news
 
 on:
   push:
@@ -14,35 +14,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Update second news on homepage
+      - name: Update third news on homepage
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
+
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
 
           ticker_pattern=r'(<div class="newsTicker"[^>]*><div class="newsTickerTrack">).*?(</div></div>)'
-          ticker_text='KABAR TERBARU • Prestasi Tim IPSI SMK SORE Tulungagung di IPSI Tulungagung Cup 2026 • Bapak Feriawan menghadiri Rapat Koordinasi Peraturan Organisasi Pagar Nusa Tulungagung • Galeri kegiatan dapat dilihat langsung di website •'
+          ticker_text='KABAR TERBARU • Prestasi Tim IPSI SMK SORE Tulungagung di IPSI Tulungagung Cup 2026 • Bapak Feriawan menghadiri Rapat Koordinasi Peraturan Organisasi Pagar Nusa Tulungagung • Latihan rutin Ekstrakurikuler Pagar Nusa setiap satu minggu sekali pukul 12.45–17.00 WIB •'
           s=re.sub(ticker_pattern, lambda m: m.group(1)+ticker_text+m.group(2), s, count=1, flags=re.S)
 
-          pattern=r'<article class="newsCard">\s*<div class="newsIcon" aria-hidden="true">☎</div>\s*<div class="newsMeta"><span class="newsDate">15 Agustus 2026</span><span class="newsBadge">INFO</span></div>\s*<h3>Kontak Resmi Kini Lebih Lengkap</h3>\s*<p>Instagram, TikTok, Email, WhatsApp, dan alamat Sekretariat kini tersedia pada bagian bawah website\.</p>\s*</article>'
+          pattern=r'<article class="newsCard">\s*<div class="newsIcon" aria-hidden="true">▣</div>\s*<div class="newsMeta"><span class="newsDate">15 Agustus 2026</span><span class="newsBadge">GALERI</span></div>\s*<h3>Dokumentasi Kegiatan Tersedia di Galeri</h3>\s*<p>Lima foto dokumentasi kegiatan Pagar Nusa dapat dibuka dan diperbesar langsung dari halaman utama\.</p>\s*</article>'
 
-          card='''<article class="newsCard">\n        <div class="newsIcon" aria-hidden="true">🏛️</div>\n        <div class="newsMeta"><span class="newsDate">15 Agustus 2026</span><span class="newsBadge">ORGANISASI</span></div>\n        <h3>Pembina Pagar Nusa Rayon SMK SORE Hadiri Rapat Koordinasi Peraturan Organisasi</h3>\n        <p>Bapak Feriawan, S.Pd., M.T., Gr. menghadiri Rapat Koordinasi Pembahasan Peraturan Organisasi Pengurus Cabang Pagar Nusa Tulungagung di Gedung PCNU Tulungagung sebagai bagian dari penguatan tata kelola dan soliditas organisasi.</p>\n        <a class="newsReadMore" href="berita-rakor-peraturan-organisasi-pagar-nusa-tulungagung.html">BACA SELENGKAPNYA →</a>\n      </article>'''
+          card='''<article class="newsCard">\n        <div class="newsIcon" aria-hidden="true">🥋</div>\n        <div class="newsMeta"><span class="newsDate">15 Agustus 2026</span><span class="newsBadge">KEGIATAN</span></div>\n        <h3>Latihan Rutin Ekstrakurikuler Pagar Nusa Rayon SMK SORE Tulungagung</h3>\n        <p>Latihan rutin dilaksanakan setiap satu minggu sekali pukul 12.45–17.00 WIB sebagai wadah pembinaan kemampuan pencak silat, kedisiplinan, tanggung jawab, kebersamaan, mental, karakter, dan akhlakul karimah.</p>\n        <a class="newsReadMore" href="berita-latihan-rutin-pagar-nusa-smk-sore.html">BACA SELENGKAPNYA →</a>\n      </article>'''
 
           s,n=re.subn(pattern,card,s,count=1,flags=re.S)
           if n!=1:
-              raise SystemExit('Kartu berita kedua lama tidak ditemukan')
+              raise SystemExit('Kartu berita ketiga lama tidak ditemukan')
 
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit second organization news
+      - name: Commit third training news
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           git diff --cached --quiet && exit 0
-          git commit -m 'Tambahkan berita rakor organisasi sebagai berita kedua'
+          git commit -m 'Tambahkan latihan rutin sebagai berita ketiga'
           git push
