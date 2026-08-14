@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portal Siswa CBT - Pagar Nusa SMK Sore Tulungagung</title>
+<meta name="description" content="Portal siswa untuk Test Teori CBT Kenaikan Tingkat Pagar Nusa Rayon SMK Sore Tulungagung.">
+<style>
+:root{--green:#14532d;--green2:#166534;--green3:#dcfce7;--ink:#172033;--muted:#64748b;--line:#dbe7df;--bg:#f3f7f4;--danger:#b91c1c;--warn:#92400e}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#edf7f0 0,#f8fafc 48%,#eef2f7 100%);color:var(--ink);min-height:100vh}
+button,input{font:inherit}
+.hidden{display:none!important}
+.top{background:var(--green);color:#fff;border-bottom:4px solid #22c55e;box-shadow:0 5px 18px rgba(20,83,45,.18)}
+.topInner{max-width:1040px;margin:auto;padding:18px 20px;display:flex;align-items:center;gap:18px}
+.logos{display:flex;gap:10px;flex:0 0 auto}
+.logoFrame{width:70px;height:70px;background:#fff;border-radius:12px;display:grid;place-items:center;padding:6px;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+.logoFrame img{width:56px;height:56px;object-fit:contain}
+.top h1{font-size:21px;line-height:1.25;margin:0;font-weight:900;letter-spacing:.2px}
+.top p{margin:5px 0 0;font-size:12px;line-height:1.55;opacity:.92}
+.wrap{max-width:1040px;margin:0 auto;padding:30px 18px 50px}
+.portalGrid{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:22px;align-items:start}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 34px rgba(15,23,42,.08);overflow:hidden}
+.cardHead{padding:20px 22px;background:linear-gradient(135deg,#f0fdf4,#fff);border-bottom:1px solid var(--line)}
+.cardHead h2{margin:0;color:var(--green);font-size:20px;font-weight:900}
+.cardHead p{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.6}
+.cardBody{padding:22px}
+label{display:block;margin:0 0 7px;font-size:12px;font-weight:800;color:#334155}
+input{width:100%;height:46px;border:1px solid #cbd5e1;border-radius:10px;padding:0 13px;outline:0;background:#fff;color:#0f172a;margin-bottom:15px}
+input:focus{border-color:#16a34a;box-shadow:0 0 0 3px rgba(34,197,94,.12)}
+.primary{width:100%;min-height:46px;border:0;border-radius:10px;background:var(--green2);color:#fff;font-weight:900;cursor:pointer;padding:11px 16px;box-shadow:0 4px 12px rgba(22,101,52,.18)}
+.primary:hover{filter:brightness(1.04)}
+.primary:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
+.backLink{display:inline-block;margin-top:13px;color:var(--green2);text-decoration:none;font-size:12px;font-weight:800}
+.notice{border-radius:10px;padding:11px 13px;font-size:12px;line-height:1.55;margin-bottom:16px;border:1px solid #fed7aa;background:#fff7ed;color:var(--warn)}
+.notice.ok{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
+.notice.error{border-color:#fecaca;background:#fef2f2;color:var(--danger)}
+.loginError{min-height:18px;margin-top:11px;font-size:12px;font-weight:800;color:var(--danger)}
+.infoCard{padding:22px}
+.infoCard h3{margin:0 0 12px;color:var(--green);font-size:17px}
+.infoList{margin:0;padding-left:19px;color:#475569;font-size:13px;line-height:1.75}
+.securityNote{margin-top:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:11px;padding:13px;font-size:12px;color:#64748b;line-height:1.6}
+.studentTopbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px 18px;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+.studentIdentity strong{display:block;color:var(--green);font-size:15px}
+.studentIdentity span{display:block;color:var(--muted);font-size:12px;margin-top:3px;overflow-wrap:anywhere}
+.logout{border:1px solid #fecaca;background:#fff;color:#b91c1c;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:900;cursor:pointer}
+.examCard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 12px 34px rgba(15,23,42,.08)}
+.examBadge{display:inline-flex;align-items:center;gap:6px;background:var(--green3);color:#166534;border:1px solid #bbf7d0;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:900}
+.examCard h2{margin:14px 0 8px;font-size:23px;line-height:1.3;color:#153b26}
+.examCard p{margin:0;color:#64748b;font-size:13px;line-height:1.65}
+.examMeta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
+.meta{border:1px solid #e2e8f0;background:#f8fafc;border-radius:10px;padding:12px}
+.meta span{display:block;color:#94a3b8;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px}
+.meta strong{display:block;margin-top:4px;font-size:12px;color:#334155}
+.examButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:47px;border:0;border-radius:10px;padding:11px 18px;background:#15803d;color:#fff;text-decoration:none;font-weight:900;font-size:13px;box-shadow:0 4px 12px rgba(21,128,61,.18)}
+.examButton.disabled{opacity:.5;pointer-events:none;box-shadow:none}
+.formHint{margin-top:14px;padding:12px 13px;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:12px;line-height:1.55}
+.footer{text-align:center;color:#64748b;font-size:11px;padding:0 18px 28px}
+@media(max-width:760px){.topInner{align-items:flex-start}.logoFrame{width:58px;height:58px}.logoFrame img{width:46px;height:46px}.top h1{font-size:17px}.top p{font-size:11px}.portalGrid{grid-template-columns:1fr}.wrap{padding-top:20px}.studentTopbar{align-items:flex-start}.examMeta{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="topInner">
+    <div class="logos">
+      <span class="logoFrame"><img src="assets/logo-smk-sore-v4.svg?v=17" alt="Logo SMK Sore"></span>
+      <span class="logoFrame"><img src="assets/logo-pagar-nusa-v3.svg?v=17" alt="Logo Pagar Nusa"></span>
+    </div>
+    <div>
+      <h1>PORTAL SISWA CBT PAGAR NUSA</h1>
+      <p>Rayon SMK Sore Tulungagung · Login siswa dan akses Test Teori CBT Kenaikan Tingkat.</p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="loginView" class="portalGrid">
+    <div class="card">
+      <div class="cardHead">
+        <h2>Login Siswa</h2>
+        <p>Gunakan email dan password akun siswa yang telah dibuat oleh admin.</p>
+      </div>
+      <div class="cardBody">
+        <div id="setupNotice" class="notice">Portal siswa sudah dibuat, tetapi belum diaktifkan. Konfigurasi Firebase perlu diisi terlebih dahulu.</div>
+        <form id="studentLoginForm">
+          <label for="studentEmail">Email</label>
+          <input id="studentEmail" type="email" autocomplete="username" placeholder="nama@email.com" required>
+          <label for="studentPassword">Password</label>
+          <input id="studentPassword" type="password" autocomplete="current-password" placeholder="Masukkan password" required>
+          <button id="loginButton" class="primary" type="submit" disabled>MASUK PORTAL SISWA</button>
+          <div id="loginError" class="loginError" aria-live="polite"></div>
+        </form>
+        <a class="backLink" href="index.html">← Kembali ke dashboard utama</a>
+      </div>
+    </div>
+
+    <aside class="card infoCard">
+      <h3>Test yang tersedia</h3>
+      <ul class="infoList">
+        <li><b>Test Teori CBT Kenaikan Tingkat</b></li>
+        <li>Setiap siswa masuk menggunakan akun email dan password masing-masing.</li>
+        <li>Soal dikerjakan melalui Google Form yang dibuat oleh pembina/admin.</li>
+        <li>Jawaban dan nilai tetap tersimpan pada Google Form/Google Sheets.</li>
+      </ul>
+      <div class="securityNote">Password siswa tidak disimpan di GitHub Pages. Autentikasi menggunakan Firebase Authentication agar password tidak terlihat di source website publik.</div>
+    </aside>
+  </section>
+
+  <section id="studentView" class="hidden">
+    <div class="studentTopbar">
+      <div class="studentIdentity">
+        <strong>Selamat datang, Siswa</strong>
+        <span id="loggedEmail">-</span>
+      </div>
+      <button id="logoutButton" class="logout" type="button">KELUAR</button>
+    </div>
+
+    <article class="examCard">
+      <span class="examBadge">● CBT TERSEDIA</span>
+      <h2>Test Teori CBT Kenaikan Tingkat</h2>
+      <p>Pastikan identitas pada Google Form sesuai dengan akun siswa. Kerjakan soal sampai selesai lalu kirim jawaban satu kali.</p>
+      <div class="examMeta">
+        <div class="meta"><span>Jenis</span><strong>Test Teori / CBT</strong></div>
+        <div class="meta"><span>Penyimpanan hasil</span><strong>Google Form / Google Sheets</strong></div>
+      </div>
+      <a id="examButton" class="examButton disabled" href="#" target="_blank" rel="noopener">MULAI KERJAKAN SOAL →</a>
+      <div id="formStatus" class="formHint">Link Google Form belum dipasang.</div>
+    </article>
+  </section>
+</main>
+
+<div class="footer">© 2026 Pagar Nusa Rayon SMK Sore Tulungagung</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
+
+// ==============================
+// KONFIGURASI PORTAL SISWA
+// Isi data ini setelah membuat Firebase Web App.
+// Firebase config bukan password/secret akun siswa.
+// ==============================
+const FIREBASE_CONFIG = {
+  apiKey: '',
+  authDomain: '',
+  projectId: '',
+  storageBucket: '',
+  messagingSenderId: '',
+  appId: ''
+};
+
+// Tempel link Google Form CBT di antara tanda petik berikut.
+const GOOGLE_FORM_URL = '';
+
+const loginView = document.getElementById('loginView');
+const studentView = document.getElementById('studentView');
+const loginForm = document.getElementById('studentLoginForm');
+const emailInput = document.getElementById('studentEmail');
+const passwordInput = document.getElementById('studentPassword');
+const loginButton = document.getElementById('loginButton');
+const loginError = document.getElementById('loginError');
+const setupNotice = document.getElementById('setupNotice');
+const loggedEmail = document.getElementById('loggedEmail');
+const logoutButton = document.getElementById('logoutButton');
+const examButton = document.getElementById('examButton');
+const formStatus = document.getElementById('formStatus');
+
+const configReady = Object.values(FIREBASE_CONFIG).every(v => String(v || '').trim());
+const formReady = /^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(GOOGLE_FORM_URL.trim());
+
+if (formReady) {
+  examButton.href = GOOGLE_FORM_URL.trim();
+  examButton.classList.remove('disabled');
+  formStatus.textContent = 'Jawaban dan nilai akan disimpan melalui Google Form.';
+} else {
+  examButton.removeAttribute('href');
+}
+
+if (!configReady) {
+  setupNotice.textContent = 'Portal siswa sudah dibuat, tetapi Firebase belum dikonfigurasi. Login belum dapat digunakan.';
+} else {
+  setupNotice.textContent = 'Portal siswa aktif. Silakan login dengan email dan password akun siswa.';
+  setupNotice.classList.add('ok');
+  loginButton.disabled = false;
+
+  const app = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  setPersistence(auth, browserSessionPersistence).catch(() => {});
+
+  const showLogin = () => {
+    loginView.classList.remove('hidden');
+    studentView.classList.add('hidden');
+    passwordInput.value = '';
+  };
+
+  const showStudent = (user) => {
+    loggedEmail.textContent = user?.email || '-';
+    loginView.classList.add('hidden');
+    studentView.classList.remove('hidden');
+  };
+
+  onAuthStateChanged(auth, user => user ? showStudent(user) : showLogin());
+
+  loginForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    loginError.textContent = '';
+    loginButton.disabled = true;
+    loginButton.textContent = 'MEMERIKSA...';
+    try {
+      await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
+    } catch (error) {
+      loginError.textContent = 'Email atau password salah, atau akun belum dibuat oleh admin.';
+    } finally {
+      loginButton.disabled = false;
+      loginButton.textContent = 'MASUK PORTAL SISWA';
+    }
+  });
+
+  logoutButton.addEventListener('click', async () => {
+    await signOut(auth);
+  });
+}
+</script>
+</body>
+</html>
