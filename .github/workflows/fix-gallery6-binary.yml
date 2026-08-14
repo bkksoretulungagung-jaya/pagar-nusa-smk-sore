@@ -1,0 +1,57 @@
+name: Fix gallery 6 binary JPEG
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fix-gallery6-binary.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace gallery 6 with real JPEG
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, re, pathlib
+          svg = pathlib.Path('assets/galeri-7.svg').read_text(encoding='utf-8')
+          m = re.search(r'data:image/jpeg;base64,([^"\']+)', svg)
+          if not m:
+              raise SystemExit('JPEG base64 not found in galeri-7.svg')
+          raw = base64.b64decode(m.group(1))
+          if not raw.startswith(b'\xff\xd8\xff'):
+              raise SystemExit('Decoded data is not JPEG')
+          pathlib.Path('assets/galeri-7.jpg').write_bytes(raw)
+          print('JPEG bytes:', len(raw))
+          PY
+          file assets/galeri-7.jpg
+          python3 - <<'PY'
+          from pathlib import Path
+          for p in [Path('index.html'), Path('js/ui-v9.js'), Path('js/part7.js')]:
+              s = p.read_text(encoding='utf-8')
+              s = s.replace('assets/galeri-7.jpg?v=25','assets/galeri-7.jpg?v=26')
+              s = s.replace('js/part7.js?v=25','js/part7.js?v=26')
+              s = s.replace('js/ui-v9.js?v=25','js/ui-v9.js?v=26')
+              p.write_text(s, encoding='utf-8')
+          PY
+      - name: Verify actual JPEG signature
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          b=Path('assets/galeri-7.jpg').read_bytes()
+          assert b[:3] == b'\xff\xd8\xff', b[:16]
+          print('OK real JPEG', len(b))
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/galeri-7.jpg index.html js/ui-v9.js js/part7.js
+          git diff --cached --quiet && exit 0
+          git commit -m 'Perbaiki foto galeri 6 sebagai JPEG biner asli [skip ci]'
+          git push
