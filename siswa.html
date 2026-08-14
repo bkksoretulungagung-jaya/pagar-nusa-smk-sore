@@ -46,18 +46,16 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
 import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,setPersistence,browserSessionPersistence} from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
 
-// Isi dengan konfigurasi Web App dari Firebase Console.
-// firebaseConfig bukan password siswa dan memang dipakai di sisi web.
 const FIREBASE_CONFIG={
-  apiKey:'',
-  authDomain:'',
-  projectId:'',
-  storageBucket:'',
-  messagingSenderId:'',
-  appId:''
+  apiKey:'AIzaSyCMWsvVJPem3_5Y-x8Zrjz90LodbNLkxUs',
+  authDomain:'pagar-nusa-smk-sore.firebaseapp.com',
+  projectId:'pagar-nusa-smk-sore',
+  storageBucket:'pagar-nusa-smk-sore.firebasestorage.app',
+  messagingSenderId:'886023358297',
+  appId:'1:886023358297:web:a993b09785130aebd1ae48',
+  measurementId:'G-VDK3CY3ZT0'
 };
 
-// Link Google Form Test Teori CBT Kenaikan Tingkat.
 const GOOGLE_FORM_URL='https://forms.gle/tNFHcxG1FNJFmbNw8';
 
 const $=id=>document.getElementById(id);
