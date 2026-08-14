@@ -1,4 +1,4 @@
-name: Update IPSI news card
+name: Update second organization news
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Clean and update IPSI news on homepage
+      - name: Update second news on homepage
         shell: bash
         run: |
           python3 - <<'PY'
@@ -23,36 +23,26 @@ jobs:
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
 
-          css='''\n/* NEWS READ MORE V33 */\n.newsCard p{text-align:justify;line-height:1.7}\n.newsReadMore{display:inline-flex;align-items:center;margin-top:12px;color:#166534;text-decoration:none;font-size:12px;font-weight:900;letter-spacing:.2px}\n.newsReadMore:hover{text-decoration:underline}\n'''
-          if '/* NEWS READ MORE V33 */' not in s:
-              s=s.replace('</style>',css+'\n</style>',1)
-
-          # Hapus sisa artikel panjang yang pernah tertempel langsung di halaman utama.
-          s=re.sub(r'\n\s*<article class="articleNews">.*?</article>', '', s, count=1, flags=re.S)
-
           ticker_pattern=r'(<div class="newsTicker"[^>]*><div class="newsTickerTrack">).*?(</div></div>)'
-          ticker_text='KABAR TERBARU • Prestasi Tim IPSI SMK SORE Tulungagung di IPSI Tulungagung Cup 2026 • Portal CBT siswa tersedia • Kontak resmi semakin lengkap • Galeri kegiatan dapat dilihat langsung di website •'
+          ticker_text='KABAR TERBARU • Prestasi Tim IPSI SMK SORE Tulungagung di IPSI Tulungagung Cup 2026 • Bapak Feriawan menghadiri Rapat Koordinasi Peraturan Organisasi Pagar Nusa Tulungagung • Galeri kegiatan dapat dilihat langsung di website •'
           s=re.sub(ticker_pattern, lambda m: m.group(1)+ticker_text+m.group(2), s, count=1, flags=re.S)
 
-          news_grid=s.find('<div class="newsGrid">')
-          if news_grid<0:
-              raise SystemExit('newsGrid tidak ditemukan')
-          first_start=s.find('<article class="newsCard">',news_grid)
-          first_end=s.find('</article>',first_start)
-          if first_start<0 or first_end<0:
-              raise SystemExit('kartu berita pertama tidak ditemukan')
-          first_end += len('</article>')
+          pattern=r'<article class="newsCard">\s*<div class="newsIcon" aria-hidden="true">☎</div>\s*<div class="newsMeta"><span class="newsDate">15 Agustus 2026</span><span class="newsBadge">INFO</span></div>\s*<h3>Kontak Resmi Kini Lebih Lengkap</h3>\s*<p>Instagram, TikTok, Email, WhatsApp, dan alamat Sekretariat kini tersedia pada bagian bawah website\.</p>\s*</article>'
 
-          card='''<article class="newsCard">\n        <div class="newsIcon" aria-hidden="true">🏆</div>\n        <div class="newsMeta"><span class="newsDate">15 Agustus 2026</span><span class="newsBadge">PRESTASI</span></div>\n        <h3>Selamat dan Sukses Tim IPSI SMK SORE Tulungagung!</h3>\n        <p>Keluarga besar SMK SORE Tulungagung memberikan apresiasi kepada atlet pencak silat Pagar Nusa yang berhasil menorehkan prestasi membanggakan dalam Kejuaraan IPSI Tulungagung Cup 2026.</p>\n        <a class="newsReadMore" href="berita-ipsi-tulungagung-cup-2026.html">BACA SELENGKAPNYA →</a>\n      </article>'''
-          s=s[:first_start]+card+s[first_end:]
+          card='''<article class="newsCard">\n        <div class="newsIcon" aria-hidden="true">🏛️</div>\n        <div class="newsMeta"><span class="newsDate">15 Agustus 2026</span><span class="newsBadge">ORGANISASI</span></div>\n        <h3>Pembina Pagar Nusa Rayon SMK SORE Hadiri Rapat Koordinasi Peraturan Organisasi</h3>\n        <p>Bapak Feriawan, S.Pd., M.T., Gr. menghadiri Rapat Koordinasi Pembahasan Peraturan Organisasi Pengurus Cabang Pagar Nusa Tulungagung di Gedung PCNU Tulungagung sebagai bagian dari penguatan tata kelola dan soliditas organisasi.</p>\n        <a class="newsReadMore" href="berita-rakor-peraturan-organisasi-pagar-nusa-tulungagung.html">BACA SELENGKAPNYA →</a>\n      </article>'''
+
+          s,n=re.subn(pattern,card,s,count=1,flags=re.S)
+          if n!=1:
+              raise SystemExit('Kartu berita kedua lama tidak ditemukan')
+
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit cleaned homepage news
+      - name: Commit second organization news
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           git diff --cached --quiet && exit 0
-          git commit -m 'Rapikan berita prestasi IPSI Cup di halaman utama'
+          git commit -m 'Tambahkan berita rakor organisasi sebagai berita kedua'
           git push
