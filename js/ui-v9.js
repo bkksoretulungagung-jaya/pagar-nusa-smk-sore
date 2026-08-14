@@ -18,6 +18,23 @@ document.addEventListener('DOMContentLoaded',()=>{
     }).catch(()=>{});
   }
 
+  // Pakai foto JPEG terbaru yang diunggah pengguna, bukan SVG galeri lama.
+  // Nomor versi mencegah browser terus menampilkan foto dari cache lama.
+  const galleryThumbs=[
+    'assets/galeri-6.svg.jpeg?v=21',
+    'assets/galeri-3.svg.jpeg?v=21',
+    'assets/galeri-4.svg.jpeg?v=21',
+    'assets/galeri-1.svg.jpeg?v=21',
+    'assets/galeri-2.svg.jpeg?v=21',
+    'assets/galeri-7.svg?v=21'
+  ];
+  document.querySelectorAll('#gallerySection .galleryItem img').forEach((img,i)=>{
+    if(galleryThumbs[i]){
+      img.src=galleryThumbs[i];
+      img.decoding='async';
+    }
+  });
+
   // Bersihkan elemen duplikat dari versi lama yang pernah dibuat lewat JavaScript.
   document.querySelectorAll('#pnWelcomeWrap,.pnWelcomeWrap,#pnEkskulInfo,.pnEkskulInfo').forEach(el=>el.remove());
 
@@ -47,4 +64,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v20: persistent browser storage requested for cached Excel database.
+// Build marker v21: gallery uses latest JPEG photos with cache busting.
