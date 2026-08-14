@@ -20,8 +20,10 @@
 .exkulInfo h3{margin:0 0 8px;color:#14532d;font-size:17px;font-weight:900}
 .exkulInfo p{margin:0;color:#334155;font-size:13px;line-height:1.75;text-align:justify}
 #pnWelcomeWrap,.pnWelcomeWrap,#pnEkskulInfo,.pnEkskulInfo{display:none!important}
-.bottomAdminLogin{display:flex;justify-content:center;align-items:center;margin:18px 0 4px;padding:18px 14px;border-top:1px solid #d7e4dc}
+.bottomAdminLogin{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 4px;padding:18px 14px;border-top:1px solid #d7e4dc}
 .bottomAdminLogin .adminLoginBtn{background:#14532d!important;border:0!important;border-radius:10px!important;padding:12px 24px!important;color:#fff!important;font-weight:900!important;box-shadow:0 4px 14px rgba(20,83,45,.18)!important}
+.studentCbtLoginBtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:#166534;border:0;border-radius:10px;padding:12px 24px;color:#fff;font-weight:900;box-shadow:0 4px 14px rgba(22,101,52,.18)}
+.studentCbtLoginBtn:hover{filter:brightness(1.05)}
 @media(max-width:680px){.logoFrame{width:86px!important;height:86px!important;min-width:86px!important;min-height:86px!important;padding:7px!important}.logoFrame img{width:72px!important;height:72px!important;max-width:72px!important;max-height:72px!important}.topBar{display:flex!important;flex-wrap:wrap!important}.dashboardHeroHead h2{font-size:17px!important}.dashboardHeroHead p{font-size:11px!important}.welcomeTicker{margin:12px 10px}.welcomeTickerTrack{font-size:13px;padding:9px 0}.exkulInfo{padding:15px 16px}.exkulInfo h3{font-size:15px}.exkulInfo p{font-size:12px;line-height:1.65}}
 @media(prefers-reduced-motion:reduce){.welcomeTickerTrack{animation:none;text-align:center;transform:none}}
 </style>
@@ -118,6 +120,7 @@
   </section>
 
   <div id="bottomAdminLogin" class="bottomAdminLogin">
+    <a id="studentCbtLoginBtn" class="studentCbtLoginBtn" href="siswa.html">🎓 LOGIN SISWA / CBT</a>
     <button id="topLoginBtn" class="adminLoginBtn" type="button" onclick="openAdminLogin()">🔐 LOGIN ADMIN</button>
   </div>
 </div>
@@ -210,6 +213,6 @@
 <script src="js/part5.js?v=17"></script>
 <script src="js/part6.js?v=17"></script>
 <script src="js/part7.js?v=17"></script>
-<script src="js/ui-v9.js?v=17"></script>
+<script src="js/ui-v9.js?v=18"></script>
 </body>
 </html>
