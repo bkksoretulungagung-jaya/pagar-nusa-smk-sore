@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pagar Nusa Rayon SMK Sore Tulungagung</title>
-<link rel="stylesheet" href="app.css?v=14">
-<link rel="stylesheet" href="ui-v9.css?v=14">
+<link rel="stylesheet" href="app.css?v=15">
+<link rel="stylesheet" href="ui-v9.css?v=15">
 <style>
 .topBar{grid-template-columns:auto 1fr!important;align-items:center!important}
 .topLogos{display:flex!important;align-items:center!important;justify-content:center!important;gap:14px!important;overflow:visible!important}
@@ -13,9 +13,16 @@
 .logoFrame img{display:block!important;width:88px!important;height:88px!important;max-width:88px!important;max-height:88px!important;object-fit:contain!important;object-position:center!important;padding:0!important;margin:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
 .dashboardHeroHead h2{font-size:20px!important;line-height:1.35!important;margin:0!important}
 .dashboardHeroHead p{display:block!important;margin:6px 0 0!important;font-size:12px!important;line-height:1.55!important;opacity:.94!important;max-width:980px!important}
+.welcomeTicker{max-width:1180px;margin:16px auto 14px;overflow:hidden;background:#14532d;border:1px solid #166534;border-radius:12px;box-shadow:0 4px 14px rgba(20,83,45,.18)}
+.welcomeTickerTrack{display:inline-block;min-width:100%;white-space:nowrap;padding:11px 0;color:#fff;font-size:15px;font-weight:900;letter-spacing:.2px;animation:pnTicker 15s linear infinite}
+@keyframes pnTicker{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+.exkulInfo{margin:18px 0 20px;padding:18px 20px;background:#fff;border:1px solid #b9d4c2;border-left:6px solid #166534;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.exkulInfo h3{margin:0 0 8px;color:#14532d;font-size:17px;font-weight:900}
+.exkulInfo p{margin:0;color:#334155;font-size:13px;line-height:1.75;text-align:justify}
 .bottomAdminLogin{display:flex;justify-content:center;align-items:center;margin:18px 0 4px;padding:18px 14px;border-top:1px solid #d7e4dc}
 .bottomAdminLogin .adminLoginBtn{background:#14532d!important;border:0!important;border-radius:10px!important;padding:12px 24px!important;color:#fff!important;font-weight:900!important;box-shadow:0 4px 14px rgba(20,83,45,.18)!important}
-@media(max-width:680px){.logoFrame{width:86px!important;height:86px!important;min-width:86px!important;min-height:86px!important;padding:7px!important}.logoFrame img{width:72px!important;height:72px!important;max-width:72px!important;max-height:72px!important}.topBar{display:flex!important;flex-wrap:wrap!important}.dashboardHeroHead h2{font-size:17px!important}.dashboardHeroHead p{font-size:11px!important}}
+@media(max-width:680px){.logoFrame{width:86px!important;height:86px!important;min-width:86px!important;min-height:86px!important;padding:7px!important}.logoFrame img{width:72px!important;height:72px!important;max-width:72px!important;max-height:72px!important}.topBar{display:flex!important;flex-wrap:wrap!important}.dashboardHeroHead h2{font-size:17px!important}.dashboardHeroHead p{font-size:11px!important}.welcomeTicker{margin:12px 10px}.welcomeTickerTrack{font-size:13px;padding:9px 0}.exkulInfo{padding:15px 16px}.exkulInfo h3{font-size:15px}.exkulInfo p{font-size:12px;line-height:1.65}}
+@media(prefers-reduced-motion:reduce){.welcomeTickerTrack{animation:none;text-align:center;transform:none}}
 </style>
 </head>
 <body>
@@ -23,8 +30,8 @@
   <div class="wrap" style="margin:0 auto">
     <div class="topBar">
       <div class="topLogos">
-        <span class="logoFrame"><img src="assets/logo-smk-sore-v4.svg?v=14" alt="Logo SMK Sore"></span>
-        <span class="logoFrame"><img src="assets/logo-pagar-nusa-v3.svg?v=14" alt="Logo Pagar Nusa"></span>
+        <span class="logoFrame"><img src="assets/logo-smk-sore-v4.svg?v=15" alt="Logo SMK Sore"></span>
+        <span class="logoFrame"><img src="assets/logo-pagar-nusa-v3.svg?v=15" alt="Logo Pagar Nusa"></span>
       </div>
       <div class="topText">
         <h1>PAGAR NUSA RAYON SMK SORE TULUNGAGUNG</h1>
@@ -56,6 +63,10 @@
 </aside>
 
 <div id="publicHome" class="publicHome">
+  <div class="welcomeTicker" aria-label="Selamat datang">
+    <div class="welcomeTickerTrack">SELAMAT DATANG DI DATABASE PAGAR NUSA RAYON SMK SORE TULUNGAGUNG • SELAMAT DATANG DI DATABASE PAGAR NUSA RAYON SMK SORE TULUNGAGUNG</div>
+  </div>
+
   <section class="dashboardHero">
     <div class="dashboardHeroHead">
       <div>
@@ -63,6 +74,11 @@
         <p>Rayon SMK Sore Tulungagung Memuat semangat juang, kekeluargaan, serta komitmen dalam menjaga ajaran Ahlussunnah wal Jamaah dan melestarikan budaya bangsa</p>
       </div>
       <div id="dashSource" class="dashSource">Ringkasan dashboard database terakhir</div>
+    </div>
+
+    <div class="exkulInfo">
+      <h3>TENTANG EKSTRAKURIKULER PENCAK SILAT PAGAR NUSA</h3>
+      <p>Ekstrakurikuler Pencak Silat Pagar Nusa Rayon SMK SORE Tulungagung menjadi wadah bagi siswa untuk mengembangkan keterampilan pencak silat sekaligus membentuk kedisiplinan, ketahanan fisik dan mental, serta karakter yang bertanggung jawab. Kegiatan ini menumbuhkan semangat persaudaraan, sportivitas, keberanian, kepedulian, cinta tanah air, dan nilai-nilai Ahlussunnah wal Jamaah, serta ikut menjaga dan melestarikan pencak silat sebagai bagian dari budaya bangsa Indonesia.</p>
     </div>
 
     <div class="dashboardKpis">
@@ -186,13 +202,13 @@
 
 <div class="footer">© 2026 Database Pagar Nusa Rayon SMK Sore Tulungagung</div>
 
-<script src="js/part1.js"></script>
-<script src="js/part2.js"></script>
-<script src="js/part3.js"></script>
-<script src="js/part4.js"></script>
-<script src="js/part5.js"></script>
-<script src="js/part6.js"></script>
-<script src="js/part7.js"></script>
-<script src="js/ui-v9.js?v=14"></script>
+<script src="js/part1.js?v=15"></script>
+<script src="js/part2.js?v=15"></script>
+<script src="js/part3.js?v=15"></script>
+<script src="js/part4.js?v=15"></script>
+<script src="js/part5.js?v=15"></script>
+<script src="js/part6.js?v=15"></script>
+<script src="js/part7.js?v=15"></script>
+<script src="js/ui-v9.js?v=15"></script>
 </body>
 </html>
