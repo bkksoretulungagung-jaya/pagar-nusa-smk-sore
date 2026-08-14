@@ -32,11 +32,11 @@
 .siteContactsInner{max-width:1180px;margin:0 auto;padding:22px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:36px}
 .siteContactLeft,.siteContactRight{min-width:0}
 .siteContactLeft{display:flex;flex-direction:column;align-items:flex-start;gap:7px}
-.siteContactRight{margin-left:auto;width:min(100%,480px);text-align:center;max-width:480px;display:flex;flex-direction:column;align-items:center}
+.siteContactRight{margin-left:auto;width:min(100%,480px);text-align:left;max-width:480px;display:flex;flex-direction:column;align-items:flex-start}
 .siteContacts h3{margin:0 0 5px;font-size:14px;letter-spacing:.5px;font-weight:900;color:#fff}
 .siteContacts a,.siteContacts p{margin:0;color:#f3fff7;font-size:13px;line-height:1.6;text-decoration:none;overflow-wrap:anywhere}
 .siteContacts a:hover{text-decoration:underline;color:#fff}
-@media(max-width:680px){.siteContactsInner{padding:18px 16px;display:block}.siteContactRight{margin:18px auto 0;text-align:center;max-width:none;align-items:center}.siteContacts a,.siteContacts p{font-size:12px}.siteContacts h3{font-size:13px}}
+@media(max-width:680px){.siteContactsInner{padding:18px 16px;display:block}.siteContactRight{margin:18px 0 0 auto;text-align:left;max-width:100%;align-items:flex-start}.siteContacts a,.siteContacts p{font-size:12px}.siteContacts h3{font-size:13px}}
 
 
 /* CONTACT ICONS V30 */
@@ -44,8 +44,8 @@
 .siteContactLink{padding:2px 0}
 .siteContactIcon{width:22px;height:22px;min-width:22px;display:block;flex:0 0 22px}
 .siteContactLink:hover{transform:translateX(2px);transition:transform .18s ease}
-.siteContactLocation{justify-content:center;text-align:center;max-width:460px}
-@media(max-width:680px){.siteContactIcon{width:21px;height:21px;min-width:21px}.siteContactLocation{justify-content:center;text-align:center}}
+.siteContactLocation{justify-content:flex-start;text-align:left;max-width:460px}
+@media(max-width:680px){.siteContactIcon{width:21px;height:21px;min-width:21px}.siteContactLocation{justify-content:flex-start;text-align:left}}
 
 </style>
 </head>
@@ -259,7 +259,6 @@
     <div class="siteContactRight">
       <h3>SEKRETARIAT</h3>
       <p class="siteContactLocation">
-        <svg class="siteContactIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.15 7-13a7 7 0 1 0-14 0c0 6.85 7 13 7 13Z" fill="#fff" opacity=".18"/><path d="M12 21s6-5.65 6-12a6 6 0 1 0-12 0c0 6.35 6 12 6 12Z" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="9" r="2.2" fill="#fff"/></svg>
         <span>Jln. Mastrip No. 100, Kabupaten Tulungagung, Jawa Timur 66235</span>
       </p>
     </div>
