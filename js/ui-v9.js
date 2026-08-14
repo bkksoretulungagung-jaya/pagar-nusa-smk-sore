@@ -10,6 +10,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   const adminPass=document.getElementById('adminPass');
   if(adminPass)adminPass.value='';
 
+  // Minta penyimpanan persisten agar database Excel yang sudah dipilih
+  // tetap tersimpan di browser dan tidak perlu di-upload setiap membuka web.
+  if(navigator.storage?.persist){
+    navigator.storage.persist().then(granted=>{
+      document.documentElement.dataset.pnPersistentStorage=granted?'true':'false';
+    }).catch(()=>{});
+  }
+
   // Bersihkan elemen duplikat dari versi lama yang pernah dibuat lewat JavaScript.
   document.querySelectorAll('#pnWelcomeWrap,.pnWelcomeWrap,#pnEkskulInfo,.pnEkskulInfo').forEach(el=>el.remove());
 
@@ -39,4 +47,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v19: student CBT button typography matches admin login.
+// Build marker v20: persistent browser storage requested for cached Excel database.
