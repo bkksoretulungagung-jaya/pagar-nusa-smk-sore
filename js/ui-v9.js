@@ -26,6 +26,17 @@ document.addEventListener('DOMContentLoaded',()=>{
     link.textContent='🎓 LOGIN SISWA / CBT';
     loginArea.insertBefore(link,loginArea.firstChild);
   }
+
+  // Samakan tipografi tombol LOGIN SISWA / CBT dengan LOGIN ADMIN.
+  const studentBtn=document.getElementById('studentCbtLoginBtn');
+  const adminBtn=document.getElementById('topLoginBtn');
+  if(studentBtn && adminBtn){
+    const adminStyle=getComputedStyle(adminBtn);
+    studentBtn.style.fontSize=adminStyle.fontSize;
+    studentBtn.style.fontFamily=adminStyle.fontFamily;
+    studentBtn.style.lineHeight=adminStyle.lineHeight;
+    studentBtn.style.letterSpacing=adminStyle.letterSpacing;
+  }
 });
 
-// Build marker v18: student CBT portal entry added; canonical ticker and extracurricular card remain.
+// Build marker v19: student CBT button typography matches admin login.
