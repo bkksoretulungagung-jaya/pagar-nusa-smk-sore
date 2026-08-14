@@ -1,0 +1,80 @@
+/* UI v9 — dashboard depan + area admin */
+body{background:#eef4f0}
+.top{background:linear-gradient(135deg,#164e2d,#176b3a 58%,#0f4c2d);padding:18px 18px}
+.top .wrap{max-width:1380px}
+.topBar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px}
+.topLogos{display:flex;align-items:center;gap:12px}
+.topLogos img{width:78px!important;height:78px!important;object-fit:contain!important;object-position:center!important;padding:4px!important;background:rgba(255,255,255,.10)!important;border-radius:13px!important}
+.topText h1{font-size:24px}
+.adminLoginBtn,.adminLogoutBtn,.backDashBtn{border:1px solid rgba(255,255,255,.34);background:rgba(255,255,255,.12);color:#fff;border-radius:9px;padding:10px 14px;font-weight:850;cursor:pointer;white-space:nowrap}
+.adminLoginBtn:hover,.adminLogoutBtn:hover,.backDashBtn:hover{background:rgba(255,255,255,.22)}
+
+.publicHome{max-width:1380px;margin:18px auto;padding:0 14px}
+.dashboardHero{background:#fff;border:1px solid #d7e4dc;border-radius:15px;box-shadow:0 4px 18px rgba(22,101,52,.08);overflow:hidden;margin-bottom:15px}
+.dashboardHeroHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:17px 18px;background:linear-gradient(90deg,#14532d,#166534);color:#fff}
+.dashboardHeroHead h2{margin:0;font-size:20px;letter-spacing:.2px}
+.dashboardHeroHead p{margin:5px 0 0;font-size:12px;opacity:.9}
+.dashSource{font-size:11px;font-weight:800;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);padding:7px 10px;border-radius:999px;white-space:nowrap}
+.dashboardKpis{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:11px;padding:15px}
+.dashKpi{background:linear-gradient(145deg,#14532d,#166534);color:#fff;border-radius:12px;padding:15px 16px;min-height:92px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 3px 12px rgba(22,101,52,.13)}
+.dashKpi.alt{background:linear-gradient(145deg,#1b5e20,#2e7d32)}
+.dashKpi .label{font-size:12px;font-weight:850;letter-spacing:.2px;text-transform:uppercase;opacity:.94}
+.dashKpi .value{font-size:30px;line-height:1.1;font-weight:950;margin-top:7px}
+.dashboardDetails{display:grid;grid-template-columns:repeat(4,minmax(230px,1fr));gap:12px;padding:0 15px 16px}
+.dashPanel{border:1px solid #ccd9d1;border-radius:11px;overflow:hidden;background:#fff}
+.dashPanel.wide{grid-column:span 2}
+.dashPanelTitle{background:#14532d;color:#fff;padding:10px 12px;font-size:13px;font-weight:900}
+.dashRows{padding:5px 10px 8px}
+.dashRow{display:grid;grid-template-columns:minmax(110px,1fr) minmax(70px,1.1fr) 34px;align-items:center;gap:7px;padding:5px 0;font-size:12px}
+.dashRowName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dashBarTrack{height:16px;background:#edf4ef;border-radius:4px;overflow:hidden}
+.dashBar{height:100%;background:linear-gradient(90deg,#16834a,#d9eee1);border-radius:4px}
+.dashBar.blue{background:linear-gradient(90deg,#1e5a96,#dce9f7)}
+.dashBar.orange{background:linear-gradient(90deg,#f59e0b,#fff1c7)}
+.dashRowVal{text-align:right;font-weight:850;color:#1f2937}
+
+.frontActions{display:flex;justify-content:center;padding:0 15px 17px}
+.frontLoginCta{border:0;border-radius:10px;background:#14532d;color:#fff;font-weight:900;padding:12px 22px;cursor:pointer;box-shadow:0 4px 14px rgba(20,83,45,.18)}
+.frontLoginCta:hover{background:#166534}
+
+#adminApp{max-width:1380px;margin:18px auto;padding:0 14px}
+.adminTopbar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#0f172a;color:#fff;border-radius:12px;padding:11px 14px;margin-bottom:14px;box-shadow:0 4px 14px rgba(15,23,42,.15)}
+.adminTopbar strong{font-size:14px}
+.adminTopActions{display:flex;gap:8px}
+.adminTopActions button{border:0;border-radius:8px;padding:8px 11px;font-weight:800;cursor:pointer}
+.adminTopActions .back{background:#e2e8f0;color:#0f172a}.adminTopActions .logout{background:#b91c1c;color:#fff}
+#adminApp .layout{margin-top:0}
+#adminApp .sidebar{top:12px}
+
+.loginModal{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.74);padding:18px}
+.loginCard{width:min(420px,94vw);background:#fff;border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.35);overflow:hidden}
+.loginCardHead{background:#14532d;color:#fff;padding:18px 20px}
+.loginCardHead h3{margin:0;font-size:19px}.loginCardHead p{margin:5px 0 0;font-size:12px;opacity:.9}
+.loginCardBody{padding:19px}
+.loginCard label{font-size:12px;font-weight:850;color:#334155;margin:0 0 6px}
+.loginCard input{margin-bottom:12px;padding:11px 12px}
+.loginButtons{display:flex;gap:9px;margin-top:5px}
+.loginButtons button{flex:1;border:0;border-radius:9px;padding:11px;font-weight:900;cursor:pointer}
+.loginSubmit{background:#14532d;color:#fff}.loginCancel{background:#e2e8f0;color:#334155}
+.loginError{min-height:20px;color:#b91c1c;font-size:12px;font-weight:750;margin-top:8px}
+.loginNote{font-size:10.5px;color:#64748b;line-height:1.45;margin-top:9px}
+
+.galleryCard{border-color:#d7e4dc}.galleryHead{background:linear-gradient(90deg,#ecfdf3,#f0f8f3)}.galleryHeadText h2{color:#14532d}
+.dbToggle{background:#14532d}.dbToggle:hover{background:#166534}
+
+@media(max-width:1050px){
+  .topBar{grid-template-columns:auto 1fr}.topAction{grid-column:1/-1;justify-self:end}
+  .dashboardKpis{grid-template-columns:repeat(2,1fr)}
+  .dashboardDetails{grid-template-columns:repeat(2,minmax(230px,1fr))}
+}
+@media(max-width:680px){
+  .top{padding:14px 10px}.topBar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .topLogos img{width:62px!important;height:62px!important}
+  .topText{flex:1 1 220px}.topText h1{font-size:18px!important}.topText p{font-size:11px}
+  .topAction{width:100%;display:flex;justify-content:flex-end}
+  .dashboardHeroHead{flex-direction:column}.dashSource{white-space:normal}
+  .dashboardKpis{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px;gap:8px}
+  .dashKpi{min-height:82px;padding:12px}.dashKpi .label{font-size:10px}.dashKpi .value{font-size:25px}
+  .dashboardDetails{grid-template-columns:1fr;padding:0 10px 12px}.dashPanel.wide{grid-column:span 1}
+  .adminTopbar{align-items:flex-start;flex-direction:column}.adminTopActions{width:100%}.adminTopActions button{flex:1}
+}
