@@ -1,0 +1,70 @@
+name: Convert gallery 6 to JPG
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/convert-gallery6.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  convert-gallery-6:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract JPEG and update gallery references
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64
+          import re
+          from pathlib import Path
+
+          root = Path('.')
+          svg_path = root / 'assets' / 'galeri-7.svg'
+          jpg_path = root / 'assets' / 'galeri-7.jpg'
+
+          svg = svg_path.read_text(encoding='utf-8')
+          match = re.search(r'data:image/(?:jpeg|jpg);base64,([^"\']+)', svg, re.I)
+          if not match:
+              raise SystemExit('Data JPEG tidak ditemukan di assets/galeri-7.svg')
+
+          jpg_path.write_bytes(base64.b64decode(match.group(1)))
+
+          replacements = {
+              Path('index.html'): True,
+              Path('js/ui-v9.js'): False,
+              Path('js/part7.js'): False,
+          }
+
+          for path, is_index in replacements.items():
+              text = path.read_text(encoding='utf-8')
+              text = re.sub(r'assets/galeri-7\.svg(?:\?v=\d+)?', 'assets/galeri-7.jpg?v=25', text)
+              if is_index:
+                  text = re.sub(r'js/part7\.js\?v=\d+', 'js/part7.js?v=25', text)
+                  text = re.sub(r'js/ui-v9\.js\?v=\d+', 'js/ui-v9.js?v=25', text)
+              else:
+                  text = re.sub(r'ui-v9-core\.js\?v=\d+', 'ui-v9-core.js?v=25', text)
+                  text = text.replace('Build marker v24', 'Build marker v25')
+              path.write_text(text, encoding='utf-8')
+
+          print(f'JPG dibuat: {jpg_path} ({jpg_path.stat().st_size} bytes)')
+          PY
+
+      - name: Commit generated JPG and references
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/galeri-7.jpg index.html js/ui-v9.js js/part7.js
+          if git diff --cached --quiet; then
+            echo "Tidak ada perubahan untuk disimpan."
+          else
+            git commit -m "Gunakan JPG asli untuk foto galeri 6 [skip ci]"
+            git push
+          fi
