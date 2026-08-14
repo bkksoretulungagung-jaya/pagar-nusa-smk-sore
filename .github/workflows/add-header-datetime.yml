@@ -19,54 +19,57 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          css = '''
-/* HEADER DATETIME V31 */
-.top{position:relative!important}
-.topBar{padding-top:16px!important}
-.siteDateTime{position:absolute;top:8px;right:12px;z-index:30;min-width:170px;padding:7px 10px;text-align:right;color:#fff;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.22);border-radius:9px;box-shadow:0 3px 10px rgba(0,0,0,.14);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);pointer-events:none;font-variant-numeric:tabular-nums}
-.siteDateText{font-size:11px;font-weight:800;line-height:1.25;white-space:nowrap;opacity:.96}
-.siteTimeText{margin-top:2px;font-size:15px;font-weight:900;line-height:1.15;letter-spacing:.5px;white-space:nowrap}
-@media(max-width:680px){.topBar{padding-top:42px!important}.siteDateTime{top:7px;right:8px;min-width:150px;padding:6px 8px}.siteDateText{font-size:10px}.siteTimeText{font-size:13px}}
-'''
           if '/* HEADER DATETIME V31 */' not in s:
-              s = s.replace('</style>', css + '\n</style>', 1)
+              css_lines = [
+                  '',
+                  '/* HEADER DATETIME V31 */',
+                  '.top{position:relative!important}',
+                  '.topBar{padding-top:16px!important}',
+                  '.siteDateTime{position:absolute;top:8px;right:12px;z-index:30;min-width:170px;padding:7px 10px;text-align:right;color:#fff;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.22);border-radius:9px;box-shadow:0 3px 10px rgba(0,0,0,.14);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);pointer-events:none;font-variant-numeric:tabular-nums}',
+                  '.siteDateText{font-size:11px;font-weight:800;line-height:1.25;white-space:nowrap;opacity:.96}',
+                  '.siteTimeText{margin-top:2px;font-size:15px;font-weight:900;line-height:1.15;letter-spacing:.5px;white-space:nowrap}',
+                  '@media(max-width:680px){.topBar{padding-top:42px!important}.siteDateTime{top:7px;right:8px;min-width:150px;padding:6px 8px}.siteDateText{font-size:10px}.siteTimeText{font-size:13px}}',
+                  '',
+              ]
+              css = '\n'.join(css_lines)
+              s = s.replace('</style>', css + '</style>', 1)
 
-          html = '''  <div id="siteDateTime" class="siteDateTime" aria-label="Tanggal dan waktu WIB">
-    <div id="siteDateText" class="siteDateText">Memuat tanggal...</div>
-    <div id="siteTimeText" class="siteTimeText">--:--:-- WIB</div>
-  </div>
-'''
           if 'id="siteDateTime"' not in s:
               marker = '<div class="top">\n'
               if marker not in s:
                   raise SystemExit('Header marker not found')
-              s = s.replace(marker, marker + html, 1)
+              html_lines = [
+                  '  <div id="siteDateTime" class="siteDateTime" aria-label="Tanggal dan waktu WIB">',
+                  '    <div id="siteDateText" class="siteDateText">Memuat tanggal...</div>',
+                  '    <div id="siteTimeText" class="siteTimeText">--:--:-- WIB</div>',
+                  '  </div>',
+              ]
+              s = s.replace(marker, marker + '\n'.join(html_lines) + '\n', 1)
 
-          script = '''
-<script>
-/* LIVE DATETIME WIB V31 */
-(function(){
-  const dateEl=document.getElementById('siteDateText');
-  const timeEl=document.getElementById('siteTimeText');
-  if(!dateEl||!timeEl) return;
-  const dateFmt=new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric',timeZone:'Asia/Jakarta'});
-  const timeFmt=new Intl.DateTimeFormat('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Jakarta'});
-  function updateSiteDateTime(){
-    const now=new Date();
-    dateEl.textContent=dateFmt.format(now);
-    timeEl.textContent=timeFmt.format(now)+' WIB';
-  }
-  updateSiteDateTime();
-  setInterval(updateSiteDateTime,1000);
-})();
-</script>
-'''
           if '/* LIVE DATETIME WIB V31 */' not in s:
-              s = s.replace('</body>', script + '\n</body>', 1)
+              script_lines = [
+                  '<script>',
+                  '/* LIVE DATETIME WIB V31 */',
+                  '(function(){',
+                  "  const dateEl=document.getElementById('siteDateText');",
+                  "  const timeEl=document.getElementById('siteTimeText');",
+                  '  if(!dateEl||!timeEl) return;',
+                  "  const dateFmt=new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric',timeZone:'Asia/Jakarta'});",
+                  "  const timeFmt=new Intl.DateTimeFormat('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Jakarta'});",
+                  '  function updateSiteDateTime(){',
+                  '    const now=new Date();',
+                  '    dateEl.textContent=dateFmt.format(now);',
+                  "    timeEl.textContent=timeFmt.format(now)+' WIB';",
+                  '  }',
+                  '  updateSiteDateTime();',
+                  '  setInterval(updateSiteDateTime,1000);',
+                  '})();',
+                  '</script>',
+              ]
+              s = s.replace('</body>', '\n'.join(script_lines) + '\n</body>', 1)
 
           p.write_text(s, encoding='utf-8')
           PY
