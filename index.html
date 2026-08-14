@@ -1,17 +1,32 @@
 <!doctype html>
 <html lang="id">
 <head>
-<!-- Hosted mobile build v8 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Aplikasi Database Pagar Nusa — Galeri Landscape & Database Persisten</title>
+<title>Dashboard & Aplikasi Database Pagar Nusa — Rayon SMK Sore Tulungagung</title>
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="ui-v9.css">
 </head>
 <body>
-<div class="top"><div class="wrap" style="margin:0 auto"><div class="topBar"><div class="topLogos"><img src="assets/logo-smk-sore.svg" alt="Logo SMK SORE"><img src="assets/logo-pagar-nusa-v3.svg" alt="Logo Pagar Nusa"></div><div class="topText"><h1>DATABASE PAGAR NUSA — RAYON SMK SORE TULUNGAGUNG</h1><p>Mari menjaga dan memperbarui data dengan penuh tanggung jawab. Dari data yang akurat, kita dapat mengambil keputusan yang tepat, memberikan pelayanan yang lebih baik, serta menjaga sejarah perjuangan anggota untuk generasi berikutnya.</p></div></div></div></div>
-<button id="dbToggle" class="dbToggle" type="button" onclick="toggleDatabasePanel()">⚙ DATABASE</button>
-<div id="dbBackdrop" class="dbBackdrop" onclick="toggleDatabasePanel(false)"></div>
-<aside id="dbDrawer" class="dbDrawer" aria-hidden="true">
+<div class="top">
+  <div class="wrap" style="margin:0 auto">
+    <div class="topBar">
+      <div class="topLogos">
+        <img src="assets/logo-smk-sore.svg" alt="Logo SMK Sore">
+        <img src="assets/logo-pagar-nusa-v3.svg" alt="Logo Pagar Nusa">
+      </div>
+      <div class="topText">
+        <h1>DATABASE PAGAR NUSA — RAYON SMK SORE TULUNGAGUNG</h1>
+        <p>Mari menjaga dan memperbarui data dengan penuh tanggung jawab. Dari data yang akurat, kita dapat mengambil keputusan yang tepat, memberikan pelayanan yang lebih baik, serta menjaga sejarah perjuangan anggota untuk generasi berikutnya.</p>
+      </div>
+      <div class="topAction"><button id="topLoginBtn" class="adminLoginBtn" type="button" onclick="openAdminLogin()">🔐 LOGIN ADMIN</button></div>
+    </div>
+  </div>
+</div>
+
+<button id="dbToggle" class="dbToggle hidden" type="button" onclick="toggleDatabasePanel()">⚙ DATABASE</button>
+<div id="dbBackdrop" class="dbBackdrop hidden" onclick="toggleDatabasePanel(false)"></div>
+<aside id="dbDrawer" class="dbDrawer hidden" aria-hidden="true">
   <div class="dbDrawerHead"><span>DATABASE EXCEL</span><button class="dbClose" type="button" onclick="toggleDatabasePanel(false)" aria-label="Tutup">×</button></div>
   <div class="dbDrawerBody">
   <div id="status" class="status">Pilih database <b>Database_Pagar_Nusa_BROWSER.xlsm</b> terlebih dahulu.</div>
@@ -30,29 +45,65 @@
 
   </div>
 </aside>
-<div class="wrap">
-  <div id="dashboard" class="dashboard">
-    <div class="metric"><div id="mSiswa" class="n">-</div><div class="l">Total Siswa/Anggota</div></div>
-    <div class="metric"><div id="mAktif" class="n">-</div><div class="l">Anggota Aktif</div></div>
-    <div class="metric"><div id="mAlumni" class="n">-</div><div class="l">Alumni</div></div>
-    <div class="metric"><div id="mPengurus" class="n">-</div><div class="l">Pengurus</div></div>
-    <div class="metric"><div id="mPrestasi" class="n">-</div><div class="l">Prestasi</div></div>
-    <div class="metric"><div id="mKeluar" class="n">-</div><div class="l">Data Keluar</div></div>
-  </div>
 
-  <section class="galleryCard" id="gallerySection">
-    <div class="galleryHead"><div class="galleryHeadText"><h2>GALERI KEGIATAN</h2><p>Dokumentasi Pagar Nusa Rayon SMK Sore Tulungagung — klik foto untuk memperbesar.</p></div><span class="badge ok">7 FOTO</span></div>
-    <div class="galleryStrip">
-    <button class="galleryItem" type="button" data-gallery-index="0" onclick="openGallery(0)" aria-label="Buka foto dokumentasi 1"><img src="assets/galeri-1.svg" alt="Dokumentasi kegiatan Pagar Nusa 1" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 1</span></button>
-    <button class="galleryItem" type="button" data-gallery-index="1" onclick="openGallery(1)" aria-label="Buka foto dokumentasi 2"><img src="assets/galeri-2-v3.svg" alt="Dokumentasi kegiatan Pagar Nusa 2" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 2</span></button>
-    <button class="galleryItem" type="button" data-gallery-index="2" onclick="openGallery(2)" aria-label="Buka foto dokumentasi 3"><img src="assets/galeri-3.svg" alt="Dokumentasi kegiatan Pagar Nusa 3" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 3</span></button>
-    <button class="galleryItem" type="button" data-gallery-index="3" onclick="openGallery(3)" aria-label="Buka foto dokumentasi 4"><img src="assets/galeri-4.svg" alt="Dokumentasi kegiatan Pagar Nusa 4" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 4</span></button>
-    <button class="galleryItem" type="button" data-gallery-index="4" onclick="openGallery(4)" aria-label="Buka foto dokumentasi 5"><img src="assets/galeri-5.svg" alt="Dokumentasi kegiatan Pagar Nusa 5" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 5</span></button>
-    <button class="galleryItem" type="button" data-gallery-index="5" onclick="openGallery(5)" aria-label="Buka foto dokumentasi 6"><img src="assets/galeri-6-v3.svg" alt="Dokumentasi kegiatan Pagar Nusa 6" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 6</span></button>
-    <button class="galleryItem" type="button" data-gallery-index="6" onclick="openGallery(6)" aria-label="Buka foto dokumentasi 7"><img src="assets/galeri-7.svg" alt="Dokumentasi kegiatan Pagar Nusa 7" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 7</span></button>
+<div id="publicHome" class="publicHome">
+  <section class="dashboardHero">
+    <div class="dashboardHeroHead">
+      <div>
+        <h2>DASHBOARD DATABASE PAGAR NUSA</h2>
+        <p>Rayon SMK Sore Tulungagung — ringkasan keanggotaan, pengurus, alumni, kehadiran, dan prestasi.</p>
+      </div>
+      <div id="dashSource" class="dashSource">Ringkasan dashboard database terakhir</div>
+    </div>
+
+    <div class="dashboardKpis">
+      <div class="dashKpi"><div class="label">Total Siswa/Anggota</div><div id="mSiswa" class="value">123</div></div>
+      <div class="dashKpi"><div class="label">Anggota Aktif</div><div id="mAktif" class="value">23</div></div>
+      <div class="dashKpi"><div class="label">Alumni Terdata</div><div id="mAlumni" class="value">38</div></div>
+      <div class="dashKpi"><div class="label">Total Prestasi</div><div id="mPrestasi" class="value">10</div></div>
+      <div class="dashKpi alt"><div class="label">Laki-laki</div><div id="mMale" class="value">112</div></div>
+      <div class="dashKpi alt"><div class="label">Perempuan</div><div id="mFemale" class="value">11</div></div>
+      <div class="dashKpi alt"><div class="label">Total Hadir Tercatat</div><div id="mAttendance" class="value">0</div></div>
+      <div class="dashKpi alt"><div class="label">Total Pengurus</div><div id="mPengurus" class="value">23</div></div>
+      <span id="mKeluar" class="hidden">0</span>
+    </div>
+
+    <div class="dashboardDetails">
+      <div class="dashPanel"><div class="dashPanelTitle">Status Keanggotaan</div><div id="dashStatusMember" class="dashRows"></div></div>
+      <div class="dashPanel"><div class="dashPanelTitle">Tingkat / Sabuk</div><div id="dashBelt" class="dashRows"></div></div>
+      <div class="dashPanel"><div class="dashPanelTitle">Kelas</div><div id="dashClass" class="dashRows"></div></div>
+      <div class="dashPanel"><div class="dashPanelTitle">Status Pengurus</div><div id="dashPengurus" class="dashRows"></div></div>
+      <div class="dashPanel wide"><div class="dashPanelTitle">Aktivitas Alumni</div><div id="dashAlumniActivity" class="dashRows"></div></div>
+      <div class="dashPanel"><div class="dashPanelTitle">Program Alumni</div><div id="dashAlumniProgram" class="dashRows"></div></div>
+      <div class="dashPanel"><div class="dashPanelTitle">Status Kontak Alumni</div><div id="dashAlumniContact" class="dashRows"></div></div>
+    </div>
+
+    <div class="frontActions">
+      <button class="frontLoginCta" type="button" onclick="openAdminLogin()">🔐 MASUK APLIKASI ADMIN</button>
     </div>
   </section>
 
+  <section class="galleryCard" id="gallerySection">
+    <div class="galleryHead"><div class="galleryHeadText"><h2>GALERI KEGIATAN</h2><p>Dokumentasi Pagar Nusa Rayon SMK Sore Tulungagung — klik foto untuk memperbesar.</p></div><span class="badge ok">6 FOTO</span></div>
+    <div class="galleryStrip">
+      <button class="galleryItem" type="button" data-gallery-index="0" onclick="openGallery(0)" aria-label="Buka foto dokumentasi 1"><img src="assets/galeri-1.svg" alt="Dokumentasi kegiatan Pagar Nusa 1" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 1</span></button>
+      <button class="galleryItem" type="button" data-gallery-index="1" onclick="openGallery(1)" aria-label="Buka foto dokumentasi 2"><img src="assets/galeri-3.svg" alt="Dokumentasi kegiatan Pagar Nusa 2" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 2</span></button>
+      <button class="galleryItem" type="button" data-gallery-index="2" onclick="openGallery(2)" aria-label="Buka foto dokumentasi 3"><img src="assets/galeri-4.svg" alt="Dokumentasi kegiatan Pagar Nusa 3" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 3</span></button>
+      <button class="galleryItem" type="button" data-gallery-index="3" onclick="openGallery(3)" aria-label="Buka foto dokumentasi 4"><img src="assets/galeri-5.svg" alt="Dokumentasi kegiatan Pagar Nusa 4" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 4</span></button>
+      <button class="galleryItem" type="button" data-gallery-index="4" onclick="openGallery(4)" aria-label="Buka foto dokumentasi 5"><img src="assets/galeri-6-v3.svg" alt="Dokumentasi kegiatan Pagar Nusa 5" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 5</span></button>
+      <button class="galleryItem" type="button" data-gallery-index="5" onclick="openGallery(5)" aria-label="Buka foto dokumentasi 6"><img src="assets/galeri-7.svg" alt="Dokumentasi kegiatan Pagar Nusa 6" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 6</span></button>
+    </div>
+  </section>
+</div>
+
+<div id="adminApp" class="hidden">
+  <div class="adminTopbar">
+    <strong>🔐 AREA ADMIN — INPUT & KELOLA DATABASE</strong>
+    <div class="adminTopActions">
+      <button class="back" type="button" onclick="showPublicDashboard()">← DASHBOARD</button>
+      <button class="logout" type="button" onclick="logoutAdmin()">KELUAR ADMIN</button>
+    </div>
+  </div>
   <div class="layout">
     <div class="sidebar card"><div class="cardTitle">MENU INPUT DATA</div><div id="nav" class="nav"></div></div>
     <main>
@@ -94,6 +145,7 @@
       </div></div>
     </main>
   </div>
+</div>
 
 <div id="galleryLightbox" class="galleryLightbox" aria-hidden="true" onclick="galleryBackdropClose(event)">
   <div class="galleryLightboxInner">
@@ -104,8 +156,27 @@
     <div id="galleryCaption" class="galleryCaption"></div>
   </div>
 </div>
-  <div class="footer">© 2026 Database v6 Pagar Nusa Rayon SMK Sore Tulungagung</div>
+
+<div id="loginModal" class="loginModal hidden" aria-hidden="true">
+  <form class="loginCard" onsubmit="return submitAdminLogin(event)">
+    <div class="loginCardHead"><h3>LOGIN ADMIN</h3><p>Masuk ke aplikasi untuk mengelola dan memperbarui database.</p></div>
+    <div class="loginCardBody">
+      <label for="adminUser">Username</label>
+      <input id="adminUser" type="text" autocomplete="username" value="admin" required>
+      <label for="adminPass">Password</label>
+      <input id="adminPass" type="password" autocomplete="current-password" required>
+      <div class="loginButtons">
+        <button class="loginCancel" type="button" onclick="closeAdminLogin()">BATAL</button>
+        <button class="loginSubmit" type="submit">MASUK</button>
+      </div>
+      <div id="loginError" class="loginError"></div>
+      <div class="loginNote">Login ini menjaga akses antarmuka admin pada situs statis. Database Excel tetap disimpan pada perangkat/browser dan tidak diunggah ke GitHub.</div>
+    </div>
+  </form>
 </div>
+
+<div class="footer">© 2026 Database Pagar Nusa Rayon SMK Sore Tulungagung</div>
+
 <script src="js/part1.js"></script>
 <script src="js/part2.js"></script>
 <script src="js/part3.js"></script>
@@ -113,5 +184,6 @@
 <script src="js/part5.js"></script>
 <script src="js/part6.js"></script>
 <script src="js/part7.js"></script>
+<script src="js/ui-v9.js"></script>
 </body>
 </html>
