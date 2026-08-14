@@ -6,3 +6,5 @@ document.addEventListener('DOMContentLoaded',()=>{
   const adminPass=document.getElementById('adminPass');
   if(adminPass)adminPass.value='';
 });
+
+// Build marker v14: logo frames + dashboard title/subtitle are defined in index.html.
