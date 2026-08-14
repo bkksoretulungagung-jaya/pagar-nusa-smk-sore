@@ -3,8 +3,10 @@ body{background:#eef4f0}
 .top{background:linear-gradient(135deg,#164e2d,#176b3a 58%,#0f4c2d);padding:18px 18px}
 .top .wrap{max-width:1380px}
 .topBar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px}
-.topLogos{display:flex;align-items:center;gap:12px}
-.topLogos img{width:78px!important;height:78px!important;object-fit:contain!important;object-position:center!important;padding:4px!important;background:rgba(255,255,255,.10)!important;border-radius:13px!important}
+.topLogos{display:flex;align-items:center;justify-content:center;gap:14px;min-height:86px;overflow:visible}
+.topLogos img{display:block!important;object-fit:contain!important;object-position:center!important;box-sizing:border-box!important;border-radius:13px!important}
+.topLogos img:first-child{width:auto!important;height:82px!important;max-width:94px!important;padding:3px!important;background:rgba(255,255,255,.10)!important}
+.topLogos img:last-child{width:82px!important;height:82px!important;padding:4px!important;background:rgba(255,255,255,.10)!important}
 .topText h1{font-size:24px}
 .adminLoginBtn,.adminLogoutBtn,.backDashBtn{border:1px solid rgba(255,255,255,.34);background:rgba(255,255,255,.12);color:#fff;border-radius:9px;padding:10px 14px;font-weight:850;cursor:pointer;white-space:nowrap}
 .adminLoginBtn:hover,.adminLogoutBtn:hover,.backDashBtn:hover{background:rgba(255,255,255,.22)}
@@ -69,7 +71,9 @@ body{background:#eef4f0}
 }
 @media(max-width:680px){
   .top{padding:14px 10px}.topBar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-  .topLogos img{width:62px!important;height:62px!important}
+  .topLogos{gap:10px;min-height:70px}
+  .topLogos img:first-child{height:66px!important;max-width:76px!important;padding:2px!important}
+  .topLogos img:last-child{width:66px!important;height:66px!important;padding:3px!important}
   .topText{flex:1 1 220px}.topText h1{font-size:18px!important}.topText p{font-size:11px}
   .topAction{width:100%;display:flex;justify-content:flex-end}
   .dashboardHeroHead{flex-direction:column}.dashSource{white-space:normal}
