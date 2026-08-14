@@ -1,0 +1,43 @@
+name: Final gallery 6 fix
+
+on:
+  push:
+    paths:
+      - '.github/workflows/final-gallery6.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Point gallery 6 to final JPEG
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          targets=[Path('index.html'),Path('js/ui-v9.js'),Path('js/part7.js')]
+          for p in targets:
+              s=p.read_text(encoding='utf-8')
+              s=re.sub(r'assets/galeri-7\.jpg\?v=\d+','assets/galeri-6-final.jpg?v=27',s)
+              s=re.sub(r'assets/galeri-7\.svg\?v=\d+','assets/galeri-6-final.jpg?v=27',s)
+              p.write_text(s,encoding='utf-8')
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'js/part7\.js\?v=\d+','js/part7.js?v=27',s)
+          s=re.sub(r'js/ui-v9\.js\?v=\d+','js/ui-v9.js?v=27',s)
+          p.write_text(s,encoding='utf-8')
+          PY
+          test -s assets/galeri-6-final.jpg
+          file assets/galeri-6-final.jpg
+      - name: Commit final gallery fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html js/ui-v9.js js/part7.js
+          git diff --cached --quiet && exit 0
+          git commit -m 'Final perbaikan foto galeri 6 [skip ci]'
+          git push
