@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     'assets/galeri-4.svg.jpeg?v=21',
     'assets/galeri-1.svg.jpeg?v=21',
     'assets/galeri-2.svg.jpeg?v=21',
-    'assets/galeri-7.svg?v=22'
+    'assets/galeri-7.svg?v=24'
   ];
   document.querySelectorAll('#gallerySection .galleryItem img').forEach((img,i)=>{
     if(galleryThumbs[i]){
@@ -74,4 +74,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v23: responsive handphone stylesheet enabled.
+// Build marker v24: force refresh gallery photo 6.
