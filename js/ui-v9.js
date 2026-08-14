@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     'assets/galeri-4.svg.jpeg?v=21',
     'assets/galeri-1.svg.jpeg?v=21',
     'assets/galeri-2.svg.jpeg?v=21',
-    'assets/galeri-7.jpg?v=26'
+    'assets/galeri-6-final.jpg?v=27'
   ];
   document.querySelectorAll('#gallerySection .galleryItem img').forEach((img,i)=>{
     if(galleryThumbs[i]){
