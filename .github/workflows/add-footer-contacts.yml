@@ -19,47 +19,44 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
-
-          css='''
-/* CONTACT FOOTER V29 */
-.siteContacts{margin-top:18px;background:#0f3d24;color:#fff;border-top:1px solid #1d5b38}
-.siteContactsInner{max-width:1180px;margin:0 auto;padding:22px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:36px}
-.siteContactLeft,.siteContactRight{min-width:0}
-.siteContactLeft{display:flex;flex-direction:column;align-items:flex-start;gap:7px}
-.siteContactRight{text-align:right;max-width:430px}
-.siteContacts h3{margin:0 0 5px;font-size:14px;letter-spacing:.5px;font-weight:900;color:#fff}
-.siteContacts a,.siteContacts p{margin:0;color:#f3fff7;font-size:13px;line-height:1.6;text-decoration:none;overflow-wrap:anywhere}
-.siteContacts a:hover{text-decoration:underline;color:#fff}
-@media(max-width:680px){.siteContactsInner{padding:18px 16px;display:block}.siteContactRight{margin-top:18px;text-align:left;max-width:none}.siteContacts a,.siteContacts p{font-size:12px}.siteContacts h3{font-size:13px}}
-'''
-
-          html='''
-<section id="siteContacts" class="siteContacts" aria-label="Kontak Pagar Nusa SMK Sore Tulungagung">
-  <div class="siteContactsInner">
-    <div class="siteContactLeft">
-      <h3>KONTAK</h3>
-      <a href="https://www.instagram.com/pagarnusa_smksoretulungagung/" target="_blank" rel="noopener noreferrer">📷 Instagram: @pagarnusa_smksoretulungagung</a>
-      <a href="https://www.tiktok.com/@pagarnusarayonsmksore" target="_blank" rel="noopener noreferrer">🎵 TikTok: @pagarnusarayonsmksore</a>
-      <a href="mailto:pagarnusasmksore86@gmail.com">✉ Email: pagarnusasmksore86@gmail.com</a>
-    </div>
-    <div class="siteContactRight">
-      <h3>SEKRETARIAT</h3>
-      <p>📍 Jln. Mastrip No. 100 Tulungagung</p>
-    </div>
-  </div>
-</section>
-'''
-
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          css = """
+          /* CONTACT FOOTER V29 */
+          .siteContacts{margin-top:18px;background:#0f3d24;color:#fff;border-top:1px solid #1d5b38}
+          .siteContactsInner{max-width:1180px;margin:0 auto;padding:22px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:36px}
+          .siteContactLeft,.siteContactRight{min-width:0}
+          .siteContactLeft{display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+          .siteContactRight{text-align:right;max-width:430px}
+          .siteContacts h3{margin:0 0 5px;font-size:14px;letter-spacing:.5px;font-weight:900;color:#fff}
+          .siteContacts a,.siteContacts p{margin:0;color:#f3fff7;font-size:13px;line-height:1.6;text-decoration:none;overflow-wrap:anywhere}
+          .siteContacts a:hover{text-decoration:underline;color:#fff}
+          @media(max-width:680px){.siteContactsInner{padding:18px 16px;display:block}.siteContactRight{margin-top:18px;text-align:left;max-width:none}.siteContacts a,.siteContacts p{font-size:12px}.siteContacts h3{font-size:13px}}
+          """
+          html = """
+          <section id="siteContacts" class="siteContacts" aria-label="Kontak Pagar Nusa SMK Sore Tulungagung">
+            <div class="siteContactsInner">
+              <div class="siteContactLeft">
+                <h3>KONTAK</h3>
+                <a href="https://www.instagram.com/pagarnusa_smksoretulungagung/" target="_blank" rel="noopener noreferrer">📷 Instagram: @pagarnusa_smksoretulungagung</a>
+                <a href="https://www.tiktok.com/@pagarnusarayonsmksore" target="_blank" rel="noopener noreferrer">🎵 TikTok: @pagarnusarayonsmksore</a>
+                <a href="mailto:pagarnusasmksore86@gmail.com">✉ Email: pagarnusasmksore86@gmail.com</a>
+              </div>
+              <div class="siteContactRight">
+                <h3>SEKRETARIAT</h3>
+                <p>📍 Jln. Mastrip No. 100 Tulungagung</p>
+              </div>
+            </div>
+          </section>
+          """
           if '/* CONTACT FOOTER V29 */' not in s:
-              s=s.replace('</style>', css+'\n</style>', 1)
+              s = s.replace('</style>', css + '\n</style>', 1)
           if 'id="siteContacts"' not in s:
-              marker='<div class="footer">© 2026 Database Pagar Nusa Rayon SMK Sore Tulungagung</div>'
+              marker = '<div class="footer">© 2026 Database Pagar Nusa Rayon SMK Sore Tulungagung</div>'
               if marker not in s:
                   raise SystemExit('Footer marker not found')
-              s=s.replace(marker, html+'\n'+marker, 1)
-          p.write_text(s,encoding='utf-8')
+              s = s.replace(marker, html + '\n' + marker, 1)
+          p.write_text(s, encoding='utf-8')
           PY
       - name: Commit contact footer
         run: |
