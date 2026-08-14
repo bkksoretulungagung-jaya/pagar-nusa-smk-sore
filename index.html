@@ -32,11 +32,11 @@
 .siteContactsInner{max-width:1180px;margin:0 auto;padding:22px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:36px}
 .siteContactLeft,.siteContactRight{min-width:0}
 .siteContactLeft{display:flex;flex-direction:column;align-items:flex-start;gap:7px}
-.siteContactRight{text-align:right;max-width:430px}
+.siteContactRight{margin-left:auto;width:min(100%,480px);text-align:center;max-width:480px;display:flex;flex-direction:column;align-items:center}
 .siteContacts h3{margin:0 0 5px;font-size:14px;letter-spacing:.5px;font-weight:900;color:#fff}
 .siteContacts a,.siteContacts p{margin:0;color:#f3fff7;font-size:13px;line-height:1.6;text-decoration:none;overflow-wrap:anywhere}
 .siteContacts a:hover{text-decoration:underline;color:#fff}
-@media(max-width:680px){.siteContactsInner{padding:18px 16px;display:block}.siteContactRight{margin-top:18px;text-align:left;max-width:none}.siteContacts a,.siteContacts p{font-size:12px}.siteContacts h3{font-size:13px}}
+@media(max-width:680px){.siteContactsInner{padding:18px 16px;display:block}.siteContactRight{margin:18px auto 0;text-align:center;max-width:none;align-items:center}.siteContacts a,.siteContacts p{font-size:12px}.siteContacts h3{font-size:13px}}
 
 
 /* CONTACT ICONS V30 */
@@ -44,8 +44,8 @@
 .siteContactLink{padding:2px 0}
 .siteContactIcon{width:22px;height:22px;min-width:22px;display:block;flex:0 0 22px}
 .siteContactLink:hover{transform:translateX(2px);transition:transform .18s ease}
-.siteContactLocation{justify-content:flex-end}
-@media(max-width:680px){.siteContactIcon{width:21px;height:21px;min-width:21px}.siteContactLocation{justify-content:flex-start}}
+.siteContactLocation{justify-content:center;text-align:center;max-width:460px}
+@media(max-width:680px){.siteContactIcon{width:21px;height:21px;min-width:21px}.siteContactLocation{justify-content:center;text-align:center}}
 
 </style>
 </head>
