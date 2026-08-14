@@ -1,0 +1,56 @@
+name: Update IPSI news card
+
+on:
+  push:
+    paths:
+      - '.github/workflows/update-ipsi-news.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update IPSI news on homepage
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+
+          css='''\n/* NEWS READ MORE V33 */\n.newsCard p{text-align:justify;line-height:1.7}\n.newsReadMore{display:inline-flex;align-items:center;margin-top:12px;color:#166534;text-decoration:none;font-size:12px;font-weight:900;letter-spacing:.2px}\n.newsReadMore:hover{text-decoration:underline}\n'''
+          if '/* NEWS READ MORE V33 */' not in s:
+              s=s.replace('</style>',css+'\n</style>',1)
+
+          old_ticker='KABAR TERBARU • Portal CBT siswa tersedia • Kontak resmi semakin lengkap • Galeri kegiatan dapat dilihat langsung di website •'
+          new_ticker='KABAR TERBARU • Prestasi Tim IPSI SMK SORE Tulungagung di IPSI Tulungagung Cup 2026 • Portal CBT siswa tersedia • Kontak resmi semakin lengkap • Galeri kegiatan dapat dilihat langsung di website •'
+          if old_ticker in s:
+              s=s.replace(old_ticker,new_ticker,1)
+
+          news_grid=s.find('<div class="newsGrid">')
+          if news_grid<0:
+              raise SystemExit('newsGrid tidak ditemukan')
+          first_start=s.find('<article class="newsCard">',news_grid)
+          first_end=s.find('</article>',first_start)
+          if first_start<0 or first_end<0:
+              raise SystemExit('kartu berita pertama tidak ditemukan')
+          first_end += len('</article>')
+
+          card='''<article class="newsCard">\n        <div class="newsIcon" aria-hidden="true">🏆</div>\n        <div class="newsMeta"><span class="newsDate">15 Agustus 2026</span><span class="newsBadge">PRESTASI</span></div>\n        <h3>Selamat dan Sukses Tim IPSI SMK SORE Tulungagung!</h3>\n        <p>Keluarga besar SMK SORE Tulungagung memberikan apresiasi kepada atlet pencak silat Pagar Nusa yang berhasil menorehkan prestasi membanggakan dalam Kejuaraan IPSI Tulungagung Cup 2026.</p>\n        <a class="newsReadMore" href="berita-ipsi-tulungagung-cup-2026.html">BACA SELENGKAPNYA →</a>\n      </article>'''
+          s=s[:first_start]+card+s[first_end:]
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit homepage news update
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Tampilkan berita prestasi IPSI Cup di halaman utama'
+          git push
