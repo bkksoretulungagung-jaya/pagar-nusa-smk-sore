@@ -1,0 +1,60 @@
+name: Update second news with organization meeting
+
+on:
+  push:
+    paths:
+      - '.github/workflows/update-news-2-rakor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update second news card
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          old_ticker = 'KABAR TERBARU • Prestasi Tim IPSI SMK SORE Tulungagung di IPSI Tulungagung Cup 2026 • Portal CBT siswa tersedia • Kontak resmi semakin lengkap • Galeri kegiatan dapat dilihat langsung di website •'
+          new_ticker = 'KABAR TERBARU • Prestasi Tim IPSI SMK SORE Tulungagung di IPSI Tulungagung Cup 2026 • Bapak Feriawan menghadiri Rapat Koordinasi Peraturan Organisasi Pagar Nusa Tulungagung • Galeri kegiatan dapat dilihat langsung di website •'
+          if old_ticker in s:
+              s = s.replace(old_ticker, new_ticker, 1)
+
+          old_card = '''      <article class="newsCard">
+        <div class="newsIcon" aria-hidden="true">☎</div>
+        <div class="newsMeta"><span class="newsDate">15 Agustus 2026</span><span class="newsBadge">INFO</span></div>
+        <h3>Kontak Resmi Kini Lebih Lengkap</h3>
+        <p>Instagram, TikTok, Email, WhatsApp, dan alamat Sekretariat kini tersedia pada bagian bawah website.</p>
+      </article>'''
+
+          new_card = '''      <article class="newsCard">
+        <div class="newsIcon" aria-hidden="true">🏛️</div>
+        <div class="newsMeta"><span class="newsDate">15 Agustus 2026</span><span class="newsBadge">ORGANISASI</span></div>
+        <h3>Pembina Pagar Nusa Rayon SMK SORE Hadiri Rapat Koordinasi Peraturan Organisasi</h3>
+        <p>Bapak Feriawan, S.Pd., M.T., Gr. menghadiri Rapat Koordinasi Pembahasan Peraturan Organisasi Pengurus Cabang Pagar Nusa Tulungagung di Gedung PCNU Tulungagung sebagai bagian dari penguatan tata kelola dan soliditas organisasi.</p>
+        <a class="newsReadMore" href="berita-rakor-peraturan-organisasi-pagar-nusa-tulungagung.html">BACA SELENGKAPNYA →</a>
+      </article>'''
+
+          if old_card not in s:
+              raise SystemExit('Kartu berita kedua lama tidak ditemukan')
+
+          s = s.replace(old_card, new_card, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit second news
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Tambahkan berita rakor organisasi sebagai berita kedua'
+          git push
