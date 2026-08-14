@@ -1,0 +1,49 @@
+name: Remove gallery photo 6
+
+on:
+  push:
+    paths:
+      - '.github/workflows/remove-gallery6.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove photo 6 from gallery
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('<span class="badge ok">6 FOTO</span>','<span class="badge ok">5 FOTO</span>')
+          s='\n'.join(line for line in s.split('\n') if 'data-gallery-index="5"' not in line)
+          s=s.replace('js/part7.js?v=27','js/part7.js?v=28')
+          s=s.replace('js/ui-v9.js?v=27','js/ui-v9.js?v=28')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('js/ui-v9.js')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r"  const galleryThumbs=\[.*?\n  \];", "  const galleryThumbs=[\n    'assets/galeri-6.svg.jpeg?v=21',\n    'assets/galeri-3.svg.jpeg?v=21',\n    'assets/galeri-4.svg.jpeg?v=21',\n    'assets/galeri-1.svg.jpeg?v=21',\n    'assets/galeri-2.svg.jpeg?v=21'\n  ];", s, flags=re.S)
+          s=re.sub(r'// Build marker v\d+:.*', '// Build marker v28: gallery 5 photos only.', s)
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('js/part7.js')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r"const galleryImages=\[.*?\];", "const galleryImages=['assets/galeri-6.svg.jpeg?v=21','assets/galeri-3.svg.jpeg?v=21','assets/galeri-4.svg.jpeg?v=21','assets/galeri-1.svg.jpeg?v=21','assets/galeri-2.svg.jpeg?v=21'];", s)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit gallery update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html js/ui-v9.js js/part7.js
+          git diff --cached --quiet && exit 0
+          git commit -m 'Hapus foto galeri 6, tampilkan 5 foto'
+          git push
