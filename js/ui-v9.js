@@ -91,7 +91,10 @@ async function sha256Hex(text){
 function openAdminLogin(){
   document.getElementById('loginModal')?.classList.remove('hidden');
   const u=document.getElementById('adminUser');const p=document.getElementById('adminPass');const e=document.getElementById('loginError');
-  if(e)e.textContent='';if(u)u.value='admin';if(p)p.value='';setTimeout(()=>p?.focus(),60)
+  if(e)e.textContent='';
+  if(u){u.value='';u.setAttribute('autocomplete','off')}
+  if(p){p.value='';p.setAttribute('autocomplete','current-password')}
+  setTimeout(()=>u?.focus(),60)
 }
 function closeAdminLogin(){document.getElementById('loginModal')?.classList.add('hidden')}
 async function submitAdminLogin(ev){
@@ -125,6 +128,8 @@ function logoutAdmin(){sessionStorage.removeItem('pnAdminAuth');showPublicDashbo
 document.addEventListener('DOMContentLoaded',()=>{
   renderDashboardData(DASH_SNAPSHOT,false);
   setAdminControls(false);
+  const u=document.getElementById('adminUser');if(u){u.value='';u.setAttribute('autocomplete','off')}
+  const p=document.getElementById('adminPass');if(p)p.value='';
   if(sessionStorage.getItem('pnAdminAuth')==='1')enterAdmin(false);
   document.getElementById('loginModal')?.addEventListener('click',e=>{if(e.target?.id==='loginModal')closeAdminLogin()});
 });
