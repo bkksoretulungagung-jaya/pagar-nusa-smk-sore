@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Update IPSI news on homepage
+      - name: Clean and update IPSI news on homepage
         shell: bash
         run: |
           python3 - <<'PY'
@@ -27,10 +27,12 @@ jobs:
           if '/* NEWS READ MORE V33 */' not in s:
               s=s.replace('</style>',css+'\n</style>',1)
 
-          old_ticker='KABAR TERBARU • Portal CBT siswa tersedia • Kontak resmi semakin lengkap • Galeri kegiatan dapat dilihat langsung di website •'
-          new_ticker='KABAR TERBARU • Prestasi Tim IPSI SMK SORE Tulungagung di IPSI Tulungagung Cup 2026 • Portal CBT siswa tersedia • Kontak resmi semakin lengkap • Galeri kegiatan dapat dilihat langsung di website •'
-          if old_ticker in s:
-              s=s.replace(old_ticker,new_ticker,1)
+          # Hapus sisa artikel panjang yang pernah tertempel langsung di halaman utama.
+          s=re.sub(r'\n\s*<article class="articleNews">.*?</article>', '', s, count=1, flags=re.S)
+
+          ticker_pattern=r'(<div class="newsTicker"[^>]*><div class="newsTickerTrack">).*?(</div></div>)'
+          ticker_text='KABAR TERBARU • Prestasi Tim IPSI SMK SORE Tulungagung di IPSI Tulungagung Cup 2026 • Portal CBT siswa tersedia • Kontak resmi semakin lengkap • Galeri kegiatan dapat dilihat langsung di website •'
+          s=re.sub(ticker_pattern, lambda m: m.group(1)+ticker_text+m.group(2), s, count=1, flags=re.S)
 
           news_grid=s.find('<div class="newsGrid">')
           if news_grid<0:
@@ -45,12 +47,12 @@ jobs:
           s=s[:first_start]+card+s[first_end:]
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit homepage news update
+      - name: Commit cleaned homepage news
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           git diff --cached --quiet && exit 0
-          git commit -m 'Tampilkan berita prestasi IPSI Cup di halaman utama'
+          git commit -m 'Rapikan berita prestasi IPSI Cup di halaman utama'
           git push
