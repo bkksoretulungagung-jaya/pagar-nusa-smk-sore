@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="id">
+<head>
+<!-- Hosted mobile build v8 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aplikasi Database Pagar Nusa — Galeri Landscape & Database Persisten</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="top"><div class="wrap" style="margin:0 auto"><div class="topBar"><div class="topLogos"><img src="assets/logo-smk-sore.svg" alt="Logo SMK SORE"><img src="assets/logo-pagar-nusa.svg" alt="Logo Pagar Nusa"></div><div class="topText"><h1>DATABASE PAGAR NUSA — RAYON SMK SORE TULUNGAGUNG</h1><p>Mari menjaga dan memperbarui data dengan penuh tanggung jawab. Dari data yang akurat, kita dapat mengambil keputusan yang tepat, memberikan pelayanan yang lebih baik, serta menjaga sejarah perjuangan anggota untuk generasi berikutnya.</p></div></div></div></div>
+<button id="dbToggle" class="dbToggle" type="button" onclick="toggleDatabasePanel()">⚙ DATABASE</button>
+<div id="dbBackdrop" class="dbBackdrop" onclick="toggleDatabasePanel(false)"></div>
+<aside id="dbDrawer" class="dbDrawer" aria-hidden="true">
+  <div class="dbDrawerHead"><span>DATABASE EXCEL</span><button class="dbClose" type="button" onclick="toggleDatabasePanel(false)" aria-label="Tutup">×</button></div>
+  <div class="dbDrawerBody">
+  <div id="status" class="status">Pilih database <b>Database_Pagar_Nusa_BROWSER.xlsm</b> terlebih dahulu.</div>
+
+  <div class="card"><div class="cardTitle"><span>PILIH / SIMPAN DATABASE</span><span id="saveMode" class="badge">BELUM TERHUBUNG</span></div><div class="cardBody">
+    <div class="picker">
+      <button class="fileBtn" onclick="chooseDatabase()">PILIH DATABASE EXCEL</button>
+      <input id="file" type="file" accept=".xlsm,.xlsx,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" onchange="loadSelectedFile(this.files[0])">
+      <button class="btn down" onclick="downloadFinal()">DOWNLOAD / SIMPAN FILE FINAL</button>
+      <span id="dbName" class="dbName">Belum ada file dipilih</span>
+    </div>
+    <div id="drop" class="drop">Atau tarik file database .xlsm/.xlsx ke area ini.</div>
+    <div class="hint"><b>Chrome/Edge:</b> database terakhir akan <b>diingat otomatis</b> oleh browser. Setelah refresh atau HTML ditutup lalu dibuka lagi, database dan perubahan terakhir akan dimuat kembali tanpa pilih/upload ulang. Jika izin tulis diberikan, Simpan/Ubah/Hapus juga langsung menulis ke file Excel yang sama. Gunakan tombol PILIH DATABASE hanya jika ingin mengganti database.</div>
+  </div></div>
+
+
+  </div>
+</aside>
+<div class="wrap">
+  <div id="dashboard" class="dashboard">
+    <div class="metric"><div id="mSiswa" class="n">-</div><div class="l">Total Siswa/Anggota</div></div>
+    <div class="metric"><div id="mAktif" class="n">-</div><div class="l">Anggota Aktif</div></div>
+    <div class="metric"><div id="mAlumni" class="n">-</div><div class="l">Alumni</div></div>
+    <div class="metric"><div id="mPengurus" class="n">-</div><div class="l">Pengurus</div></div>
+    <div class="metric"><div id="mPrestasi" class="n">-</div><div class="l">Prestasi</div></div>
+    <div class="metric"><div id="mKeluar" class="n">-</div><div class="l">Data Keluar</div></div>
+  </div>
+
+  <section class="galleryCard" id="gallerySection">
+    <div class="galleryHead"><div class="galleryHeadText"><h2>GALERI KEGIATAN</h2><p>Dokumentasi Pagar Nusa Rayon SMK Sore Tulungagung — klik foto untuk memperbesar.</p></div><span class="badge ok">7 FOTO</span></div>
+    <div class="galleryStrip">
+    <button class="galleryItem" type="button" data-gallery-index="0" onclick="openGallery(0)" aria-label="Buka foto dokumentasi 1"><img src="assets/galeri-1.svg" alt="Dokumentasi kegiatan Pagar Nusa 1" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 1</span></button>
+    <button class="galleryItem" type="button" data-gallery-index="1" onclick="openGallery(1)" aria-label="Buka foto dokumentasi 2"><img src="assets/galeri-2.svg" alt="Dokumentasi kegiatan Pagar Nusa 2" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 2</span></button>
+    <button class="galleryItem" type="button" data-gallery-index="2" onclick="openGallery(2)" aria-label="Buka foto dokumentasi 3"><img src="assets/galeri-3.svg" alt="Dokumentasi kegiatan Pagar Nusa 3" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 3</span></button>
+    <button class="galleryItem" type="button" data-gallery-index="3" onclick="openGallery(3)" aria-label="Buka foto dokumentasi 4"><img src="assets/galeri-4.svg" alt="Dokumentasi kegiatan Pagar Nusa 4" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 4</span></button>
+    <button class="galleryItem" type="button" data-gallery-index="4" onclick="openGallery(4)" aria-label="Buka foto dokumentasi 5"><img src="assets/galeri-5.svg" alt="Dokumentasi kegiatan Pagar Nusa 5" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 5</span></button>
+    <button class="galleryItem" type="button" data-gallery-index="5" onclick="openGallery(5)" aria-label="Buka foto dokumentasi 6"><img src="assets/galeri-6.svg" alt="Dokumentasi kegiatan Pagar Nusa 6" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 6</span></button>
+    <button class="galleryItem" type="button" data-gallery-index="6" onclick="openGallery(6)" aria-label="Buka foto dokumentasi 7"><img src="assets/galeri-7.svg" alt="Dokumentasi kegiatan Pagar Nusa 7" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 7</span></button>
+    </div>
+  </section>
+
+  <div class="layout">
+    <div class="sidebar card"><div class="cardTitle">MENU INPUT DATA</div><div id="nav" class="nav"></div></div>
+    <main>
+      <div class="card"><div class="cardTitle"><span id="moduleTitle">PILIH MENU</span><span id="rowBadge" class="badge">DATA BARU</span></div><div class="cardBody">
+        <div id="moduleIntro" class="sectionNote">Pilih salah satu menu input di sebelah kiri.</div>
+
+        <div id="personSection" class="hidden">
+          <div class="searchTop"><div><label id="personLabel">Cari anggota</label><input id="personSearch" type="text" placeholder="Ketik nama atau ID..." oninput="searchPeople()"></div><button class="btn clear" onclick="clearPerson()">BERSIHKAN PILIHAN</button></div>
+          <select id="personResults" class="searchList" size="5" onchange="selectPerson()"></select>
+          <div id="personCard" class="personCard hidden"></div>
+        </div>
+
+        <div id="attendanceSection" class="hidden">
+          <div class="attendanceGrid">
+            <div><label>Bulan</label><select id="attMonth" class="yellow" onchange="loadAttendanceCurrent()"></select></div>
+            <div><label>Hadir</label><input id="attH" type="number" min="0" max="31" class="yellow"></div>
+            <div><label>Sakit</label><input id="attS" type="number" min="0" max="31" class="yellow"></div>
+            <div><label>Izin</label><input id="attI" type="number" min="0" max="31" class="yellow"></div>
+            <div><label>Tanpa Keterangan</label><input id="attA" type="number" min="0" max="31" class="yellow"></div>
+            <div><label>DO/Keluar</label><select id="attDO" class="yellow"><option value=""></option><option>DO/Keluar</option></select></div>
+          </div>
+          <div id="attCurrent" class="currentBox" style="margin-top:10px">Pilih anggota dan bulan.</div>
+        </div>
+
+        <div id="formSection"><div id="formGrid" class="formGrid"></div></div>
+
+        <div class="btnbar" style="margin-top:15px">
+          <button class="btn new" onclick="newRecord()">DATA BARU</button>
+          <button class="btn save" onclick="saveRecord()">SIMPAN</button>
+          <button class="btn edit" onclick="updateRecord()">UBAH</button>
+          <button class="btn del" onclick="deleteRecord()">HAPUS</button>
+          <button class="btn view" onclick="lihatData()">LIHAT DATA</button>
+        </div>
+      </div></div>
+
+      <div id="dataResultsCard" class="card"><div class="cardTitle"><span>DATA / HASIL</span><span id="recordCount" class="subtle">0 data</span></div><div class="cardBody">
+        <div class="searchTop"><div><label>Cari pada hasil</label><input id="recordSearch" type="text" placeholder="Ketik nama, ID, kegiatan, periode, dll..." oninput="renderRecords(false)"></div><button class="btn clear" onclick="document.getElementById('recordSearch').value='';renderRecords(false)">RESET</button></div>
+        <div class="tableWrap" style="margin-top:10px"><table class="results"><thead id="resultHead"></thead><tbody id="resultBody"></tbody></table></div>
+      </div></div>
+    </main>
+  </div>
+
+<div id="galleryLightbox" class="galleryLightbox" aria-hidden="true" onclick="galleryBackdropClose(event)">
+  <div class="galleryLightboxInner">
+    <button class="galleryClose" type="button" onclick="closeGallery()" aria-label="Tutup galeri">×</button>
+    <button class="galleryPrev" type="button" onclick="event.stopPropagation();stepGallery(-1)" aria-label="Foto sebelumnya">‹</button>
+    <img id="galleryLightboxImg" src="" alt="Foto galeri diperbesar">
+    <button class="galleryNext" type="button" onclick="event.stopPropagation();stepGallery(1)" aria-label="Foto berikutnya">›</button>
+    <div id="galleryCaption" class="galleryCaption"></div>
+  </div>
+</div>
+  <div class="footer">© 2026 Database v6 Pagar Nusa Rayon SMK Sore Tulungagung</div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
