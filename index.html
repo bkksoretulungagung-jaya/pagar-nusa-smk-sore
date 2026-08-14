@@ -3,23 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard & Aplikasi Database Pagar Nusa — Rayon SMK Sore Tulungagung</title>
-<link rel="stylesheet" href="app.css">
-<link rel="stylesheet" href="ui-v9.css">
+<title>Pagar Nusa Rayon SMK Sore Tulungagung</title>
+<link rel="stylesheet" href="app.css?v=13">
+<link rel="stylesheet" href="ui-v9.css?v=13">
+<style>
+.topBar{grid-template-columns:auto 1fr!important;align-items:center!important}
+.topLogos{display:flex!important;align-items:center!important;justify-content:center!important;gap:14px!important;overflow:visible!important}
+.topLogos img{width:92px!important;height:92px!important;min-width:92px!important;min-height:92px!important;max-width:92px!important;max-height:92px!important;object-fit:contain!important;object-position:center!important;padding:6px!important;box-sizing:border-box!important;background:#fff!important;border:1px solid #fff!important;border-radius:14px!important;box-shadow:0 3px 10px rgba(0,0,0,.18)!important}
+.dashboardHeroHead h2{font-size:18px!important;line-height:1.45!important;max-width:980px!important}
+.bottomAdminLogin{display:flex;justify-content:center;align-items:center;margin:18px 0 4px;padding:18px 14px;border-top:1px solid #d7e4dc}
+.bottomAdminLogin .adminLoginBtn{background:#14532d!important;border:0!important;border-radius:10px!important;padding:12px 24px!important;color:#fff!important;font-weight:900!important;box-shadow:0 4px 14px rgba(20,83,45,.18)!important}
+@media(max-width:680px){.topLogos img{width:76px!important;height:76px!important;min-width:76px!important;min-height:76px!important;max-width:76px!important;max-height:76px!important;padding:5px!important}.topBar{display:flex!important;flex-wrap:wrap!important}.dashboardHeroHead h2{font-size:15px!important;line-height:1.5!important}}
+</style>
 </head>
 <body>
 <div class="top">
   <div class="wrap" style="margin:0 auto">
     <div class="topBar">
       <div class="topLogos">
-        <img src="assets/logo-smk-sore.svg" alt="Logo SMK Sore">
-        <img src="assets/logo-pagar-nusa-v3.svg" alt="Logo Pagar Nusa">
+        <img src="assets/logo-smk-sore-v4.svg?v=13" alt="Logo SMK Sore">
+        <img src="assets/logo-pagar-nusa-v3.svg?v=13" alt="Logo Pagar Nusa">
       </div>
       <div class="topText">
-        <h1>DATABASE PAGAR NUSA — RAYON SMK SORE TULUNGAGUNG</h1>
+        <h1>PAGAR NUSA RAYON SMK SORE TULUNGAGUNG</h1>
         <p>Mari menjaga dan memperbarui data dengan penuh tanggung jawab. Dari data yang akurat, kita dapat mengambil keputusan yang tepat, memberikan pelayanan yang lebih baik, serta menjaga sejarah perjuangan anggota untuk generasi berikutnya.</p>
       </div>
-      <div class="topAction"><button id="topLoginBtn" class="adminLoginBtn" type="button" onclick="openAdminLogin()">🔐 LOGIN ADMIN</button></div>
     </div>
   </div>
 </div>
@@ -42,7 +50,6 @@
     <div class="hint"><b>Chrome/Edge:</b> database terakhir akan <b>diingat otomatis</b> oleh browser. Setelah refresh atau HTML ditutup lalu dibuka lagi, database dan perubahan terakhir akan dimuat kembali tanpa pilih/upload ulang. Jika izin tulis diberikan, Simpan/Ubah/Hapus juga langsung menulis ke file Excel yang sama. Gunakan tombol PILIH DATABASE hanya jika ingin mengganti database.</div>
   </div></div>
 
-
   </div>
 </aside>
 
@@ -50,8 +57,7 @@
   <section class="dashboardHero">
     <div class="dashboardHeroHead">
       <div>
-        <h2>DASHBOARD DATABASE PAGAR NUSA</h2>
-        <p>Rayon SMK Sore Tulungagung — ringkasan keanggotaan, pengurus, alumni, kehadiran, dan prestasi.</p>
+        <h2>Rayon SMK Sore Tulungagung Memuat semangat juang, kekeluargaan, serta komitmen dalam menjaga ajaran Ahlussunnah wal Jamaah dan melestarikan budaya bangsa</h2>
       </div>
       <div id="dashSource" class="dashSource">Ringkasan dashboard database terakhir</div>
     </div>
@@ -77,10 +83,6 @@
       <div class="dashPanel"><div class="dashPanelTitle">Program Alumni</div><div id="dashAlumniProgram" class="dashRows"></div></div>
       <div class="dashPanel"><div class="dashPanelTitle">Status Kontak Alumni</div><div id="dashAlumniContact" class="dashRows"></div></div>
     </div>
-
-    <div class="frontActions">
-      <button class="frontLoginCta" type="button" onclick="openAdminLogin()">🔐 MASUK APLIKASI ADMIN</button>
-    </div>
   </section>
 
   <section class="galleryCard" id="gallerySection">
@@ -94,6 +96,10 @@
       <button class="galleryItem" type="button" data-gallery-index="5" onclick="openGallery(5)" aria-label="Buka foto dokumentasi 6"><img src="assets/galeri-7.svg" alt="Dokumentasi kegiatan Pagar Nusa 6" loading="lazy"><span class="galleryZoom">⌕</span><span class="galleryOverlay">Dokumentasi Kegiatan • Foto 6</span></button>
     </div>
   </section>
+
+  <div id="bottomAdminLogin" class="bottomAdminLogin">
+    <button id="topLoginBtn" class="adminLoginBtn" type="button" onclick="openAdminLogin()">🔐 LOGIN ADMIN</button>
+  </div>
 </div>
 
 <div id="adminApp" class="hidden">
@@ -162,7 +168,7 @@
     <div class="loginCardHead"><h3>LOGIN ADMIN</h3><p>Masuk ke aplikasi untuk mengelola dan memperbarui database.</p></div>
     <div class="loginCardBody">
       <label for="adminUser">Username</label>
-      <input id="adminUser" type="text" autocomplete="username" value="admin" required>
+      <input id="adminUser" type="text" autocomplete="off" required>
       <label for="adminPass">Password</label>
       <input id="adminPass" type="password" autocomplete="current-password" required>
       <div class="loginButtons">
@@ -184,6 +190,6 @@
 <script src="js/part5.js"></script>
 <script src="js/part6.js"></script>
 <script src="js/part7.js"></script>
-<script src="js/ui-v9.js"></script>
+<script src="js/ui-v9.js?v=13"></script>
 </body>
 </html>
