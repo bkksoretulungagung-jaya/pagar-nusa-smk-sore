@@ -1,4 +1,4 @@
-name: Add header date time and Hijri
+name: Resize header date time
 
 on:
   push:
@@ -14,52 +14,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Add Hijri date to live header clock
+      - name: Make header date time smaller
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-
-          if '.siteHijriText{' not in s:
-              s = s.replace(
-                  '.siteDateText{font-size:11px;font-weight:800;line-height:1.25;white-space:nowrap;opacity:.96}',
-                  '.siteDateText{font-size:11px;font-weight:800;line-height:1.25;white-space:nowrap;opacity:.96}\n.siteHijriText{margin-top:2px;font-size:11px;font-weight:800;line-height:1.25;white-space:nowrap;color:#dff7e8}'
-              )
-              s = s.replace(
-                  '.siteDateText{font-size:10px}.siteTimeText{font-size:13px}',
-                  '.siteDateText{font-size:10px}.siteHijriText{font-size:10px}.siteTimeText{font-size:13px}'
-              )
-
-          if 'id="siteHijriText"' not in s:
-              s = s.replace(
-                  '    <div id="siteDateText" class="siteDateText">Memuat tanggal...</div>\n    <div id="siteTimeText" class="siteTimeText">--:--:-- WIB</div>',
-                  '    <div id="siteDateText" class="siteDateText">Memuat tanggal...</div>\n    <div id="siteHijriText" class="siteHijriText">Memuat tanggal Hijriah...</div>\n    <div id="siteTimeText" class="siteTimeText">--:--:-- WIB</div>'
-              )
-
-          if "const hijriEl=document.getElementById('siteHijriText');" not in s:
-              s = s.replace(
-                  "  const dateEl=document.getElementById('siteDateText');\n  const timeEl=document.getElementById('siteTimeText');\n  if(!dateEl||!timeEl) return;",
-                  "  const dateEl=document.getElementById('siteDateText');\n  const hijriEl=document.getElementById('siteHijriText');\n  const timeEl=document.getElementById('siteTimeText');\n  if(!dateEl||!hijriEl||!timeEl) return;"
-              )
-              s = s.replace(
-                  "  const dateFmt=new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric',timeZone:'Asia/Jakarta'});\n  const timeFmt=new Intl.DateTimeFormat('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Jakarta'});",
-                  "  const dateFmt=new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric',timeZone:'Asia/Jakarta'});\n  const hijriFmt=new Intl.DateTimeFormat('id-ID-u-ca-islamic',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Jakarta'});\n  const timeFmt=new Intl.DateTimeFormat('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Jakarta'});"
-              )
-              s = s.replace(
-                  '    dateEl.textContent=dateFmt.format(now);\n    timeEl.textContent=timeFmt.format(now)+\' WIB\';',
-                  "    dateEl.textContent=dateFmt.format(now);\n    let hijri=hijriFmt.format(now);\n    hijri=hijri.replace(/ AH$/i,' H').replace(/ M$/i,' H');\n    if(!/H$/i.test(hijri)) hijri += ' H';\n    hijriEl.textContent=hijri;\n    timeEl.textContent=timeFmt.format(now)+' WIB';"
-              )
-
+          s = s.replace('.siteDateText{font-size:11px;font-weight:800;line-height:1.25;white-space:nowrap;opacity:.96}', '.siteDateText{font-size:9px;font-weight:800;line-height:1.2;white-space:nowrap;opacity:.92}')
+          s = s.replace('.siteHijriText{margin-top:2px;font-size:11px;font-weight:800;line-height:1.25;white-space:nowrap;color:#dff7e8}', '.siteHijriText{margin-top:1px;font-size:9px;font-weight:800;line-height:1.2;white-space:nowrap;color:#dff7e8}')
+          s = s.replace('.siteTimeText{margin-top:2px;font-size:15px;font-weight:900;line-height:1.15;letter-spacing:.5px;white-space:nowrap}', '.siteTimeText{margin-top:2px;font-size:12px;font-weight:900;line-height:1.15;letter-spacing:.35px;white-space:nowrap}')
+          s = s.replace('.siteDateText{font-size:10px}.siteHijriText{font-size:10px}.siteTimeText{font-size:13px}', '.siteDateText{font-size:8px}.siteHijriText{font-size:8px}.siteTimeText{font-size:11px}')
           p.write_text(s, encoding='utf-8')
           PY
-      - name: Commit Hijri date
+      - name: Commit smaller header date time
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           git diff --cached --quiet && exit 0
-          git commit -m 'Tambahkan tanggal Hijriah pada jam header'
+          git commit -m 'Kecilkan ukuran tanggal dan jam di header'
           git push
