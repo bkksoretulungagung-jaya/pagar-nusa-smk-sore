@@ -35,8 +35,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     'assets/galeri-3.svg.jpeg?v=21',
     'assets/galeri-4.svg.jpeg?v=21',
     'assets/galeri-1.svg.jpeg?v=21',
-    'assets/galeri-2.svg.jpeg?v=21',
-    'assets/galeri-6-final.jpg?v=27'
+    'assets/galeri-2.svg.jpeg?v=21'
   ];
   document.querySelectorAll('#gallerySection .galleryItem img').forEach((img,i)=>{
     if(galleryThumbs[i]){
@@ -74,4 +73,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v25: force refresh gallery photo 6.
+// Build marker v28: gallery 5 photos only.
