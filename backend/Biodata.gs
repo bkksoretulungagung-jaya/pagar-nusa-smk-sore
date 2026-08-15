@@ -36,7 +36,7 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  const data = parseBody_(e);
+  const data = Object.assign({}, (e && e.parameter) || {}, parseBody_(e));
   const action = String(data.action || '');
   let result;
 
