@@ -264,10 +264,9 @@ async function changePassword(ev){
     if(!cap.v4)throw new Error('Backend final v4 belum aktif. Password belum diubah.');
 
     let result;
-    const oldPasswordValid=await legacyMatches('admin',cur);
 
-    if(cap.recoveryAvailable&&oldPasswordValid){
-      setMsg('','Memverifikasi password lama dan menyimpan password baru...');
+    if(cap.recoveryAvailable){
+      setMsg('','Memverifikasi password lama di server dan menyimpan password baru...');
       result=await postReliable('adminPasswordRecover',{
         username:'admin',
         currentPassword:cur,
