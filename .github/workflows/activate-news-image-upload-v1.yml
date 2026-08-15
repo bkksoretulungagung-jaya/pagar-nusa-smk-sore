@@ -1,0 +1,43 @@
+name: Activate news image upload
+
+on:
+  push:
+    paths:
+      - '.github/workflows/activate-news-image-upload-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load uploader directly and bust cache
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('js/content-manager-v1.js?v=2', 'js/content-manager-v1.js?v=3')
+          s = s.replace('js/drive-image-fix-v2.js?v=2', 'js/drive-image-fix-v2.js?v=3')
+          marker = '<script src="js/drive-image-fix-v2.js?v=3"></script>'
+          news = '<script src="js/news-image-manager-v1.js?v=2"></script>'
+          if news not in s:
+              if marker not in s:
+                  raise SystemExit('drive-image-fix script marker not found')
+              s = s.replace(marker, marker + '\n' + news, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit activation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "Activate upload gambar kabar dan informasi"
+            git push
+          fi
