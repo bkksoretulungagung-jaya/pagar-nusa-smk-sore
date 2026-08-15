@@ -1,0 +1,21 @@
+name: Install admin login recovery v1
+on:
+  push:
+    paths:
+      - '.github/workflows/install-admin-login-recovery-v1.yml'
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install admin login recovery
+        run: python tools/install_admin_login_recovery_v1.py
+      - name: Commit installation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Pulihkan login admin sebelum backend baru aktif"
+          git push
