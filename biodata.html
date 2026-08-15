@@ -72,6 +72,6 @@ $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginEr
 onAuthStateChanged(auth,async u=>{if(!u){user=null;$('portalView').classList.add('hidden');$('loginView').classList.remove('hidden');return}if(loginInFlight)return;sessionStorage.removeItem('pnBioUsername');sessionStorage.removeItem('pnBioMemberId');currentUsername='';currentMemberId='';user=null;try{await signOut(auth)}catch(_){}});
 $('editBtn').addEventListener('click',()=>setEdit(true));$('cancelBtn').addEventListener('click',()=>{render(bio);setEdit(false)});$('saveBtn').addEventListener('click',saveBio);$('logoutBtn').addEventListener('click',async()=>{sessionStorage.removeItem('pnBioUsername');sessionStorage.removeItem('pnBioMemberId');currentUsername='';currentMemberId='';await signOut(auth)});
 </script>
-<script src="js/biodata-date-display-fix-v2.js?v=2"></script>
+<script src="js/biodata-date-display-fix-v2.js?v=3"></script>
 </body>
 </html>
