@@ -52,26 +52,39 @@ document.addEventListener('DOMContentLoaded',()=>{
       style.textContent='.bottomAdminLogin{gap:10px;flex-wrap:wrap}.studentCbtLoginBtn,.studentBioLoginBtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:0;border-radius:10px;padding:12px 24px;color:#fff;font-weight:900;box-shadow:0 4px 14px rgba(22,101,52,.18)}.studentCbtLoginBtn{background:#166534}.studentBioLoginBtn{background:#0f766e}.studentCbtLoginBtn:hover,.studentBioLoginBtn:hover{filter:brightness(1.05)}';
       document.head.appendChild(style);
     }
+
     if(!document.getElementById('studentBioLoginBtn')){
       const bio=document.createElement('a');
       bio.id='studentBioLoginBtn';
       bio.className='studentBioLoginBtn';
       bio.href='biodata.html?v=5';
       bio.textContent='👤 PORTAL BIODATA SISWA';
-      loginArea.insertBefore(bio,loginArea.firstChild);
+      loginArea.appendChild(bio);
     }
+
     if(!document.getElementById('studentCbtLoginBtn')){
       const cbt=document.createElement('a');
       cbt.id='studentCbtLoginBtn';
       cbt.className='studentCbtLoginBtn';
       cbt.href='siswa.html?v=3';
       cbt.textContent='📝 PORTAL CBT ONLINE';
-      loginArea.insertBefore(cbt,document.getElementById('studentBioLoginBtn')?.nextSibling||loginArea.firstChild);
+      loginArea.insertBefore(cbt,loginArea.firstChild);
     }else{
       const cbt=document.getElementById('studentCbtLoginBtn');
       cbt.href='siswa.html?v=3';
       cbt.textContent='📝 PORTAL CBT ONLINE';
     }
+
+    const placeBioBeforeAdmin=()=>{
+      const bio=document.getElementById('studentBioLoginBtn');
+      const admin=document.getElementById('topLoginBtn');
+      if(bio&&admin&&bio.nextElementSibling!==admin){
+        loginArea.insertBefore(bio,admin);
+      }
+    };
+    placeBioBeforeAdmin();
+    setTimeout(placeBioBeforeAdmin,0);
+    setTimeout(placeBioBeforeAdmin,300);
   }
 
   const adminBtn=document.getElementById('topLoginBtn');
@@ -87,4 +100,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 });
 
-// Build marker v40: separate Biodata and CBT portals.
+// Build marker v41: biodata portal immediately left of admin login.
