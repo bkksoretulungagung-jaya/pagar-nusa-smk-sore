@@ -1,0 +1,34 @@
+name: Install content manager v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/install_content_manager_v1.py'
+      - 'tools/upgrade_content_manager_v7.py'
+      - '.github/workflows/install-content-manager-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upgrade content manager backend
+        run: python tools/upgrade_content_manager_v7.py
+      - name: Activate content manager frontend
+        run: python tools/install_content_manager_v1.py
+      - name: Commit content manager
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/Code.gs index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Aktifkan CMS foto kabar dan informasi"
+            git push
+          fi
