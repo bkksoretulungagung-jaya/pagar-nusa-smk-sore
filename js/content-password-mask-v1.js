@@ -124,17 +124,36 @@ function openMaskedPassword(){
   });
 }
 
+function markConnected(){
+  const status=$('pnCmsStatus');
+  if(status){status.textContent='✓ Akses konten aktif. Password disamarkan saat diketik.';status.className='pnCmsStatus ok'}
+  setTimeout(()=>$('pnCmsReload')?.click(),0);
+}
+
 async function handleProtectedClick(btn){
   const isConnect=btn.id==='pnCmsConnect';
   if(!isConnect&&sessionStorage.getItem(TOKEN_KEY))return false;
   const result=await openMaskedPassword();
   if(!result)return true;
-  const status=$('pnCmsStatus');
-  if(status){status.textContent='✓ Akses konten aktif. Password tidak ditampilkan saat diketik.';status.className='pnCmsStatus ok'}
-  if(isConnect){setTimeout(()=>$('pnCmsReload')?.click(),0)}
-  else setTimeout(()=>btn.click(),0);
+  markConnected();
+  if(!isConnect)setTimeout(()=>btn.click(),0);
   return true;
 }
+
+/* Fallback: blokir prompt browser lama jika fungsi pengelola konten memanggil window.prompt langsung. */
+const nativePrompt=window.prompt.bind(window);
+let promptBridgeBusy=false;
+window.prompt=function(message,defaultValue){
+  const text=String(message||'');
+  if(/Masukkan password admin untuk mengaktifkan pengelola konten/i.test(text)){
+    if(!promptBridgeBusy){
+      promptBridgeBusy=true;
+      openMaskedPassword().then(ok=>{if(ok)markConnected()}).finally(()=>{promptBridgeBusy=false});
+    }
+    return null;
+  }
+  return nativePrompt(message,defaultValue);
+};
 
 document.addEventListener('click',e=>{
   const btn=e.target?.closest?.('#pnCmsConnect,#pnCmsSaveContent,#pnCmsSaveGallery');
