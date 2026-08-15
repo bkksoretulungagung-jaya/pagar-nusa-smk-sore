@@ -40,8 +40,22 @@ function doGet(e) {
       storage:'Google Sheets',
       biodata:true,
       reviews:true,
-      reviewVersion:'4'
+      reviewVersion:'5'
     });
+  }
+
+  if (action === 'reviewPublicList') {
+    let result;
+    try {
+      result = reviewPublicList_();
+    } catch (err) {
+      result = {ok:false, reviews:[], message:String(err && err.message || err)};
+    }
+    result.rid = String(data.rid || '');
+    if (data.callback) {
+      return jsonp_(result, data.callback);
+    }
+    return json_(result);
   }
 
   if (action === 'register') {
@@ -515,7 +529,7 @@ function reviewSubmit_(data) {
 function reviewPublicList_() {
   const sheet = reviewSheet_();
   const last = sheet.getLastRow();
-  if (last < 2) return {ok:true,reviews:[],version:'4'};
+  if (last < 2) return {ok:true,reviews:[],version:'5'};
   const start = Math.max(2,last-499);
   const rows = sheet.getRange(start,1,last-start+1,10).getValues();
   const reviews = rows
@@ -523,7 +537,7 @@ function reviewPublicList_() {
     .map(reviewObject_)
     .reverse()
     .slice(0,100);
-  return {ok:true,reviews:reviews,version:'4'};
+  return {ok:true,reviews:reviews,version:'5'};
 }
 
 function reviewAdminLogin_(data) {
@@ -613,6 +627,18 @@ function iframeResult_(obj, source) {
     'window.parent.postMessage(' + payload + ',"*");' +
     '<\/script>'
   ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+
+function jsonp_(obj, callback) {
+  const cb = String(callback || '').trim();
+  if (!/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(cb)) {
+    return json_({ok:false, message:'Callback JSONP tidak valid.'});
+  }
+  const payload = JSON.stringify(obj).replace(/</g,'\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
+  return ContentService
+    .createTextOutput(cb + '(' + payload + ');')
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 function json_(obj) {
