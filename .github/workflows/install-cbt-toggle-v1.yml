@@ -1,0 +1,32 @@
+name: Install CBT toggle v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'js/cbt-toggle-v1.js'
+      - 'tools/install_cbt_toggle_v1.py'
+      - '.github/workflows/install-cbt-toggle-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CBT toggle
+        run: python tools/install_cbt_toggle_v1.py
+      - name: Commit installation
+        run: |
+          if git diff --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Pasang saklar ON OFF Portal CBT"
+          git push
