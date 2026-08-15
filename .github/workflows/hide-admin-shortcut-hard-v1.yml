@@ -1,0 +1,33 @@
+name: Hide admin shortcut hard v1
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/hide-admin-shortcut-hard-v1.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Force-hide old admin shortcut and bust cache
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          marker='/* HARD HIDE LEGACY ADMIN SHORTCUT V1 */'
+          css='''\n/* HARD HIDE LEGACY ADMIN SHORTCUT V1 */\n#pnDashboardShortcuts .adminShortcut,\n#pnDashboardShortcuts [data-action="admin"]{display:none!important}\n'''
+          if marker not in s:
+              s=s.replace('</style>', css+'\n</style>', 1)
+          s=s.replace('js/dashboard-shortcuts-v1.js?v=6','js/dashboard-shortcuts-v1.js?v=7')
+          p.write_text(s)
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'Paksa sembunyikan Login Admin dari bar pintasan'
+          git push
