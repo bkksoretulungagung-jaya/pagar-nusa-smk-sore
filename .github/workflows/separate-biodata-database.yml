@@ -1,0 +1,46 @@
+name: Separate biodata database
+
+on:
+  push:
+    paths:
+      - '.github/workflows/separate-biodata-database.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Point biodata to separate spreadsheet
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('backend/Code.gs')
+          s=p.read_text(encoding='utf-8')
+          old="const PN_SPREADSHEET_ID = '1WBpDiXDeVCKiAKWze7Dh_J-jG8t8_PAApGkAsBEchtc';"
+          new="const PN_REG_SPREADSHEET_ID = '1WBpDiXDeVCKiAKWze7Dh_J-jG8t8_PAApGkAsBEchtc';\nconst PN_BIODATA_SPREADSHEET_ID = '1t_PLScKuFhFYOSqAAkeVw4rQDzC2mE7iqFyiwYrvV7w';"
+          if old in s:
+              s=s.replace(old,new,1)
+          s=s.replace('SpreadsheetApp.openById(PN_SPREADSHEET_ID)', 'SpreadsheetApp.openById(PN_REG_SPREADSHEET_ID)', 1)
+          s=s.replace('SpreadsheetApp.openById(PN_SPREADSHEET_ID)', 'SpreadsheetApp.openById(PN_BIODATA_SPREADSHEET_ID)')
+          if 'PN_BIODATA_SPREADSHEET_ID' not in s:
+              raise SystemExit('Biodata spreadsheet constant not installed')
+          if 'PN_SPREADSHEET_ID' in s:
+              raise SystemExit('Old shared spreadsheet constant still remains')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit backend update
+        shell: bash
+        run: |
+          if git diff --quiet -- backend/Code.gs; then
+            echo 'No change needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add backend/Code.gs
+          git commit -m 'Use separate spreadsheet for student biodata'
+          git push
