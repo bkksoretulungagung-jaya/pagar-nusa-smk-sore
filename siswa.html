@@ -21,15 +21,14 @@
 <main class="wrap">
 <section id="loginView" class="grid">
   <div class="card">
-    <div class="head"><h2>Login Siswa</h2><p>Masukkan username, ID Anggota / No. Siswa, email, dan password akun masing-masing.</p></div>
+    <div class="head"><h2>Login CBT Online</h2><p>Masukkan username, email, dan password akun CBT masing-masing.</p></div>
     <div class="body">
       <div id="setupNotice" class="notice">Memuat portal siswa...</div>
       <form id="loginForm">
         <label for="username">Username</label><input id="username" type="text" autocomplete="username" placeholder="Contoh: siswa01" required>
-        <label for="memberId">ID Anggota / No. Siswa</label><input id="memberId" type="text" autocomplete="off" placeholder="Contoh: PN-2026-001" required>
         <label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="siswa01@gmail.com" required>
         <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password siswa" required>
-        <button id="loginBtn" class="primary" type="submit" disabled>MASUK PORTAL SISWA</button>
+        <button id="loginBtn" class="primary" type="submit" disabled>MASUK PORTAL CBT ONLINE</button>
         <div id="loginError" class="error" aria-live="polite"></div>
       </form>
       <a class="back" href="index.html">← Kembali ke dashboard utama</a>
@@ -108,7 +107,7 @@ if(configReady){
       }
       sessionStorage.setItem('pnStudentUsername',uname);showStudent(cred.user,uname);
     }catch(err){loginError.textContent=err?.message==='USERNAME_MISMATCH'?'Username tidak sesuai dengan akun tersebut.':'Username, email, atau password salah / akun belum dibuat.'}
-    finally{loginBtn.disabled=false;loginBtn.textContent='MASUK PORTAL SISWA'}
+    finally{loginBtn.disabled=false;loginBtn.textContent='MASUK PORTAL CBT ONLINE'}
   });
   examBtn.addEventListener('click',()=>{
     if(!currentStudentUser) return;
@@ -143,6 +142,5 @@ if(configReady){
   cbtLogoutBtn.addEventListener('click',async()=>{sessionStorage.removeItem('pnStudentUsername');await signOut(auth)});
 }
 </script>
-<script type="module" src="js/biodata-portal-v1.js?v=1"></script>
 </body>
 </html>
