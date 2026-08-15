@@ -338,7 +338,8 @@ function iframeResult_(obj) {
 
   return HtmlService.createHtmlOutput(
     '<!doctype html><meta charset="utf-8"><script>' +
-    'window.parent.postMessage(' + payload + ',"*");' +
+    'try{window.parent.postMessage(' + payload + ',\"*\");}catch(e){}' +
+    'try{window.top.postMessage(' + payload + ',\"*\");}catch(e){}' +
     '<\/script>'
   ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
