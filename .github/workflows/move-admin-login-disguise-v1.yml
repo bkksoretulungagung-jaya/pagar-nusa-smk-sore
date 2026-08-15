@@ -1,0 +1,30 @@
+name: Move admin login disguise v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/move_admin_login_disguise_v1.py'
+      - '.github/workflows/move-admin-login-disguise-v1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  move:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move admin access to footer text
+        run: python tools/move_admin_login_disguise_v1.py
+      - name: Commit changes
+        run: |
+          if git diff --quiet -- index.html; then
+            echo 'No index change needed'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Samarkan akses admin sebagai teks footer'
+          git push
