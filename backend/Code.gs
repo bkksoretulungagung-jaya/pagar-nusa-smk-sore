@@ -4,19 +4,25 @@ const PN_CONSENT = 'Saya bersedia mengikuti Ekstrakurikuler Pencak Silat Pagar N
 const PN_MAJORS = ['DPIB','TITL','TPM','TKR','TP','TSM','TEI','TKJ'];
 
 function doGet(e) {
-  try {
-    const data = (e && e.parameter) || {};
-    const action = String(data.action || 'health');
-    if (action === 'health') {
-      return json_({ok:true, service:'Pagar Nusa Registration API', storage:'Google Sheets'});
-    }
-    if (action === 'register') {
-      return saveRegistration_(data);
-    }
-    return json_({ok:false, message:'Action tidak dikenal.'});
-  } catch (err) {
-    return json_({ok:false, message:String(err && err.message || err)});
+  const data = (e && e.parameter) || {};
+  const action = String(data.action || 'health');
+
+  if (action === 'health') {
+    return json_({ok:true, service:'Pagar Nusa Registration API', storage:'Google Sheets'});
   }
+
+  if (action === 'register') {
+    let result;
+    try {
+      result = saveRegistration_(data);
+    } catch (err) {
+      result = {ok:false, message:String(err && err.message || err)};
+    }
+    result.rid = String(data.rid || '');
+    return iframeResult_(result);
+  }
+
+  return json_({ok:false, message:'Action tidak dikenal.'});
 }
 
 function doPost(e) {
@@ -25,7 +31,7 @@ function doPost(e) {
     if (String(data.action || 'register') !== 'register') {
       return json_({ok:false, message:'Action tidak dikenal.'});
     }
-    return saveRegistration_(data);
+    return json_(saveRegistration_(data));
   } catch (err) {
     return json_({ok:false, message:String(err && err.message || err)});
   }
@@ -39,13 +45,13 @@ function saveRegistration_(data) {
     const sheet = SpreadsheetApp.openById(PN_SPREADSHEET_ID).getSheetByName(PN_SHEET_NAME);
     if (!sheet) throw new Error('Sheet database pendaftaran tidak ditemukan.');
     if (isDuplicate_(sheet, row[0], row[7])) {
-      return json_({ok:false, code:'DUPLICATE', message:'Nama dan nomor WA tersebut sudah terdaftar.'});
+      return {ok:false, code:'DUPLICATE', message:'Nama dan nomor WA tersebut sudah terdaftar.'};
     }
     sheet.appendRow(row);
   } finally {
     lock.releaseLock();
   }
-  return json_({ok:true, message:'Pendaftaran tersimpan permanen.'});
+  return {ok:true, message:'Pendaftaran tersimpan permanen.'};
 }
 
 function parseBody_(e) {
@@ -72,12 +78,21 @@ function validateRegistration_(d) {
   const wa = clean(d.wa);
   const email = clean(d.email);
   const willing = d.willing === true || String(d.willing).toLowerCase() === 'true' || String(d.willing) === '1';
-  if (!name || !place || !date || !kelas || !major || !address || !parent || !wa || !email || !willing) throw new Error('Data pendaftaran belum lengkap.');
+
+  if (!name || !place || !date || !kelas || !major || !address || !parent || !wa || !email || !willing) {
+    throw new Error('Data pendaftaran belum lengkap.');
+  }
   if (!['X','XI','XII'].includes(kelas)) throw new Error('Kelas tidak valid.');
   if (!PN_MAJORS.includes(major)) throw new Error('Jurusan tidak valid.');
   if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error('Alamat email tidak valid.');
   if (!/^[0-9+() .-]{8,20}$/.test(wa)) throw new Error('Nomor WA tidak valid.');
-  return [name, place, date, kelas, major, address, parent, wa, email, 'Bersedia dan sudah mendapat izin orang tua', PN_CONSENT, new Date()];
+
+  return [
+    name, place, date, kelas, major, address, parent, wa, email,
+    'Bersedia dan sudah mendapat izin orang tua',
+    PN_CONSENT,
+    new Date()
+  ];
 }
 
 function sanitize_(s) {
@@ -92,6 +107,15 @@ function isDuplicate_(sheet, name, wa) {
   const n = String(name).trim().toLowerCase();
   const w = String(wa).replace(/\D/g,'');
   return values.some(r => String(r[0]).trim().toLowerCase() === n && String(r[7]).replace(/\D/g,'') === w);
+}
+
+function iframeResult_(obj) {
+  const payload = JSON.stringify(Object.assign({source:'pn-registration'}, obj)).replace(/</g, '\\u003c');
+  return HtmlService.createHtmlOutput(
+    '<!doctype html><meta charset="utf-8"><script>' +
+    'window.parent.postMessage(' + payload + ',"*");' +
+    '<\/script>'
+  );
 }
 
 function json_(obj) {
