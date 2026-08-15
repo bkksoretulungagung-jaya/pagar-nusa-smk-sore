@@ -49,7 +49,8 @@ function doGet(e) {
       content:true,
       contentVersion:'1',
       adminPassword:true,
-      adminPasswordVersion:'2'
+      adminPasswordVersion:'3',
+      adminPasswordConfigured:adminPasswordConfigured_()
     });
   }
 
@@ -649,6 +650,10 @@ function adminPasswordHash_() {
   return PropertiesService.getScriptProperties().getProperty(PN_ADMIN_PASS_PROPERTY) || PN_REVIEW_ADMIN_PASS_HASH;
 }
 
+function adminPasswordConfigured_() {
+  return !!PropertiesService.getScriptProperties().getProperty(PN_ADMIN_PASS_PROPERTY);
+}
+
 function adminAuthVersion_() {
   return PropertiesService.getScriptProperties().getProperty(PN_ADMIN_AUTH_VERSION_PROPERTY) || 'legacy';
 }
@@ -711,7 +716,7 @@ function adminChangePassword_(data) {
   props.setProperty(PN_ADMIN_PASS_PROPERTY, sha256Hex_(newPassword));
   props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, Utilities.getUuid().replace(/-/g,''));
   CacheService.getScriptCache().remove('pn-review-admin:' + token);
-  return {ok:true,message:'Password admin berhasil diubah. Semua sesi lama dinonaktifkan.'};
+  return {ok:true,configured:true,message:'Password admin berhasil diubah. Semua sesi lama dinonaktifkan.'};
 }
 
 function reviewAdminList_(data) {
@@ -793,7 +798,8 @@ function contentPublicList_() {
     gallery:contentReadGallery_(sheets.gallery, false),
     version:'1',
     adminPassword:true,
-    adminPasswordVersion:'2'
+    adminPasswordVersion:'3',
+    adminPasswordConfigured:adminPasswordConfigured_()
   };
 }
 
