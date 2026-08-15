@@ -85,6 +85,18 @@ function installPublicForm(){
   const note=form.querySelector('.reviewFormNote');
   if(note)note.textContent='Ulasan disimpan ke database pusat dan tidak langsung tampil. Admin akan memeriksa lalu memilih Terbitkan, Tolak, atau Hapus.';
 
+  const openBtn=$('reviewOpenBtn');
+  const closeBtn=$('reviewCloseBtn');
+  const wrap=$('reviewFormWrap');
+  if(openBtn&&!openBtn.dataset.reviewProBound){
+    openBtn.dataset.reviewProBound='1';
+    openBtn.addEventListener('click',()=>{wrap?.classList.add('open');setTimeout(()=>wrap?.scrollIntoView({behavior:'smooth',block:'nearest'}),50);});
+  }
+  if(closeBtn&&!closeBtn.dataset.reviewProBound){
+    closeBtn.dataset.reviewProBound='1';
+    closeBtn.addEventListener('click',()=>wrap?.classList.remove('open'));
+  }
+
   form.addEventListener('submit',async ev=>{
     ev.preventDefault();
     const name=$('reviewName')?.value.trim()||'';
