@@ -268,6 +268,7 @@ function takeoverPanel(){
 }
 
 function installFastLogin(){
+  if(window.submitAdminLogin&&window.submitAdminLogin.__serverAuthV5)return;
   window.submitAdminLogin=async function(ev){
     if(ev)ev.preventDefault();
     const username=$('adminUser')?.value.trim()||'';

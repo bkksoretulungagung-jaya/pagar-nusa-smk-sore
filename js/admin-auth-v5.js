@@ -131,6 +131,7 @@ window.submitAdminLogin=async function(ev){
   }
   return false;
 };
+window.submitAdminLogin.__serverAuthV5=true;
 
 function ensureStyles(){
   if($('pnAuthV5Styles'))return;
