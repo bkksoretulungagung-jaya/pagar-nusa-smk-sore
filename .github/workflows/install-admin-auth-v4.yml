@@ -1,0 +1,32 @@
+name: Install admin auth v4
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/install_admin_auth_v4.py'
+      - 'js/admin-auth-v4.js'
+      - '.github/workflows/install-admin-auth-v4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install admin auth v4
+        run: python tools/install_admin_auth_v4.py
+      - name: Commit installation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/Code.gs index.html
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Bersihkan login dan ganti password admin v4"
+            git push
+          fi
