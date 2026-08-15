@@ -1,0 +1,30 @@
+name: Publish dashboard shortcuts v5
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/bump_dashboard_shortcuts_v5.py'
+      - '.github/workflows/bump-dashboard-shortcuts-v5.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump dashboard shortcuts cache
+        run: python tools/bump_dashboard_shortcuts_v5.py
+      - name: Commit cache bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Publikasikan menu pintasan dashboard v5"
+            git push
+          fi
