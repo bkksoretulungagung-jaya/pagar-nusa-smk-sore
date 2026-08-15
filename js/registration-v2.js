@@ -4,10 +4,10 @@ const PN_REG_SHEET = 'Data Daftar Siswa Baru';
 const PN_REG_START = 6;
 const PN_REG_END = 5000;
 const PN_REG_MAJORS = ['DPIB','TITL','TPM','TKR','TP','TSM','TEI','TKJ'];
-const PN_REG_ADMIN_EMAIL = 'pagarnusasmksore86@gmail.com';
-const PN_REG_FORM_ENDPOINT = `https://formsubmit.co/ajax/${PN_REG_ADMIN_EMAIL}`;
-const PN_REG_API_BASE = 'https://formsubmit.co/api';
-const PN_REG_API_KEY_STORAGE = 'pnFormSubmitApiKeyV1';
+const PN_REG_SHEET_ID = '1WBpDiXDeVCKiAKWze7Dh_J-jG8t8_PAApGkAsBEchtc';
+const PN_REG_WEB_APP = 'https://script.google.com/macros/s/AKfycbyJi_83IJ11JshOLCzIBRMX6fEi-y9UGR9eYULuqH1BivdxeqcgMB0I2ehWBlgaad8Oyw/exec';
+const PN_REG_SHEET_URL = `https://docs.google.com/spreadsheets/d/${PN_REG_SHEET_ID}/edit`;
+const PN_REG_XLSX_URL = `https://docs.google.com/spreadsheets/d/${PN_REG_SHEET_ID}/export?format=xlsx`;
 const PN_REG_CONSENT = 'Saya bersedia mengikuti Ekstrakurikuler Pencak Silat Pagar Nusa. Saya Siap dan bersedia mengikuti Ekstrakurikuler Pencak Silat Pagar Nusa Rayon SMK Sore Tulungagung, dan Sudah dapat izin dari kedua orang tua.';
 
 function pnEnsureRegistrationSheet(){
@@ -30,7 +30,7 @@ function pnRegStatus(){
   const e=document.getElementById('pnRegDbStatus');
   if(!e) return;
   e.className='pnRegDb ready';
-  e.textContent='Pendaftaran online aktif • Anda tidak perlu upload atau memilih database Excel.';
+  e.textContent='Pendaftaran online aktif • data tersimpan permanen ke database Google Sheets pusat. Tidak perlu upload Excel.';
 }
 
 function pnOpenRegistration(){
@@ -91,41 +91,45 @@ async function pnSubmitRegistration(ev){
     msg.textContent='Alamat email belum valid.';
     return false;
   }
+  if(!/^[0-9+() .-]{8,20}$/.test(v.wa)){
+    msg.className='pnRegMsg err';
+    msg.textContent='Nomor WhatsApp belum valid.';
+    return false;
+  }
 
   try{
-    if(submit){submit.disabled=true;submit.textContent='MENGIRIM...'}
-    const body={
-      '_subject':`Pendaftaran Anggota Baru Pagar Nusa - ${v.name}`,
-      '_template':'table',
-      '_captcha':'false',
-      '_url':location.href,
-      '_honey':'',
-      'Nama Lengkap':v.name,
-      'Tempat Lahir':v.place,
-      'Tanggal Lahir':v.date,
-      'Kelas':v.kelas,
-      'Jurusan':v.major,
-      'Alamat':v.address,
-      'Orang Tua/Ayah':v.parent,
-      'No WA':v.wa,
-      'Alamat Email':v.email,
-      'Kesediaan Mengikuti Ekstrakurikuler':'Bersedia dan sudah mendapat izin orang tua',
-      'Pernyataan':PN_REG_CONSENT,
-      'Waktu Pendaftaran':new Date().toISOString()
-    };
-    const response=await fetch(PN_REG_FORM_ENDPOINT,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify(body)
+    if(submit){submit.disabled=true;submit.textContent='MENYIMPAN...'}
+    const body=new URLSearchParams({
+      action:'register',
+      name:v.name,
+      place:v.place,
+      date:v.date,
+      kelas:v.kelas,
+      major:v.major,
+      address:v.address,
+      parent:v.parent,
+      wa:v.wa,
+      email:v.email,
+      willing:'true'
     });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok || data.success===false){
-      throw new Error(data.message||`HTTP ${response.status}`);
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),20000);
+    try{
+      await fetch(PN_REG_WEB_APP,{
+        method:'POST',
+        mode:'no-cors',
+        cache:'no-store',
+        redirect:'follow',
+        body,
+        signal:controller.signal
+      });
+    }finally{
+      clearTimeout(timeout);
     }
-    localStorage.setItem('pnLastRegistration',JSON.stringify({name:v.name,wa:v.wa,at:Date.now()}));
+    try{localStorage.setItem('pnLastRegistration',JSON.stringify({name:v.name,wa:v.wa,at:Date.now()}))}catch(_){}
     document.getElementById('pnRegistrationForm').reset();
     msg.className='pnRegMsg ok';
-    msg.textContent='Pendaftaran berhasil dikirim. Data sudah masuk ke arsip pendaftaran pusat Pagar Nusa.';
+    msg.textContent='Pendaftaran berhasil dikirim ke database permanen Pagar Nusa.';
     pnRegStatus();
   }catch(e){
     console.error(e);
@@ -148,7 +152,7 @@ function pnInstallRegistrationModule(){
     primary:'A',
     recordCols:['A','B','C','D','E','G','H','I','J'],
     recordLabels:['Nama Lengkap','Tempat Lahir','Tanggal Lahir','Kelas','Jurusan','Orang Tua/Ayah','No WA','Alamat Email','Kesediaan'],
-    intro:'Kelola data pendaftaran pada workbook admin. Pendaftaran publik tersimpan terpusat dan dapat diunduh melalui tombol DOWNLOAD HASIL PENDAFTARAN.',
+    intro:'Pendaftaran publik tersimpan permanen pada Google Sheets pusat. Database Excel lokal tetap dapat digunakan admin untuk pengelolaan internal.',
     fields:[
       {c:'A',l:'Nama Lengkap',req:1},
       {c:'B',l:'Tempat Lahir',req:1},
@@ -176,106 +180,32 @@ function pnMatchRegistrationButtonTypography(button){
   button.style.fontWeight=cs.fontWeight;
 }
 
-function pnCsvSafe(v){
-  let s=String(v??'').replace(/\r?\n/g,' ');
-  if(/^[=+\-@]/.test(s)) s="'"+s;
-  return '"'+s.replace(/"/g,'""')+'"';
+function pnOpenPermanentRegistrationDatabase(){
+  window.open(PN_REG_SHEET_URL,'_blank','noopener');
 }
 
-function pnArchiveField(obj,...names){
-  for(const n of names){if(obj && obj[n]!==undefined && obj[n]!==null) return obj[n]}
-  return '';
-}
-
-function pnRegistrationRows(submissions){
-  const rows=[];
-  for(const s of submissions||[]){
-    const f=s?.form_data||{};
-    const name=pnArchiveField(f,'Nama Lengkap','name');
-    const email=pnArchiveField(f,'Alamat Email','email');
-    const statement=pnArchiveField(f,'Pernyataan');
-    if(!name || !email || !String(statement).includes('Pagar Nusa Rayon SMK Sore Tulungagung')) continue;
-    const submitted=s?.submitted_at?.date||pnArchiveField(f,'Waktu Pendaftaran');
-    rows.push([
-      name,
-      pnArchiveField(f,'Tempat Lahir'),
-      pnArchiveField(f,'Tanggal Lahir'),
-      pnArchiveField(f,'Kelas'),
-      pnArchiveField(f,'Jurusan'),
-      pnArchiveField(f,'Alamat'),
-      pnArchiveField(f,'Orang Tua/Ayah'),
-      pnArchiveField(f,'No WA'),
-      email,
-      pnArchiveField(f,'Kesediaan Mengikuti Ekstrakurikuler'),
-      statement,
-      submitted
-    ]);
-  }
-  return rows;
-}
-
-async function pnRequestArchiveKey(){
-  window.open(`${PN_REG_API_BASE}/get-apikey/${encodeURIComponent(PN_REG_ADMIN_EMAIL)}`,'_blank','noopener');
-  alert('Permintaan kunci download sudah dibuka. Kunci API akan dikirim ke email admin '+PN_REG_ADMIN_EMAIL+'. Setelah menerima kunci, klik DOWNLOAD HASIL PENDAFTARAN lagi dan tempel kuncinya. Ini hanya diperlukan satu kali pada perangkat admin.');
-}
-
-function pnGetStoredArchiveKey(){
-  try{return localStorage.getItem(PN_REG_API_KEY_STORAGE)||''}catch(_){return''}
-}
-function pnStoreArchiveKey(k){try{localStorage.setItem(PN_REG_API_KEY_STORAGE,k)}catch(_){}}
-function pnClearArchiveKey(){try{localStorage.removeItem(PN_REG_API_KEY_STORAGE)}catch(_){};alert('Kunci download arsip sudah dihapus dari perangkat ini.')}
-
-async function pnDownloadRegistrationArchive(){
-  let key=pnGetStoredArchiveKey();
-  if(!key){
-    const request=confirm('Perangkat ini belum memiliki kunci download arsip pendaftaran. Tekan OK untuk meminta kunci dikirim ke email admin. Setelah menerima email, klik tombol DOWNLOAD lagi.');
-    if(request) await pnRequestArchiveKey();
-    return;
-  }
-  try{
-    const btn=document.getElementById('pnDownloadRegistrations');
-    if(btn){btn.disabled=true;btn.textContent='MENGAMBIL DATA...'}
-    const r=await fetch(`${PN_REG_API_BASE}/get-submissions/${encodeURIComponent(key)}`,{headers:{'Accept':'application/json'}});
-    const data=await r.json().catch(()=>({}));
-    if(!r.ok || !data.success || !Array.isArray(data.submissions)) throw new Error(data.message||'Kunci API tidak valid');
-    const rows=pnRegistrationRows(data.submissions);
-    const headers=['Nama Lengkap','Tempat Lahir','Tanggal Lahir','Kelas','Jurusan','Alamat','Orang Tua/Ayah','No WA','Alamat Email','Kesediaan Mengikuti Ekstrakurikuler','Pernyataan','Waktu Pendaftaran'];
-    const csv='\ufeff'+[headers,...rows].map(row=>row.map(pnCsvSafe).join(',')).join('\r\n');
-    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-    const url=URL.createObjectURL(blob),a=document.createElement('a');
-    const d=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Jakarta'});
-    a.href=url;a.download=`Hasil_Pendaftaran_Pagar_Nusa_${d}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
-    alert(rows.length?`${rows.length} data pendaftaran berhasil diunduh.`:'Belum ada data pendaftaran yang cocok pada arsip.');
-  }catch(e){
-    console.error(e);
-    pnClearArchiveKey();
-    alert('Gagal mengambil arsip pendaftaran. Kunci mungkin belum benar atau arsip belum diaktifkan. Klik DOWNLOAD lagi untuk meminta/memasukkan kunci baru.');
-  }finally{
-    const btn=document.getElementById('pnDownloadRegistrations');
-    if(btn){btn.disabled=false;btn.textContent='DOWNLOAD HASIL PENDAFTARAN'}
-  }
-}
-
-function pnPromptArchiveKey(){
-  const old=pnGetStoredArchiveKey();
-  const key=prompt('Tempel kunci API FormSubmit yang dikirim ke email admin:',old||'');
-  if(!key) return;
-  pnStoreArchiveKey(key.trim());
-  alert('Kunci download disimpan pada perangkat admin ini. Klik DOWNLOAD HASIL PENDAFTARAN.');
+function pnDownloadPermanentRegistrationDatabase(){
+  const a=document.createElement('a');
+  a.href=PN_REG_XLSX_URL;
+  a.target='_blank';
+  a.rel='noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 function pnInstallAdminArchiveControls(){
   const picker=document.querySelector('#dbDrawer .picker');
   if(!picker||document.getElementById('pnDownloadRegistrations')) return;
-  const b=document.createElement('button');
-  b.id='pnDownloadRegistrations';b.type='button';b.className='btn down';b.textContent='DOWNLOAD HASIL PENDAFTARAN';b.onclick=pnDownloadRegistrationArchive;
-  const key=document.createElement('button');
-  key.id='pnArchiveKeyBtn';key.type='button';key.className='btn clear';key.textContent='ATUR KUNCI DOWNLOAD';key.onclick=pnPromptArchiveKey;
-  picker.appendChild(b);picker.appendChild(key);
+  const open=document.createElement('button');
+  open.id='pnOpenRegistrationDb';open.type='button';open.className='btn view';open.textContent='BUKA DATABASE PENDAFTARAN';open.onclick=pnOpenPermanentRegistrationDatabase;
+  const down=document.createElement('button');
+  down.id='pnDownloadRegistrations';down.type='button';down.className='btn down';down.textContent='DOWNLOAD HASIL PENDAFTARAN (XLSX)';down.onclick=pnDownloadPermanentRegistrationDatabase;
+  picker.appendChild(open);picker.appendChild(down);
   const note=document.createElement('div');
   note.className='hint';
   note.style.marginTop='10px';
-  note.innerHTML='<b>Pendaftaran terpusat:</b> calon anggota tidak perlu upload database Excel. Hasil form disimpan pada arsip online dan admin cukup mengunduh hasil melalui tombol di atas. Database Excel pada menu ini hanya untuk pengelolaan internal admin.';
+  note.innerHTML='<b>Database permanen:</b> data calon anggota masuk langsung ke Google Sheets pusat dan tidak memiliki batas penyimpanan 30 hari. Tombol BUKA/DOWNLOAD hanya dapat mengakses file jika akun Google admin memiliki izin.';
   picker.parentElement?.appendChild(note);
 }
 
@@ -298,7 +228,7 @@ function pnInstallRegistrationUI(){
         <button type="button" onclick="pnCloseRegistration()" aria-label="Tutup">×</button>
       </div>
       <form id="pnRegistrationForm" class="pnRegForm" onsubmit="return pnSubmitRegistration(event)">
-        <div id="pnRegDbStatus" class="pnRegDb ready">Pendaftaran online aktif • Anda tidak perlu upload atau memilih database Excel.</div>
+        <div id="pnRegDbStatus" class="pnRegDb ready">Pendaftaran online aktif • data tersimpan permanen ke database Google Sheets pusat. Tidak perlu upload Excel.</div>
         <input id="pnRegWebsite" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
         <div class="pnRegGrid">
           <label>Nama Lengkap *<input id="pnRegName" required></label>
