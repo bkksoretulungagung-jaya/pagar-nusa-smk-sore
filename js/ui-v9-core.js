@@ -1,5 +1,5 @@
 const PN_ADMIN_USER='admin';
-const PN_ADMIN_PASS_HASH=''; // Password diverifikasi oleh backend Apps Script.
+const PN_ADMIN_PASS_HASH='3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639';
 const DASH_SNAPSHOT={
   total:123,aktif:23,alumni:38,prestasi:10,male:112,female:11,hadir:0,pengurus:23,keluar:0,
   status:[['Calon Anggota',50],['Anggota Aktif',23],['Nonaktif',12],['Alumni',38]],
@@ -100,17 +100,10 @@ function closeAdminLogin(){document.getElementById('loginModal')?.classList.add(
 async function submitAdminLogin(ev){
   if(ev)ev.preventDefault();
   const u=document.getElementById('adminUser')?.value.trim()||'',p=document.getElementById('adminPass')?.value||'',err=document.getElementById('loginError');
-  if(err)err.textContent='Memeriksa login admin...';
-  if(!u||!p){if(err)err.textContent='Username dan password admin wajib diisi.';return false}
-  if(typeof window.pnSecureAdminLogin!=='function'){
-    if(err)err.textContent='Layanan login admin belum siap. Muat ulang halaman lalu coba lagi.';
-    return false;
-  }
-  try{
-    const r=await window.pnSecureAdminLogin(u,p);
-    if(!r||!r.ok)throw new Error('Login admin gagal.');
+  const hash=await sha256Hex(p);
+  if(u===PN_ADMIN_USER&&hash===PN_ADMIN_PASS_HASH){
     sessionStorage.setItem('pnAdminAuth','1');closeAdminLogin();enterAdmin(true)
-  }catch(e){if(err)err.textContent=e?.message||'Username atau password admin salah.'}
+  }else{if(err)err.textContent='Username atau password admin salah.'}
   return false
 }
 function setAdminControls(show){
