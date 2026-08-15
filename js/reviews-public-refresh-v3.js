@@ -20,7 +20,6 @@ function ensureState(){
   if(!section||$('reviewDataState'))return;
   const state=document.createElement('div');
   state.id='reviewDataState';
-  state.style.cssText='margin:0 0 12px;padding:8px 11px;border-radius:9px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);color:#dcfce7;font-size:9px;font-weight:900;line-height:1.45';
   const list=$('reviewList');
   list?.parentNode?.insertBefore(state,list);
 }
@@ -28,9 +27,10 @@ function ensureState(){
 function setState(type,text){
   ensureState();
   const el=$('reviewDataState');if(!el)return;
-  if(type==='online')el.style.cssText='margin:0 0 12px;padding:8px 11px;border-radius:9px;background:rgba(220,252,231,.12);border:1px solid rgba(187,247,208,.25);color:#dcfce7;font-size:9px;font-weight:900;line-height:1.45';
-  else if(type==='loading')el.style.cssText='margin:0 0 12px;padding:8px 11px;border-radius:9px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);color:#dcfce7;font-size:9px;font-weight:900;line-height:1.45';
-  else el.style.cssText='margin:0 0 12px;padding:8px 11px;border-radius:9px;background:rgba(254,226,226,.12);border:1px solid rgba(254,202,202,.25);color:#fee2e2;font-size:9px;font-weight:900;line-height:1.45';
+  const base='margin:0 0 12px;padding:8px 11px;border-radius:9px;font-size:9px;font-weight:900;line-height:1.45;';
+  if(type==='online')el.style.cssText=base+'background:rgba(220,252,231,.12);border:1px solid rgba(187,247,208,.25);color:#dcfce7';
+  else if(type==='loading')el.style.cssText=base+'background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);color:#dcfce7';
+  else el.style.cssText=base+'background:rgba(254,226,226,.12);border:1px solid rgba(254,202,202,.25);color:#fee2e2';
   el.textContent=text;
 }
 
@@ -57,13 +57,38 @@ function render(data){
   list.innerHTML=valid.slice(0,6).map(r=>`<article class="reviewCard"><div class="reviewCardTop"><span class="reviewCardStars">${stars(r.rating)}</span><span class="reviewCardDate">${formatDate(r.date)}</span></div><p class="reviewCardText">“${esc(r.message)}”</p><div class="reviewCardFoot"><div class="reviewCardName">${esc(r.name)}</div><span class="reviewVerified">✓ ${esc(r.role||'Pengunjung')} • Terverifikasi Admin</span></div></article>`).join('');
 }
 
-function requestPublicOnce(timeoutMs){
+// Primary transport: GET + JSONP. Apps Script officially supports serving JavaScript
+// through ContentService, avoiding cross-origin POST/hidden-iframe instability.
+function requestPublicJsonp(timeoutMs=12000){
+  return new Promise((resolve,reject)=>{
+    const cb='pnReviewPublicCb_'+Date.now()+'_'+Math.random().toString(36).slice(2).replace(/[^a-z0-9_]/gi,'');
+    const script=document.createElement('script');
+    let done=false;
+    const cleanup=()=>{
+      clearTimeout(timer);
+      try{delete window[cb]}catch(_){window[cb]=undefined}
+      script.remove();
+    };
+    window[cb]=payload=>{
+      if(done)return;done=true;cleanup();
+      if(payload&&payload.ok)resolve(Array.isArray(payload.reviews)?payload.reviews:[]);
+      else reject(new Error(payload?.message||'Server menolak daftar ulasan.'));
+    };
+    script.async=true;
+    script.src=ENDPOINT+'?action=reviewPublicList&callback='+encodeURIComponent(cb)+'&rid='+encodeURIComponent(cb)+'&_='+Date.now();
+    script.onerror=()=>{if(done)return;done=true;cleanup();reject(new Error('GET ulasan gagal dimuat.'));};
+    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('GET ulasan timeout.'));},timeoutMs);
+    document.head.appendChild(script);
+  });
+}
+
+// Compatibility fallback for an older Apps Script deployment.
+function requestPublicPost(timeoutMs=12000){
   return new Promise((resolve,reject)=>{
     const rid='pnreview-public-'+Date.now()+'-'+Math.random().toString(36).slice(2);
     const frame=document.createElement('iframe');
     frame.name='pnReviewPublic_'+rid.replace(/[^a-zA-Z0-9_]/g,'');
-    frame.style.display='none';
-    frame.setAttribute('aria-hidden','true');
+    frame.style.display='none';frame.setAttribute('aria-hidden','true');
     const form=document.createElement('form');
     form.method='POST';form.action=ENDPOINT;form.target=frame.name;form.style.display='none';
     [['action','reviewPublicList'],['rid',rid]].forEach(([name,value])=>{
@@ -78,25 +103,18 @@ function requestPublicOnce(timeoutMs){
       d.ok?resolve(Array.isArray(d.reviews)?d.reviews:[]):reject(new Error(d.message||'Gagal memuat ulasan.'));
     };
     window.addEventListener('message',onMessage);
-    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('server tidak merespons tepat waktu'))},timeoutMs);
+    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('POST ulasan timeout.'))},timeoutMs);
     document.body.appendChild(frame);document.body.appendChild(form);form.submit();
   });
 }
 
 async function requestPublic(){
-  let lastError;
-  for(let attempt=1;attempt<=2;attempt++){
-    try{
-      return await requestPublicOnce(attempt===1?12000:18000);
-    }catch(err){
-      lastError=err;
-      if(attempt<2){
-        setState('loading','● Database sedang merespons lambat • mencoba sinkronisasi ulang...');
-        await wait(700);
-      }
+  try{return await requestPublicJsonp(12000)}catch(jsonpErr){
+    setState('loading','● Jalur GET belum merespons • mencoba jalur kompatibilitas...');
+    try{return await requestPublicPost(14000)}catch(postErr){
+      throw new Error('GET: '+jsonpErr.message+' | POST: '+postErr.message);
     }
   }
-  throw lastError||new Error('sinkronisasi gagal');
 }
 
 async function refresh(){
@@ -107,10 +125,10 @@ async function refresh(){
   try{
     const rows=await requestPublic();
     render(rows);
-    setState('online','● DATABASE ONLINE • Ulasan yang tampil telah disetujui admin dan dimuat dari database pusat.');
+    setState('online','● DATABASE ONLINE • '+rows.length+' ulasan terverifikasi dimuat dari database pusat.');
   }catch(err){
     if(lastGood.length)render(lastGood);else render([]);
-    setState('offline','● SINKRONISASI DATABASE TERGANGGU • Sistem akan mencoba kembali otomatis. Data lokal tidak digunakan agar informasi tetap konsisten.');
+    setState('offline','● SINKRONISASI TERGANGGU • '+err.message+' Sistem mencoba ulang otomatis.');
     retryTimer=setTimeout(refresh,15000);
   }finally{loading=false;}
 }
@@ -123,9 +141,7 @@ function wrapPublicDashboard(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  ensureState();
-  wrapPublicDashboard();
-  render([]);
+  ensureState();wrapPublicDashboard();render([]);
   setTimeout(refresh,120);
   setTimeout(()=>{if(!loading)refresh()},2500);
 });
