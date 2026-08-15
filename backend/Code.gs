@@ -115,7 +115,7 @@ function iframeResult_(obj) {
     '<!doctype html><meta charset="utf-8"><script>' +
     'window.parent.postMessage(' + payload + ',"*");' +
     '<\/script>'
-  );
+  ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function json_(obj) {
