@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const link=document.createElement('a');
     link.id='studentCbtLoginBtn';
     link.className='studentCbtLoginBtn';
-    link.href='siswa.html';
+    link.href='siswa.html?v=2';
     link.textContent='🎓 LOGIN SISWA / CBT';
     loginArea.insertBefore(link,loginArea.firstChild);
   }
@@ -68,4 +68,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v38: reliable in-modal thank-you state for all successful or duplicate registrations.
+// Build marker v39: student biodata portal with required member ID login.
