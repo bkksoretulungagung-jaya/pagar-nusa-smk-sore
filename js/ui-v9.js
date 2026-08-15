@@ -46,30 +46,22 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   const loginArea=document.getElementById('bottomAdminLogin');
   if(loginArea){
+    document.getElementById('studentBioLoginBtn')?.remove();
+
     if(!document.getElementById('pnStudentPortalStyles')){
       const style=document.createElement('style');
       style.id='pnStudentPortalStyles';
       style.textContent=`
         .bottomAdminLogin{gap:10px;flex-wrap:wrap}
-        .studentCbtLoginBtn,.studentBioLoginBtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:0;border-radius:10px;padding:12px 24px;color:#fff;font-weight:900;box-shadow:0 4px 14px rgba(22,101,52,.18)}
-        .studentCbtLoginBtn{background:#166534}.studentBioLoginBtn{background:#0f766e}
-        .studentCbtLoginBtn:hover,.studentBioLoginBtn:hover{filter:brightness(1.05)}
+        .studentCbtLoginBtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:#166534;border:0;border-radius:10px;padding:12px 24px;color:#fff;font-weight:900;box-shadow:0 4px 14px rgba(22,101,52,.18)}
+        .studentCbtLoginBtn:hover{filter:brightness(1.05)}
+        #bottomAdminLogin #topLoginBtn{display:none!important}
         @media(max-width:680px){
-          .bottomAdminLogin{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:9px!important;width:100%!important}
+          .bottomAdminLogin{display:grid!important;grid-template-columns:1fr!important;gap:9px!important;width:100%!important}
           .bottomAdminLogin #pnRegistrationBtn,.bottomAdminLogin #studentCbtLoginBtn{grid-column:1/-1!important;width:100%!important}
-          .bottomAdminLogin #studentBioLoginBtn,.bottomAdminLogin #topLoginBtn{grid-column:auto!important;width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:11px 7px!important;font-size:10.5px!important;white-space:normal!important;text-align:center!important;line-height:1.25!important}
         }
       `;
       document.head.appendChild(style);
-    }
-
-    if(!document.getElementById('studentBioLoginBtn')){
-      const bio=document.createElement('a');
-      bio.id='studentBioLoginBtn';
-      bio.className='studentBioLoginBtn';
-      bio.href='biodata.html?v=5';
-      bio.textContent='👤 PORTAL BIODATA SISWA';
-      loginArea.appendChild(bio);
     }
 
     if(!document.getElementById('studentCbtLoginBtn')){
@@ -84,32 +76,19 @@ document.addEventListener('DOMContentLoaded',()=>{
       cbt.href='siswa.html?v=3';
       cbt.textContent='📝 PORTAL CBT ONLINE';
     }
-
-    const placeBioBeforeAdmin=()=>{
-      const bio=document.getElementById('studentBioLoginBtn');
-      const admin=document.getElementById('topLoginBtn');
-      if(bio&&admin&&bio.nextElementSibling!==admin){
-        loginArea.insertBefore(bio,admin);
-      }
-    };
-    placeBioBeforeAdmin();
-    setTimeout(placeBioBeforeAdmin,0);
-    setTimeout(placeBioBeforeAdmin,300);
   }
 
   const adminBtn=document.getElementById('topLoginBtn');
-  ['studentBioLoginBtn','studentCbtLoginBtn'].forEach(id=>{
-    const btn=document.getElementById(id);
-    if(btn && adminBtn){
-      const adminStyle=getComputedStyle(adminBtn);
-      btn.style.fontFamily=adminStyle.fontFamily;
-      btn.style.letterSpacing=adminStyle.letterSpacing;
-      if(window.innerWidth>680){
-        btn.style.fontSize=adminStyle.fontSize;
-        btn.style.lineHeight=adminStyle.lineHeight;
-      }
+  const cbtBtn=document.getElementById('studentCbtLoginBtn');
+  if(cbtBtn&&adminBtn){
+    const adminStyle=getComputedStyle(adminBtn);
+    cbtBtn.style.fontFamily=adminStyle.fontFamily;
+    cbtBtn.style.letterSpacing=adminStyle.letterSpacing;
+    if(window.innerWidth>680){
+      cbtBtn.style.fontSize=adminStyle.fontSize;
+      cbtBtn.style.lineHeight=adminStyle.lineHeight;
     }
-  });
+  }
 });
 
-// Build marker v42: mobile Biodata + Admin side by side.
+// Build marker v43: Biodata moved to top shortcut, bottom admin hidden.
