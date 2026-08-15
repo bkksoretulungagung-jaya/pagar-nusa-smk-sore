@@ -1,0 +1,27 @@
+name: Activate reviews professional v4
+on:
+  push:
+    paths:
+      - 'tools/activate_reviews_professional_v4.py'
+      - '.github/workflows/activate-reviews-professional-v4.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index cache versions
+        run: python tools/activate_reviews_professional_v4.py
+      - name: Commit index update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+          else
+            git commit -m "Aktifkan ulasan profesional v4"
+            git push
+          fi
