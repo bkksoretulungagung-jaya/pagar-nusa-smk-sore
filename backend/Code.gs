@@ -6,10 +6,15 @@ const PN_CONTENT_SHEET_NAME = 'Konten Website';
 const PN_GALLERY_SHEET_NAME = 'Galeri Website';
 const PN_CONTENT_FOLDER_ID = '1DaUWvaUAMTIPm1PbVdrQilv83vN6XMKv';
 const PN_REVIEW_ADMIN_USER = 'admin';
-const PN_REVIEW_ADMIN_PASS_HASH = '3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639';
-const PN_ADMIN_PASS_PROPERTY = 'PN_ADMIN_PASS_HASH_V1';
-const PN_ADMIN_AUTH_VERSION_PROPERTY = 'PN_ADMIN_AUTH_VERSION_V1';
-const PN_ADMIN_RECOVERY_USED_PROPERTY = 'PN_ADMIN_RECOVERY_USED_V1';
+const PN_ADMIN_PASS_PROPERTY = 'PN_ADMIN_PASS_HASH_V1'; // legacy Script Property; dimigrasikan otomatis lalu dihapus
+const PN_ADMIN_CREDENTIAL_PROPERTY = 'PN_ADMIN_CREDENTIAL_V2';
+const PN_ADMIN_PEPPER_PROPERTY = 'PN_ADMIN_PEPPER_V2';
+const PN_ADMIN_BOOTSTRAP_PROPERTY = 'PN_ADMIN_BOOTSTRAP_PASSWORD';
+const PN_ADMIN_AUTH_VERSION_PROPERTY = 'PN_ADMIN_AUTH_VERSION_V2';
+const PN_ADMIN_LOGIN_STATE_PROPERTY = 'PN_ADMIN_LOGIN_STATE_V2';
+const PN_ADMIN_AUDIT_SHEET_NAME = 'Log Keamanan Admin';
+const PN_ADMIN_SESSION_SECONDS = 1800;
+const PN_ADMIN_KDF_ROUNDS = 4096;
 const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
 const PN_BIODATA_LOG_SHEET_NAME = 'Log Perubahan Biodata';
 const PN_PORTAL_ACCOUNT_SHEET_NAME = 'Akun Portal Siswa';
@@ -259,6 +264,7 @@ function doPost(e) {
 
 function saveRegistration_(data) {
   const row = validateRegistration_(data);
+  registrationThrottle_(data);
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -268,10 +274,28 @@ function saveRegistration_(data) {
       return {ok:false, code:'DUPLICATE', message:'Nama dan nomor WA tersebut sudah terdaftar.'};
     }
     sheet.appendRow(row);
+    registrationMarkSubmitted_(data);
   } finally {
     lock.releaseLock();
   }
   return {ok:true, message:'Pendaftaran tersimpan permanen.'};
+}
+
+function registrationThrottleKey_(data) {
+  const email = String(data.email || '').trim().toLowerCase();
+  const wa = String(data.wa || '').replace(/\D/g,'');
+  return 'pn-registration:' + sha256Hex_(email + '|' + wa).slice(0,40);
+}
+
+function registrationThrottle_(data) {
+  const key = registrationThrottleKey_(data);
+  if (CacheService.getScriptCache().get(key)) {
+    throw new Error('Pendaftaran baru saja dikirim. Tunggu sekitar 90 detik sebelum mencoba lagi.');
+  }
+}
+
+function registrationMarkSubmitted_(data) {
+  CacheService.getScriptCache().put(registrationThrottleKey_(data), '1', 90);
 }
 
 function getStudentBiodata_(data) {
@@ -655,88 +679,236 @@ function reviewPublicList_() {
   return {ok:true,reviews:reviews,version:'6'};
 }
 
-function adminPasswordHash_() {
-  return PropertiesService.getScriptProperties().getProperty(PN_ADMIN_PASS_PROPERTY) || PN_REVIEW_ADMIN_PASS_HASH;
+function adminGenerateSecret_() {
+  return Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,'');
+}
+
+function secureEqual_(a, b) {
+  a = String(a || '');
+  b = String(b || '');
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function adminPasswordStrong_(password) {
+  password = String(password || '');
+  if (password.length < 12) throw new Error('Password admin baru minimal 12 karakter.');
+  if (password.length > 128) throw new Error('Password admin baru terlalu panjang.');
+  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+    throw new Error('Password admin harus mengandung huruf dan angka.');
+  }
+  return password;
+}
+
+function adminCredentialHash_(password, salt, pepper) {
+  let digest = String(salt || '') + '|' + String(pepper || '') + '|' + String(password || '');
+  for (let i = 0; i < PN_ADMIN_KDF_ROUNDS; i++) {
+    digest = sha256Hex_(digest + '|' + i + '|' + salt);
+  }
+  return digest;
+}
+
+function adminStoreCredential_(password) {
+  password = adminPasswordStrong_(password);
+  const props = PropertiesService.getScriptProperties();
+  let pepper = props.getProperty(PN_ADMIN_PEPPER_PROPERTY);
+  if (!pepper) {
+    pepper = adminGenerateSecret_();
+    props.setProperty(PN_ADMIN_PEPPER_PROPERTY, pepper);
+  }
+  const salt = adminGenerateSecret_();
+  const credential = {
+    version:2,
+    salt:salt,
+    rounds:PN_ADMIN_KDF_ROUNDS,
+    hash:adminCredentialHash_(password, salt, pepper)
+  };
+  props.setProperty(PN_ADMIN_CREDENTIAL_PROPERTY, JSON.stringify(credential));
+  props.deleteProperty(PN_ADMIN_PASS_PROPERTY);
+  return true;
+}
+
+function adminVerifyPassword_(password) {
+  const props = PropertiesService.getScriptProperties();
+  const raw = props.getProperty(PN_ADMIN_CREDENTIAL_PROPERTY);
+  const pepper = props.getProperty(PN_ADMIN_PEPPER_PROPERTY) || '';
+  if (raw && pepper) {
+    let credential = null;
+    try { credential = JSON.parse(raw); } catch (_) {}
+    if (!credential || !credential.salt || !credential.hash) return false;
+    const actual = adminCredentialHash_(password, credential.salt, pepper);
+    return secureEqual_(actual, credential.hash);
+  }
+
+  // Migrasi aman dari hash lama HANYA jika hash lama sudah berada di Script Properties.
+  // Tidak ada lagi hash/password fallback di source GitHub publik.
+  const legacy = props.getProperty(PN_ADMIN_PASS_PROPERTY) || '';
+  if (legacy && secureEqual_(sha256Hex_(password), legacy)) {
+    adminStoreCredential_(password);
+    return true;
+  }
+  if (!raw && !legacy) {
+    throw new Error('Password admin server belum dikonfigurasi. Jalankan initializeAdminSecurity_() dari Apps Script terlebih dahulu.');
+  }
+  return false;
+}
+
+function initializeAdminSecurity_() {
+  const props = PropertiesService.getScriptProperties();
+  const bootstrap = String(props.getProperty(PN_ADMIN_BOOTSTRAP_PROPERTY) || '');
+  if (!bootstrap) {
+    throw new Error('Tambahkan Script Property PN_ADMIN_BOOTSTRAP_PASSWORD dengan password baru, lalu jalankan fungsi ini sekali.');
+  }
+  adminStoreCredential_(bootstrap);
+  props.deleteProperty(PN_ADMIN_BOOTSTRAP_PROPERTY);
+  props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, adminGenerateSecret_());
+  props.deleteProperty(PN_ADMIN_LOGIN_STATE_PROPERTY);
+  adminAudit_('SECURITY_INIT','OK','Credential V2 diaktifkan; bootstrap password sudah dihapus.');
+  return 'Keamanan admin V2 aktif. Bootstrap password telah dihapus dari Script Properties.';
 }
 
 function adminPasswordConfigured_() {
-  return !!PropertiesService.getScriptProperties().getProperty(PN_ADMIN_PASS_PROPERTY);
+  const props = PropertiesService.getScriptProperties();
+  return !!(props.getProperty(PN_ADMIN_CREDENTIAL_PROPERTY) || props.getProperty(PN_ADMIN_PASS_PROPERTY));
 }
 
 function adminPasswordRecoveryAvailable_() {
-  return !PropertiesService.getScriptProperties().getProperty(PN_ADMIN_RECOVERY_USED_PROPERTY);
+  return false;
 }
 
 function adminAuthVersion_() {
-  return PropertiesService.getScriptProperties().getProperty(PN_ADMIN_AUTH_VERSION_PROPERTY) || 'legacy';
+  const props = PropertiesService.getScriptProperties();
+  let version = props.getProperty(PN_ADMIN_AUTH_VERSION_PROPERTY);
+  if (!version) {
+    version = adminGenerateSecret_();
+    props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, version);
+  }
+  return version;
+}
+
+function adminLoginState_() {
+  const props = PropertiesService.getScriptProperties();
+  let state = {count:0, firstAt:0, lockedUntil:0};
+  try { state = Object.assign(state, JSON.parse(props.getProperty(PN_ADMIN_LOGIN_STATE_PROPERTY) || '{}')); } catch (_) {}
+  const now = Date.now();
+  if (state.firstAt && now - Number(state.firstAt || 0) > 1800000) {
+    return {count:0, firstAt:0, lockedUntil:0};
+  }
+  return state;
+}
+
+function adminRecordLoginFailure_() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(5000);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    let state = adminLoginState_();
+    const now = Date.now();
+    if (!state.firstAt) state.firstAt = now;
+    state.count = Number(state.count || 0) + 1;
+    let delay = 0;
+    if (state.count >= 12) delay = 30 * 60 * 1000;
+    else if (state.count >= 8) delay = 15 * 60 * 1000;
+    else if (state.count >= 5) delay = 5 * 60 * 1000;
+    if (delay) state.lockedUntil = Math.max(Number(state.lockedUntil || 0), now + delay);
+    props.setProperty(PN_ADMIN_LOGIN_STATE_PROPERTY, JSON.stringify(state));
+    return state;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function adminClearLoginFailures_() {
+  PropertiesService.getScriptProperties().deleteProperty(PN_ADMIN_LOGIN_STATE_PROPERTY);
+}
+
+function adminAudit_(eventName, status, detail) {
+  try {
+    const book = SpreadsheetApp.openById(PN_REG_SPREADSHEET_ID);
+    let sheet = book.getSheetByName(PN_ADMIN_AUDIT_SHEET_NAME);
+    if (!sheet) {
+      sheet = book.insertSheet(PN_ADMIN_AUDIT_SHEET_NAME);
+      sheet.appendRow(['Waktu','Event','Status','Akun','Detail']);
+      sheet.setFrozenRows(1);
+    }
+    sheet.appendRow([
+      new Date(),
+      sanitize_(String(eventName || '').slice(0,80)),
+      sanitize_(String(status || '').slice(0,30)),
+      PN_REVIEW_ADMIN_USER,
+      sanitize_(String(detail || '').slice(0,300))
+    ]);
+  } catch (_) {}
 }
 
 function reviewAdminLogin_(data) {
   const username = String(data.username || '').trim();
   const password = String(data.password || '');
-  if (username !== PN_REVIEW_ADMIN_USER || sha256Hex_(password) !== adminPasswordHash_()) {
+  const before = adminLoginState_();
+  let valid = false;
+
+  if (username === PN_REVIEW_ADMIN_USER) {
+    valid = adminVerifyPassword_(password);
+  }
+
+  if (!valid) {
+    if (Number(before.lockedUntil || 0) > Date.now()) {
+      throw new Error('Terlalu banyak percobaan login. Tunggu beberapa menit lalu coba lagi.');
+    }
+    const state = adminRecordLoginFailure_();
+    if ([1,5,8,12].includes(Number(state.count || 0))) {
+      adminAudit_('ADMIN_LOGIN','GAGAL','Percobaan gagal: ' + state.count);
+    }
+    if (Number(state.lockedUntil || 0) > Date.now()) {
+      throw new Error('Terlalu banyak percobaan login. Akses admin dikunci sementara.');
+    }
     throw new Error('Login admin verifikasi tidak valid.');
   }
 
-  const requestedToken = String(data.token || '').trim();
-  const token = /^[A-Za-z0-9_-]{32,128}$/.test(requestedToken)
-    ? requestedToken
-    : Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,'');
-
-  const authValue = JSON.stringify({username:username, version:adminAuthVersion_()});
-  CacheService.getScriptCache().put('pn-review-admin:' + token, authValue, 21600);
-  return {ok:true,token:token,expiresIn:21600,version:'7'};
+  adminClearLoginFailures_();
+  const token = adminGenerateSecret_();
+  const authValue = JSON.stringify({
+    username:username,
+    version:adminAuthVersion_(),
+    issuedAt:Date.now()
+  });
+  CacheService.getScriptCache().put('pn-review-admin:' + token, authValue, PN_ADMIN_SESSION_SECONDS);
+  adminAudit_('ADMIN_LOGIN','OK','Sesi admin baru dibuat selama 30 menit.');
+  return {ok:true,token:token,expiresIn:PN_ADMIN_SESSION_SECONDS,version:'8'};
 }
 
 function requireReviewAdmin_(token) {
   token = String(token || '').trim();
-  if (!token) throw new Error('Sesi verifikasi admin tidak tersedia. Silakan login ulang.');
+  if (!/^[A-Fa-f0-9]{64}$/.test(token)) {
+    throw new Error('Sesi verifikasi admin tidak valid. Silakan login ulang.');
+  }
   const raw = CacheService.getScriptCache().get('pn-review-admin:' + token);
   if (!raw) throw new Error('Sesi verifikasi admin sudah berakhir. Silakan login ulang.');
 
   const currentVersion = adminAuthVersion_();
-  let username = '';
-  let tokenVersion = 'legacy';
-  try {
-    const obj = JSON.parse(raw);
-    username = String(obj && obj.username || '');
-    tokenVersion = String(obj && obj.version || 'legacy');
-  } catch (_) {
-    username = String(raw || '');
+  let obj = null;
+  try { obj = JSON.parse(raw); } catch (_) {}
+  const username = String(obj && obj.username || '');
+  const tokenVersion = String(obj && obj.version || '');
+  const issuedAt = Number(obj && obj.issuedAt || 0);
+  if (username !== PN_REVIEW_ADMIN_USER || !issuedAt) {
+    throw new Error('Sesi verifikasi admin tidak valid. Silakan login ulang.');
   }
-  if (!username) throw new Error('Sesi verifikasi admin tidak valid. Silakan login ulang.');
-  if (currentVersion !== 'legacy' && tokenVersion !== currentVersion) {
+  if (Date.now() - issuedAt > PN_ADMIN_SESSION_SECONDS * 1000) {
+    CacheService.getScriptCache().remove('pn-review-admin:' + token);
+    throw new Error('Sesi verifikasi admin sudah berakhir. Silakan login ulang.');
+  }
+  if (tokenVersion !== currentVersion) {
+    CacheService.getScriptCache().remove('pn-review-admin:' + token);
     throw new Error('Sesi admin sudah dinonaktifkan. Silakan login ulang.');
   }
   return username;
 }
 
 function adminPasswordRecover_(data) {
-  const username = String(data.username || '').trim();
-  const currentPassword = String(data.currentPassword || data.password || '');
-  const newPassword = String(data.newPassword || '');
-
-  if (username !== PN_REVIEW_ADMIN_USER) throw new Error('Akun admin tidak valid.');
-  if (!adminPasswordRecoveryAvailable_()) {
-    throw new Error('Jalur pemulihan password sudah pernah digunakan. Gunakan password server yang aktif.');
-  }
-  if (sha256Hex_(currentPassword) !== PN_REVIEW_ADMIN_PASS_HASH) {
-    throw new Error('Password admin lama tidak benar.');
-  }
-  if (newPassword.length < 8) throw new Error('Password baru minimal 8 karakter.');
-  if (newPassword.length > 128) throw new Error('Password baru terlalu panjang.');
-  if (newPassword === currentPassword) throw new Error('Password baru harus berbeda dari password saat ini.');
-
-  const props = PropertiesService.getScriptProperties();
-  props.setProperty(PN_ADMIN_PASS_PROPERTY, sha256Hex_(newPassword));
-  props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, Utilities.getUuid().replace(/-/g,''));
-  props.setProperty(PN_ADMIN_RECOVERY_USED_PROPERTY, '1');
-  return {
-    ok:true,
-    configured:true,
-    recovered:true,
-    message:'Password admin berhasil dipulihkan dan diganti. Password lama tidak berlaku lagi.'
-  };
+  throw new Error('Pemulihan password lama dinonaktifkan demi keamanan. Gunakan password server aktif atau bootstrap melalui Apps Script.');
 }
 
 function adminChangePassword_(data) {
@@ -746,17 +918,19 @@ function adminChangePassword_(data) {
 
   const currentPassword = String(data.currentPassword || '');
   const newPassword = String(data.newPassword || '');
-  if (sha256Hex_(currentPassword) !== adminPasswordHash_()) {
+  if (!adminVerifyPassword_(currentPassword)) {
+    adminAudit_('ADMIN_PASSWORD_CHANGE','GAGAL','Password saat ini tidak benar.');
     throw new Error('Password saat ini tidak benar.');
   }
-  if (newPassword.length < 8) throw new Error('Password baru minimal 8 karakter.');
-  if (newPassword.length > 128) throw new Error('Password baru terlalu panjang.');
   if (newPassword === currentPassword) throw new Error('Password baru harus berbeda dari password saat ini.');
+  adminPasswordStrong_(newPassword);
 
   const props = PropertiesService.getScriptProperties();
-  props.setProperty(PN_ADMIN_PASS_PROPERTY, sha256Hex_(newPassword));
-  props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, Utilities.getUuid().replace(/-/g,''));
+  adminStoreCredential_(newPassword);
+  props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, adminGenerateSecret_());
+  adminClearLoginFailures_();
   CacheService.getScriptCache().remove('pn-review-admin:' + token);
+  adminAudit_('ADMIN_PASSWORD_CHANGE','OK','Password dirotasi; seluruh sesi lama dinonaktifkan.');
   return {ok:true,configured:true,message:'Password admin berhasil diubah. Semua sesi lama dinonaktifkan.'};
 }
 
@@ -1041,14 +1215,16 @@ function contentUploadImage_(data) {
 function contentRememberResult_(rid, result) {
   rid=String(rid||'').trim();
   if (!rid) return;
-  try { CacheService.getScriptCache().put('pn-content-result:'+rid,JSON.stringify(result),300); } catch (_) {}
+  try { CacheService.getScriptCache().put('pn-content-result:'+rid,JSON.stringify(result),120); } catch (_) {}
 }
 
 function contentResult_(data) {
   const rid=String(data.rid||'').trim();
   if (!rid) return {ok:false,message:'RID tidak tersedia.'};
-  const raw=CacheService.getScriptCache().get('pn-content-result:'+rid);
+  const cache=CacheService.getScriptCache();
+  const raw=cache.get('pn-content-result:'+rid);
   if (!raw) return {ok:false,pending:true,rid:rid};
+  cache.remove('pn-content-result:'+rid);
   try { return JSON.parse(raw); } catch (_) { return {ok:false,message:'Hasil proses tidak valid.',rid:rid}; }
 }
 
