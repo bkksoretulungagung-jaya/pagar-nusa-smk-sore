@@ -49,7 +49,17 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!document.getElementById('pnStudentPortalStyles')){
       const style=document.createElement('style');
       style.id='pnStudentPortalStyles';
-      style.textContent='.bottomAdminLogin{gap:10px;flex-wrap:wrap}.studentCbtLoginBtn,.studentBioLoginBtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:0;border-radius:10px;padding:12px 24px;color:#fff;font-weight:900;box-shadow:0 4px 14px rgba(22,101,52,.18)}.studentCbtLoginBtn{background:#166534}.studentBioLoginBtn{background:#0f766e}.studentCbtLoginBtn:hover,.studentBioLoginBtn:hover{filter:brightness(1.05)}';
+      style.textContent=`
+        .bottomAdminLogin{gap:10px;flex-wrap:wrap}
+        .studentCbtLoginBtn,.studentBioLoginBtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:0;border-radius:10px;padding:12px 24px;color:#fff;font-weight:900;box-shadow:0 4px 14px rgba(22,101,52,.18)}
+        .studentCbtLoginBtn{background:#166534}.studentBioLoginBtn{background:#0f766e}
+        .studentCbtLoginBtn:hover,.studentBioLoginBtn:hover{filter:brightness(1.05)}
+        @media(max-width:680px){
+          .bottomAdminLogin{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:9px!important;width:100%!important}
+          .bottomAdminLogin #pnRegistrationBtn,.bottomAdminLogin #studentCbtLoginBtn{grid-column:1/-1!important;width:100%!important}
+          .bottomAdminLogin #studentBioLoginBtn,.bottomAdminLogin #topLoginBtn{grid-column:auto!important;width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:11px 7px!important;font-size:10.5px!important;white-space:normal!important;text-align:center!important;line-height:1.25!important}
+        }
+      `;
       document.head.appendChild(style);
     }
 
@@ -92,12 +102,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     const btn=document.getElementById(id);
     if(btn && adminBtn){
       const adminStyle=getComputedStyle(adminBtn);
-      btn.style.fontSize=adminStyle.fontSize;
       btn.style.fontFamily=adminStyle.fontFamily;
-      btn.style.lineHeight=adminStyle.lineHeight;
       btn.style.letterSpacing=adminStyle.letterSpacing;
+      if(window.innerWidth>680){
+        btn.style.fontSize=adminStyle.fontSize;
+        btn.style.lineHeight=adminStyle.lineHeight;
+      }
     }
   });
 });
 
-// Build marker v41: biodata portal immediately left of admin login.
+// Build marker v42: mobile Biodata + Admin side by side.
