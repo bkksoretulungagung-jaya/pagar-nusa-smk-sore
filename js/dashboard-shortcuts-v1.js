@@ -8,6 +8,7 @@ const ITEMS=[
   {id:'dashPengurus',icon:'🛡️',label:'Status Pengurus'},
   {id:'dashAlumniActivity',icon:'🎓',label:'Aktivitas Alumni'},
   {id:'dashAlumniProgram',icon:'📚',label:'Program Alumni'},
+  {id:'studentBioShortcut',icon:'👤',label:'PORTAL BIODATA SISWA',action:'biodata'},
   {id:'topLoginBtn',icon:'🔐',label:'LOGIN ADMIN',action:'admin'}
 ];
 
@@ -24,6 +25,8 @@ function installStyles(){
     .pnDashShortcutBtn{flex:1 0 auto;min-width:132px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #d8e6dc;border-radius:10px;padding:10px 12px;background:#f7fbf8;color:#14532d;font:inherit;font-size:10px;font-weight:1000;line-height:1.25;white-space:nowrap;cursor:pointer;transition:transform .16s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease}
     .pnDashShortcutBtn:hover,.pnDashShortcutBtn:focus-visible{background:#ecfdf3;border-color:#86c59a;box-shadow:0 4px 10px rgba(20,83,45,.10);transform:translateY(-1px);outline:none}
     .pnDashShortcutBtn.active{background:#14532d;border-color:#14532d;color:#fff;box-shadow:0 4px 11px rgba(20,83,45,.18)}
+    .pnDashShortcutBtn.bioShortcut{background:#0f766e;border-color:#0f766e;color:#fff}
+    .pnDashShortcutBtn.bioShortcut:hover,.pnDashShortcutBtn.bioShortcut:focus-visible{background:#0b5f59;border-color:#0b5f59;color:#fff}
     .pnDashShortcutBtn.adminShortcut{background:#14532d;border-color:#14532d;color:#fff}
     .pnDashShortcutBtn.adminShortcut:hover,.pnDashShortcutBtn.adminShortcut:focus-visible{background:#0f3d24;border-color:#0f3d24;color:#fff}
     .pnDashShortcutIcon{font-size:14px;line-height:1}
@@ -63,17 +66,25 @@ function goTo(id){
   setTimeout(()=>target.classList.remove('pnShortcutFocus'),1700);
 }
 
+function pulse(btn){
+  if(!btn)return;
+  btn.classList.add('active');
+  setTimeout(()=>btn.classList.remove('active'),700);
+}
+
 function openAdminFromShortcut(btn){
-  if(btn){
-    btn.classList.add('active');
-    setTimeout(()=>btn.classList.remove('active'),700);
-  }
+  pulse(btn);
   if(typeof window.openAdminLogin==='function'){
     window.openAdminLogin();
     return;
   }
   const original=document.getElementById('topLoginBtn');
   if(original)original.click();
+}
+
+function openBiodataFromShortcut(btn){
+  pulse(btn);
+  window.location.href='biodata.html?v=5';
 }
 
 function install(){
@@ -83,7 +94,7 @@ function install(){
   const ticker=home?.querySelector('.welcomeTicker');
   if(!home||!ticker)return;
 
-  const available=ITEMS.filter(item=>item.action==='admin'||document.getElementById(item.id));
+  const available=ITEMS.filter(item=>item.action==='admin'||item.action==='biodata'||document.getElementById(item.id));
   if(!available.length)return;
 
   const wrap=document.createElement('nav');
@@ -96,12 +107,13 @@ function install(){
       <div class="pnDashShortcutHint">Klik menu untuk langsung menuju ringkasan data</div>
     </div>
     <div class="pnDashShortcutBar">
-      ${available.map(item=>`<button class="pnDashShortcutBtn${item.action==='admin'?' adminShortcut':''}" type="button" data-target="${item.id}" data-action="${item.action||'scroll'}"><span class="pnDashShortcutIcon" aria-hidden="true">${item.icon}</span><span>${item.label}</span></button>`).join('')}
+      ${available.map(item=>`<button class="pnDashShortcutBtn${item.action==='admin'?' adminShortcut':''}${item.action==='biodata'?' bioShortcut':''}" type="button" data-target="${item.id}" data-action="${item.action||'scroll'}"><span class="pnDashShortcutIcon" aria-hidden="true">${item.icon}</span><span>${item.label}</span></button>`).join('')}
     </div>`;
 
   wrap.querySelectorAll('.pnDashShortcutBtn').forEach(btn=>{
     btn.addEventListener('click',()=>{
       if(btn.dataset.action==='admin')openAdminFromShortcut(btn);
+      else if(btn.dataset.action==='biodata')openBiodataFromShortcut(btn);
       else goTo(btn.dataset.target);
     });
   });
