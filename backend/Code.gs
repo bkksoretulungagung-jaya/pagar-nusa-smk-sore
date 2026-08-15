@@ -1,6 +1,9 @@
 const PN_REG_SPREADSHEET_ID = '1WBpDiXDeVCKiAKWze7Dh_J-jG8t8_PAApGkAsBEchtc';
 const PN_BIODATA_SPREADSHEET_ID = '1t_PLScKuFhFYOSqAAkeVw4rQDzC2mE7iqFyiwYrvV7w';
 const PN_SHEET_NAME = 'Data Daftar Siswa Baru';
+const PN_REVIEW_SHEET_NAME = 'Ulasan Website';
+const PN_REVIEW_ADMIN_USER = 'admin';
+const PN_REVIEW_ADMIN_PASS_HASH = '3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639';
 const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
 const PN_BIODATA_LOG_SHEET_NAME = 'Log Perubahan Biodata';
 const PN_PORTAL_ACCOUNT_SHEET_NAME = 'Akun Portal Siswa';
@@ -75,6 +78,37 @@ function doPost(e) {
       return iframeResult_(result, 'pn-biodata');
     }
 
+
+    if (action === 'reviewSubmit') {
+      result = reviewSubmit_(data);
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-reviews');
+    }
+
+    if (action === 'reviewPublicList') {
+      result = reviewPublicList_();
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-reviews');
+    }
+
+    if (action === 'reviewAdminLogin') {
+      result = reviewAdminLogin_(data);
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-reviews');
+    }
+
+    if (action === 'reviewAdminList') {
+      result = reviewAdminList_(data);
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-reviews');
+    }
+
+    if (action === 'reviewModerate') {
+      result = reviewModerate_(data);
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-reviews');
+    }
+
     return json_({ok:false, message:'Action tidak dikenal.'});
   } catch (err) {
     result = {
@@ -84,6 +118,9 @@ function doPost(e) {
     };
     if (action === 'biodataGet' || action === 'biodataUpdate') {
       return iframeResult_(result, 'pn-biodata');
+    }
+    if (['reviewSubmit','reviewPublicList','reviewAdminLogin','reviewAdminList','reviewModerate'].includes(action)) {
+      return iframeResult_(result, 'pn-reviews');
     }
     return json_(result);
   }
@@ -413,6 +450,128 @@ function isDuplicate_(sheet, name, wa) {
   const n = String(name).trim().toLowerCase();
   const w = String(wa).replace(/\D/g,'');
   return values.some(r => String(r[0]).trim().toLowerCase() === n && String(r[7]).replace(/\D/g,'') === w);
+}
+
+
+function reviewSheet_() {
+  const book = SpreadsheetApp.openById(PN_REG_SPREADSHEET_ID);
+  let sheet = book.getSheetByName(PN_REVIEW_SHEET_NAME);
+  if (!sheet) {
+    sheet = book.insertSheet(PN_REVIEW_SHEET_NAME);
+    sheet.getRange(1,1,1,10).setValues([[
+      'ID','Tanggal','Nama','Status Pengirim','Rating','Ulasan','Status Moderasi','Diverifikasi Oleh','Waktu Verifikasi','Catatan Admin'
+    ]]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function reviewSubmit_(data) {
+  const name = sanitize_(String(data.name || '').trim());
+  const role = sanitize_(String(data.role || '').trim());
+  const rating = Number(data.rating || 0);
+  const message = sanitize_(String(data.message || '').trim());
+  const allowedRoles = ['Anggota','Alumni','Siswa','Orang Tua/Wali'];
+  if (!name || name.length > 60) throw new Error('Nama wajib diisi dan maksimal 60 karakter.');
+  if (!allowedRoles.includes(role)) throw new Error('Status pengirim tidak valid.');
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw new Error('Rating harus 1 sampai 5.');
+  if (!message || message.length > 500) throw new Error('Ulasan wajib diisi dan maksimal 500 karakter.');
+
+  const id = 'RVW-' + new Date().getTime() + '-' + Math.random().toString(36).slice(2,8).toUpperCase();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    reviewSheet_().appendRow([id,new Date(),name,role,rating,message,'PENDING','','','']);
+  } finally {
+    lock.releaseLock();
+  }
+  return {ok:true,id:id,status:'PENDING',message:'Ulasan masuk antrean verifikasi admin.'};
+}
+
+function reviewPublicList_() {
+  const sheet = reviewSheet_();
+  const last = sheet.getLastRow();
+  if (last < 2) return {ok:true,reviews:[]};
+  const rows = sheet.getRange(2,1,last-1,10).getValues();
+  const reviews = rows.filter(r => String(r[6] || '').toUpperCase() === 'DITERBITKAN').map(reviewObject_).reverse();
+  return {ok:true,reviews:reviews};
+}
+
+function reviewAdminLogin_(data) {
+  const username = String(data.username || '').trim();
+  const password = String(data.password || '');
+  if (username !== PN_REVIEW_ADMIN_USER || sha256Hex_(password) !== PN_REVIEW_ADMIN_PASS_HASH) {
+    throw new Error('Login admin verifikasi tidak valid.');
+  }
+  const token = Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,'');
+  CacheService.getScriptCache().put('pn-review-admin:' + token, username, 21600);
+  return {ok:true,token:token,expiresIn:21600};
+}
+
+function requireReviewAdmin_(token) {
+  token = String(token || '').trim();
+  if (!token) throw new Error('Sesi verifikasi admin tidak tersedia. Silakan login ulang.');
+  const username = CacheService.getScriptCache().get('pn-review-admin:' + token);
+  if (!username) throw new Error('Sesi verifikasi admin sudah berakhir. Silakan login ulang.');
+  return username;
+}
+
+function reviewAdminList_(data) {
+  requireReviewAdmin_(data.token);
+  const sheet = reviewSheet_();
+  const last = sheet.getLastRow();
+  if (last < 2) return {ok:true,reviews:[]};
+  const start = Math.max(2,last-199);
+  const rows = sheet.getRange(start,1,last-start+1,10).getValues();
+  return {ok:true,reviews:rows.map(reviewObject_).reverse()};
+}
+
+function reviewModerate_(data) {
+  const admin = requireReviewAdmin_(data.token);
+  const id = String(data.id || '').trim();
+  const status = String(data.status || '').trim().toUpperCase();
+  const note = sanitize_(String(data.note || '').trim()).slice(0,300);
+  if (!id) throw new Error('ID ulasan tidak tersedia.');
+  if (!['DITERBITKAN','DITOLAK','DIHAPUS'].includes(status)) throw new Error('Status moderasi tidak valid.');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = reviewSheet_();
+    const last = sheet.getLastRow();
+    if (last < 2) throw new Error('Ulasan tidak ditemukan.');
+    const ids = sheet.getRange(2,1,last-1,1).getDisplayValues();
+    let row = -1;
+    for (let i=0;i<ids.length;i++) {
+      if (String(ids[i][0] || '').trim() === id) { row = i + 2; break; }
+    }
+    if (row < 0) throw new Error('Ulasan tidak ditemukan.');
+    sheet.getRange(row,7,1,4).setValues([[status,admin,new Date(),note]]);
+  } finally {
+    lock.releaseLock();
+  }
+  return {ok:true,id:id,status:status,message:'Status ulasan berhasil diperbarui.'};
+}
+
+function reviewObject_(r) {
+  const d = r[1] instanceof Date && !isNaN(r[1].getTime())
+    ? Utilities.formatDate(r[1], 'Asia/Jakarta', "yyyy-MM-dd'T'HH:mm:ss")
+    : String(r[1] || '');
+  const verifiedAt = r[8] instanceof Date && !isNaN(r[8].getTime())
+    ? Utilities.formatDate(r[8], 'Asia/Jakarta', "yyyy-MM-dd'T'HH:mm:ss")
+    : String(r[8] || '');
+  return {
+    id:String(r[0] || ''),date:d,name:String(r[2] || ''),role:String(r[3] || ''),rating:Number(r[4] || 0),
+    message:String(r[5] || ''),status:String(r[6] || 'PENDING'),verifiedBy:String(r[7] || ''),verifiedAt:verifiedAt,note:String(r[9] || '')
+  };
+}
+
+function sha256Hex_(text) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(text || ''), Utilities.Charset.UTF_8);
+  return bytes.map(b => {
+    const n = b < 0 ? b + 256 : b;
+    return n.toString(16).padStart(2,'0');
+  }).join('');
 }
 
 function iframeResult_(obj, source) {
