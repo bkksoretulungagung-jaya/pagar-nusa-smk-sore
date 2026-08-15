@@ -8,7 +8,7 @@ index_path = root / 'index.html'
 core = core_path.read_text(encoding='utf-8')
 core = core.replace(
     "const PN_ADMIN_PASS_HASH=''; // Password diverifikasi oleh backend Apps Script.",
-    "const PN_ADMIN_PASS_HASH='3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639';"
+    "const PN_ADMIN_PASS_HASH='REMOVED_LEGACY_ADMIN_HASH';"
 )
 
 secure = """async function submitAdminLogin(ev){

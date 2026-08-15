@@ -10,7 +10,7 @@ s = re.sub(r'\n?<script src="js/admin-auth-v5\.js\?v=\d+"></script>', '', s)
 s = re.sub(r'\n?<script src="js/admin-password-[^"]+"></script>', '', s)
 s = re.sub(r'\n?<script src="js/admin-login-[^"]+"></script>', '', s)
 
-loader = '<script src="js/admin-auth-v5.js?v=1"></script>'
+loader = '<script src="js/admin-auth-v5.js?v=2"></script>'
 if '</body>' not in s:
     raise SystemExit('Tag </body> tidak ditemukan.')
 s = s.replace('</body>', loader + '\n</body>', 1)

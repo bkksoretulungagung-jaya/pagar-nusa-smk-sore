@@ -1,5 +1,4 @@
 const PN_ADMIN_USER='admin';
-const PN_ADMIN_PASS_HASH='3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639';
 const DASH_SNAPSHOT={
   total:123,aktif:23,alumni:38,prestasi:10,male:112,female:11,hadir:0,pengurus:23,keluar:0,
   status:[['Calon Anggota',50],['Anggota Aktif',23],['Nonaktif',12],['Alumni',38]],
@@ -115,12 +114,7 @@ async function submitAdminLogin(ev){
       enterAdmin(true);
       return false;
     }
-    // Fallback hanya untuk keadaan file v5 belum termuat; tidak mengambil alih bila v5 tersedia.
-    const hash=await sha256Hex(p);
-    if(u===PN_ADMIN_USER&&hash===PN_ADMIN_PASS_HASH){
-      sessionStorage.setItem('pnAdminAuth','1');closeAdminLogin();enterAdmin(true);return false;
-    }
-    if(err)err.textContent='Username atau password admin salah.';
+    throw new Error('Autentikasi admin server belum tersedia. Muat ulang halaman lalu coba lagi.');
   }catch(e){
     if(err)err.textContent='Login server gagal: '+String(e?.message||e||'Tidak diketahui');
   }finally{
@@ -146,12 +140,12 @@ function showPublicDashboard(){
   document.getElementById('topLoginBtn')?.classList.remove('hidden');
   toggleDatabasePanel(false);setAdminControls(false);refreshPublicDashboardV9();window.scrollTo({top:0,behavior:'smooth'})
 }
-function logoutAdmin(){sessionStorage.removeItem('pnAdminAuth');showPublicDashboard()}
+function logoutAdmin(){sessionStorage.removeItem('pnAdminAuth');sessionStorage.removeItem('pnReviewAdminToken');sessionStorage.removeItem('pnAdminAuthModeV5');showPublicDashboard()}
 document.addEventListener('DOMContentLoaded',()=>{
   renderDashboardData(DASH_SNAPSHOT,false);
   setAdminControls(false);
   const u=document.getElementById('adminUser');if(u){u.value='';u.setAttribute('autocomplete','off')}
   const p=document.getElementById('adminPass');if(p)p.value='';
-  if(sessionStorage.getItem('pnAdminAuth')==='1')enterAdmin(false);
+  if(sessionStorage.getItem('pnAdminAuth')==='1'&&sessionStorage.getItem('pnReviewAdminToken'))setTimeout(()=>window.pnAdminResumeV5?.(),80);
   document.getElementById('loginModal')?.addEventListener('click',e=>{if(e.target?.id==='loginModal')closeAdminLogin()});
 });

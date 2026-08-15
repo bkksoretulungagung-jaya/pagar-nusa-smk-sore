@@ -5,7 +5,7 @@ import re
 p = Path('backend/Code.gs')
 s = p.read_text(encoding='utf-8')
 
-const_anchor = "const PN_REVIEW_ADMIN_PASS_HASH = '3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639';"
+const_anchor = "const PN_REVIEW_ADMIN_PASS_HASH = 'REMOVED_LEGACY_ADMIN_HASH';"
 const_extra = const_anchor + "\nconst PN_ADMIN_PASS_PROPERTY = 'PN_ADMIN_PASS_HASH_V1';\nconst PN_ADMIN_AUTH_VERSION_PROPERTY = 'PN_ADMIN_AUTH_VERSION_V1';"
 if 'PN_ADMIN_PASS_PROPERTY' not in s:
     if const_anchor not in s:

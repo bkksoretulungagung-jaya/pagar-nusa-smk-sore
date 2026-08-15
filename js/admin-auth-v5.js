@@ -34,7 +34,7 @@ function jsonp(action,payload={},timeout=10000){
 }
 
 async function postReliable(action,payload={},timeout=35000){
-  const rid='authv5-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+  const rid='authv5-'+randomToken();
   const frame=document.createElement('iframe');
   frame.name='pnAuthV5Frame_'+rid.replace(/\W/g,'');
   frame.style.display='none';frame.setAttribute('aria-hidden','true');
@@ -70,20 +70,12 @@ async function capability(){
   };
 }
 
-async function legacyMatches(username,password){
-  try{
-    if(username!=='admin')return false;
-    const fn=typeof sha256Hex==='function'?sha256Hex:(typeof window.sha256Hex==='function'?window.sha256Hex:null);
-    if(!fn||typeof PN_ADMIN_PASS_HASH==='undefined')return false;
-    return (await fn(password))===PN_ADMIN_PASS_HASH;
-  }catch(_){return false}
-}
 
 async function serverLogin(username,password){
   const requested=randomToken();
   const r=await postReliable('contentAdminLogin',{username,password,token:requested},30000);
-  const token=String(r?.token||requested||'');
-  if(!token)throw new Error('Token admin tidak diterima server.');
+  const token=String(r?.token||'');
+  if(!/^[A-Fa-f0-9]{64}$/.test(token))throw new Error('Token admin dari server tidak valid.');
   sessionStorage.setItem(TOKEN_KEY,token);
   return token;
 }
@@ -99,17 +91,8 @@ window.pnAdminServerLoginV5=async function(username,password){
   const u=String(username||'').trim();
   const p=String(password||'');
   if(!u||!p)throw new Error('Username dan password admin wajib diisi.');
-  const cap=await capability();
-  if(cap.v4&&cap.configured){
-    await serverLogin(u,p);
-    return {ok:true,mode:'server'};
-  }
-  if(cap.v4&&!cap.configured){
-    if(await legacyMatches(u,p))return {ok:true,mode:'legacy'};
-    throw new Error('Username atau password admin salah.');
-  }
-  if(await legacyMatches(u,p))return {ok:true,mode:'legacy-pre-v4'};
-  throw new Error('Username atau password admin salah.');
+  await serverLogin(u,p);
+  return {ok:true,mode:'server'};
 };
 window.pnAdminServerLoginV5.__serverAuthV5=true;
 
@@ -119,37 +102,43 @@ window.submitAdminLogin=async function(ev){
   const p=$('adminPass')?.value||'';
   const err=$('loginError');
   if(!u||!p){if(err)err.textContent='Username dan password admin wajib diisi.';return false}
-  if(err)err.textContent='Memeriksa login admin...';
-
+  if(err)err.textContent='Memeriksa login admin ke server...';
   try{
-    const cap=await capability();
-    if(cap.v4&&cap.configured){
-      await serverLogin(u,p);
-      if(err)err.textContent='';
-      enterAdmin('server');
-      return false;
-    }
-    if(cap.v4&&!cap.configured){
-      if(await legacyMatches(u,p)){
-        if(err)err.textContent='';
-        enterAdmin('legacy');
-        return false;
-      }
-      if(err)err.textContent='Username atau password admin salah.';
-      return false;
-    }
-    if(await legacyMatches(u,p)){
-      if(err)err.textContent='';
-      enterAdmin('legacy-pre-v4');
-      return false;
-    }
-    if(err)err.textContent='Username atau password admin salah.';
+    await serverLogin(u,p);
+    if(err)err.textContent='';
+    enterAdmin('server');
   }catch(e){
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(AUTH_KEY);
+    sessionStorage.removeItem(MODE_KEY);
     if(err)err.textContent='Login server gagal: '+String(e?.message||e||'Tidak diketahui');
   }
   return false;
 };
 window.submitAdminLogin.__serverAuthV5=true;
+
+async function validateStoredToken(){
+  const token=String(sessionStorage.getItem(TOKEN_KEY)||'');
+  if(!/^[A-Fa-f0-9]{64}$/.test(token))return false;
+  try{
+    const r=await jsonp('contentAdminList',{token},10000);
+    return !!(r&&r.ok);
+  }catch(_){return false}
+}
+
+window.pnAdminResumeV5=async function(){
+  if(sessionStorage.getItem(AUTH_KEY)!=='1')return false;
+  if(await validateStoredToken()){
+    sessionStorage.setItem(MODE_KEY,'server');
+    if(typeof window.enterAdmin==='function')window.enterAdmin(false);
+    return true;
+  }
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(AUTH_KEY);
+  sessionStorage.removeItem(MODE_KEY);
+  if(typeof window.showPublicDashboard==='function')window.showPublicDashboard();
+  return false;
+};
 
 function ensureStyles(){
   if($('pnAuthV5Styles'))return;
@@ -169,7 +158,7 @@ function ensureStyles(){
   `;document.head.appendChild(s);
 }
 
-function modalHtml(){return `<div id="pnAuthV5Modal" class="pnAuthV5Modal hidden" aria-hidden="true"><div class="pnAuthV5Card" role="dialog" aria-modal="true"><div class="pnAuthV5Head"><h3>🔑 GANTI PASSWORD ADMIN</h3><button id="pnAuthV5Close" class="pnAuthV5Close" type="button">×</button></div><form id="pnAuthV5Form" class="pnAuthV5Body"><div id="pnAuthV5State" class="pnAuthV5State warn">Memeriksa server...</div><p class="pnAuthV5Note">Password baru minimal 8 karakter. Setelah berhasil, login berikutnya hanya menggunakan password baru.</p><div id="pnAuthV5Msg" class="pnAuthV5Msg"></div><div class="pnAuthV5Field"><label>Password saat ini</label><input id="pnAuthV5Current" type="password" autocomplete="current-password" required></div><div class="pnAuthV5Field"><label>Password baru</label><input id="pnAuthV5New" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div><div class="pnAuthV5Field"><label>Ulangi password baru</label><input id="pnAuthV5Confirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div><button id="pnAuthV5Save" class="pnAuthV5Save" type="submit">SIMPAN PASSWORD BARU</button></form></div></div>`}
+function modalHtml(){return `<div id="pnAuthV5Modal" class="pnAuthV5Modal hidden" aria-hidden="true"><div class="pnAuthV5Card" role="dialog" aria-modal="true"><div class="pnAuthV5Head"><h3>🔑 GANTI PASSWORD ADMIN</h3><button id="pnAuthV5Close" class="pnAuthV5Close" type="button">×</button></div><form id="pnAuthV5Form" class="pnAuthV5Body"><div id="pnAuthV5State" class="pnAuthV5State warn">Memeriksa server...</div><p class="pnAuthV5Note">Password baru minimal 12 karakter. Setelah berhasil, login berikutnya hanya menggunakan password baru.</p><div id="pnAuthV5Msg" class="pnAuthV5Msg"></div><div class="pnAuthV5Field"><label>Password saat ini</label><input id="pnAuthV5Current" type="password" autocomplete="current-password" required></div><div class="pnAuthV5Field"><label>Password baru</label><input id="pnAuthV5New" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></div><div class="pnAuthV5Field"><label>Ulangi password baru</label><input id="pnAuthV5Confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></div><button id="pnAuthV5Save" class="pnAuthV5Save" type="submit">SIMPAN PASSWORD BARU</button></form></div></div>`}
 
 function setMsg(type,text){const el=$('pnAuthV5Msg');if(!el)return;el.className='pnAuthV5Msg show '+(type||'');el.textContent=text||''}
 function clearMsg(){const el=$('pnAuthV5Msg');if(el){el.className='pnAuthV5Msg';el.textContent=''}}
@@ -197,23 +186,17 @@ async function changePassword(ev){
   const next=$('pnAuthV5New')?.value||'';
   const conf=$('pnAuthV5Confirm')?.value||'';
   const btn=$('pnAuthV5Save');
-  if(next.length<8){setMsg('err','Password baru minimal 8 karakter.');return}
+  if(next.length<12){setMsg('err','Password baru minimal 12 karakter.');return}
   if(next!==conf){setMsg('err','Ulangi password baru belum sama.');return}
   if(cur===next){setMsg('err','Password baru harus berbeda dari password saat ini.');return}
   if(btn){btn.disabled=true;btn.textContent='MENYIMPAN...'};clearMsg();
   try{
     const cap=await capability();
-    if(!cap.v4)throw new Error('Backend password v4 belum aktif.');
-    let result;
-    if(cap.recoveryAvailable){
-      setMsg('','Memverifikasi password lama langsung di server...');
-      result=await postReliable('adminPasswordRecover',{username:'admin',currentPassword:cur,newPassword:next},35000);
-    }else{
-      setMsg('','Memverifikasi password saat ini ke server...');
-      const token=await serverLogin('admin',cur);
-      setMsg('','Verifikasi berhasil. Menyimpan password baru...');
-      result=await postReliable('adminChangePassword',{token,currentPassword:cur,newPassword:next},35000);
-    }
+    if(!cap.online)throw new Error('Backend admin tidak dapat dihubungi.');
+    setMsg('','Memverifikasi password saat ini langsung ke server...');
+    const token=await serverLogin('admin',cur);
+    setMsg('','Verifikasi berhasil. Menyimpan password baru...');
+    const result=await postReliable('adminChangePassword',{token,currentPassword:cur,newPassword:next},35000);
     if(!result?.ok)throw new Error(result?.message||'Password belum berhasil diubah.');
     sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(AUTH_KEY);sessionStorage.removeItem(MODE_KEY);
     setMsg('ok','✓ Password admin berhasil diubah. Silakan login kembali menggunakan password baru.');

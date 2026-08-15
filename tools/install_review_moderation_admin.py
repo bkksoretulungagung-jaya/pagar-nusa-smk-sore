@@ -20,7 +20,7 @@ if "const PN_REVIEW_SHEET_NAME" not in code:
     consts = """
 const PN_REVIEW_SHEET_NAME = 'Ulasan Website';
 const PN_REVIEW_ADMIN_USER = 'admin';
-const PN_REVIEW_ADMIN_PASS_HASH = '3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639';
+const PN_REVIEW_ADMIN_PASS_HASH = 'REMOVED_LEGACY_ADMIN_HASH';
 """.strip()
     code = code.replace(const_marker, const_marker + '\n' + consts, 1)
 
