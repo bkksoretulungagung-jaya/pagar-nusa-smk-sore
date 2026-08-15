@@ -1,0 +1,52 @@
+name: Install biodata endpoint
+
+on:
+  push:
+    paths:
+      - '.github/workflows/install-biodata-endpoint.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install endpoint
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          endpoint="https://script.google.com/macros/s/AKfycbx3P5NWvwalSxrruToRtRSLMRZ-sJVLlGUxdSyT7oGjgJ0C2xKapa6zy72xQnfN0lqqfQ/exec"
+          p=Path('biodata.html')
+          s=p.read_text(encoding='utf-8')
+          old="const PN_BIODATA_ENDPOINT='';"
+          new=f"const PN_BIODATA_ENDPOINT='{endpoint}';"
+          if old not in s and endpoint not in s:
+              raise SystemExit('Biodata endpoint placeholder not found')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+
+          u=Path('js/ui-v9.js')
+          x=u.read_text(encoding='utf-8')
+          x=x.replace("bio.href='biodata.html?v=1';","bio.href='biodata.html?v=2';")
+          u.write_text(x,encoding='utf-8')
+
+          i=Path('index.html')
+          y=i.read_text(encoding='utf-8')
+          y=y.replace('js/ui-v9.js?v=40','js/ui-v9.js?v=41')
+          i.write_text(y,encoding='utf-8')
+          PY
+      - name: Commit endpoint
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add biodata.html js/ui-v9.js index.html
+          if git diff --cached --quiet; then
+            echo 'No change needed.'
+            exit 0
+          fi
+          git commit -m 'Connect separate biodata portal to Apps Script endpoint'
+          git push
