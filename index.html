@@ -421,51 +421,6 @@
 })();
 </script>
 
-<script>
-/* REVIEWS SCRIPT V41 */
-(function(){
-  const ADMIN_WA='6285736062138';
-  let selectedRating=0;
-  const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const stars=n=>'★'.repeat(Math.max(0,Math.min(5,Number(n)||0)))+'☆'.repeat(5-Math.max(0,Math.min(5,Number(n)||0)));
-  const formatDate=v=>{try{return new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'long',year:'numeric'}).format(new Date(v+'T00:00:00'))}catch(_){return String(v||'')}};
-  function renderReviews(data){
-    const list=document.getElementById('reviewList');
-    const valid=Array.isArray(data)?data.filter(r=>Number(r.rating)>=1&&Number(r.rating)<=5&&r.name&&r.message):[];
-    const total=valid.length;
-    const avg=total?valid.reduce((a,r)=>a+Number(r.rating),0)/total:0;
-    document.getElementById('reviewAvg').textContent=avg.toFixed(1);
-    document.getElementById('reviewAvgStars').textContent=total?stars(Math.round(avg)):'☆☆☆☆☆';
-    document.getElementById('reviewTotal').textContent=String(total);
-    const bars=document.getElementById('reviewBars');
-    bars.innerHTML=[5,4,3,2,1].map(n=>{const c=valid.filter(r=>Number(r.rating)===n).length;const pct=total?Math.round(c/total*100):0;return `<div class="reviewBarRow"><span>${n}★</span><div class="reviewBar"><div class="reviewBarFill" style="width:${pct}%"></div></div><span>${pct}%</span></div>`}).join('');
-    if(!total){list.innerHTML='<div class="reviewEmpty"><b>Belum ada ulasan yang dipublikasikan.</b><br>Jadilah yang pertama memberikan penilaian. Ulasan akan tampil setelah diverifikasi admin.</div>';return}
-    valid.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
-    list.innerHTML=valid.slice(0,6).map(r=>`<article class="reviewCard"><div class="reviewCardTop"><span class="reviewCardStars">${stars(r.rating)}</span><span class="reviewCardDate">${formatDate(r.date)}</span></div><p class="reviewCardText">“${esc(r.message)}”</p><div class="reviewCardFoot"><div class="reviewCardName">${esc(r.name)}</div><span class="reviewVerified">✓ ${esc(r.role||'Pengunjung')} Terverifikasi</span></div></article>`).join('');
-  }
-  async function loadReviews(){try{const res=await fetch('data/reviews.json?v=41',{cache:'no-store'});if(!res.ok)throw new Error();renderReviews(await res.json())}catch(_){renderReviews([])}}
-  function setRating(n){selectedRating=Number(n)||0;document.getElementById('reviewRating').value=selectedRating?String(selectedRating):'';document.querySelectorAll('.reviewStarBtn').forEach(btn=>btn.classList.toggle('active',Number(btn.dataset.rating)<=selectedRating))}
-  document.addEventListener('DOMContentLoaded',()=>{
-    loadReviews();
-    const wrap=document.getElementById('reviewFormWrap');
-    document.getElementById('reviewOpenBtn')?.addEventListener('click',()=>{wrap?.classList.add('open');setTimeout(()=>wrap?.scrollIntoView({behavior:'smooth',block:'nearest'}),50)});
-    document.getElementById('reviewCloseBtn')?.addEventListener('click',()=>wrap?.classList.remove('open'));
-    document.querySelectorAll('.reviewStarBtn').forEach(btn=>btn.addEventListener('click',()=>setRating(btn.dataset.rating)));
-    document.getElementById('reviewForm')?.addEventListener('submit',ev=>{
-      ev.preventDefault();
-      const name=document.getElementById('reviewName').value.trim(),role=document.getElementById('reviewRole').value,message=document.getElementById('reviewMessage').value.trim(),status=document.getElementById('reviewStatus');
-      if(!name||!role||!message||!selectedRating){status.style.display='block';status.textContent='Lengkapi nama, status, rating bintang, dan ulasan terlebih dahulu.';return}
-      let last=0;try{last=Number(localStorage.getItem('pnReviewLastSent')||0)}catch(_){}
-      if(Date.now()-last<60000){status.style.display='block';status.textContent='Ulasan baru saja dikirim. Mohon tunggu sebentar sebelum mengirim lagi.';return}
-      const text=`ULASAN WEBSITE PAGAR NUSA SMK SORE\n\nNama: ${name}\nStatus: ${role}\nRating: ${selectedRating}/5 ${'★'.repeat(selectedRating)}\nUlasan: ${message}\n\nMohon diverifikasi sebelum dipublikasikan di website.`;
-      try{localStorage.setItem('pnReviewLastSent',String(Date.now()))}catch(_){}
-      status.style.display='block';status.textContent='Ulasan siap dikirim ke WhatsApp admin untuk verifikasi.';
-      window.open('https://wa.me/'+ADMIN_WA+'?text='+encodeURIComponent(text),'_blank','noopener,noreferrer');
-    });
-  });
-})();
-</script>
-
 <script src="js/reviews-moderation-v2.js?v=4"></script>
 <script src="js/reviews-public-refresh-v3.js?v=4"></script>
 </body>
