@@ -1,0 +1,30 @@
+name: Fix admin login core delegate v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/fix_admin_login_core_delegate_v1.py'
+      - '.github/workflows/fix-admin-login-core-delegate-v1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply core login delegation
+        run: python tools/fix_admin_login_core_delegate_v1.py
+      - name: Commit changes
+        run: |
+          if git diff --quiet -- js/admin-auth-v5.js js/ui-v9-core.js js/ui-v9.js index.html; then
+            echo 'No changes needed'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add js/admin-auth-v5.js js/ui-v9-core.js js/ui-v9.js index.html
+          git commit -m 'Jadikan login server v5 sumber tunggal autentikasi admin'
+          git push
