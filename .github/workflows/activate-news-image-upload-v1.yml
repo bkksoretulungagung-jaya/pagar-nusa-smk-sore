@@ -23,12 +23,22 @@ jobs:
           s = p.read_text(encoding='utf-8')
           s = s.replace('js/content-manager-v1.js?v=2', 'js/content-manager-v1.js?v=3')
           s = s.replace('js/drive-image-fix-v2.js?v=2', 'js/drive-image-fix-v2.js?v=3')
+          s = s.replace('js/news-image-manager-v1.js?v=2', 'js/news-image-manager-v1.js?v=3')
           marker = '<script src="js/drive-image-fix-v2.js?v=3"></script>'
-          news = '<script src="js/news-image-manager-v1.js?v=2"></script>'
+          news = '<script src="js/news-image-manager-v1.js?v=3"></script>'
+          portrait = '<script src="js/news-image-portrait-v1.js?v=1"></script>'
           if news not in s:
-              if marker not in s:
-                  raise SystemExit('drive-image-fix script marker not found')
-              s = s.replace(marker, marker + '\n' + news, 1)
+              old_news = '<script src="js/news-image-manager-v1.js?v=2"></script>'
+              if old_news in s:
+                  s = s.replace(old_news, news, 1)
+              elif marker in s:
+                  s = s.replace(marker, marker + '\n' + news, 1)
+              else:
+                  raise SystemExit('news image manager marker not found')
+          if portrait not in s:
+              if news not in s:
+                  raise SystemExit('news image manager script not found')
+              s = s.replace(news, news + '\n' + portrait, 1)
           p.write_text(s, encoding='utf-8')
           PY
 
@@ -38,6 +48,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
           if ! git diff --cached --quiet; then
-            git commit -m "Activate upload gambar kabar dan informasi"
+            git commit -m "Aktifkan aturan foto potret untuk kabar dan informasi"
             git push
           fi
