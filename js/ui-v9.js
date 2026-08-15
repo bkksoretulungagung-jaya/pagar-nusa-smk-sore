@@ -45,27 +45,46 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('#pnWelcomeWrap,.pnWelcomeWrap,#pnEkskulInfo,.pnEkskulInfo').forEach(el=>el.remove());
 
   const loginArea=document.getElementById('bottomAdminLogin');
-  if(loginArea && !document.getElementById('studentCbtLoginBtn')){
-    const style=document.createElement('style');
-    style.textContent='.bottomAdminLogin{gap:10px;flex-wrap:wrap}.studentCbtLoginBtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:#166534;border:0;border-radius:10px;padding:12px 24px;color:#fff;font-weight:900;box-shadow:0 4px 14px rgba(22,101,52,.18)}.studentCbtLoginBtn:hover{filter:brightness(1.05)}';
-    document.head.appendChild(style);
-    const link=document.createElement('a');
-    link.id='studentCbtLoginBtn';
-    link.className='studentCbtLoginBtn';
-    link.href='siswa.html?v=2';
-    link.textContent='🎓 LOGIN SISWA / CBT';
-    loginArea.insertBefore(link,loginArea.firstChild);
+  if(loginArea){
+    if(!document.getElementById('pnStudentPortalStyles')){
+      const style=document.createElement('style');
+      style.id='pnStudentPortalStyles';
+      style.textContent='.bottomAdminLogin{gap:10px;flex-wrap:wrap}.studentCbtLoginBtn,.studentBioLoginBtn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:0;border-radius:10px;padding:12px 24px;color:#fff;font-weight:900;box-shadow:0 4px 14px rgba(22,101,52,.18)}.studentCbtLoginBtn{background:#166534}.studentBioLoginBtn{background:#0f766e}.studentCbtLoginBtn:hover,.studentBioLoginBtn:hover{filter:brightness(1.05)}';
+      document.head.appendChild(style);
+    }
+    if(!document.getElementById('studentBioLoginBtn')){
+      const bio=document.createElement('a');
+      bio.id='studentBioLoginBtn';
+      bio.className='studentBioLoginBtn';
+      bio.href='biodata.html?v=1';
+      bio.textContent='👤 PORTAL BIODATA SISWA';
+      loginArea.insertBefore(bio,loginArea.firstChild);
+    }
+    if(!document.getElementById('studentCbtLoginBtn')){
+      const cbt=document.createElement('a');
+      cbt.id='studentCbtLoginBtn';
+      cbt.className='studentCbtLoginBtn';
+      cbt.href='siswa.html?v=3';
+      cbt.textContent='📝 PORTAL CBT ONLINE';
+      loginArea.insertBefore(cbt,document.getElementById('studentBioLoginBtn')?.nextSibling||loginArea.firstChild);
+    }else{
+      const cbt=document.getElementById('studentCbtLoginBtn');
+      cbt.href='siswa.html?v=3';
+      cbt.textContent='📝 PORTAL CBT ONLINE';
+    }
   }
 
-  const studentBtn=document.getElementById('studentCbtLoginBtn');
   const adminBtn=document.getElementById('topLoginBtn');
-  if(studentBtn && adminBtn){
-    const adminStyle=getComputedStyle(adminBtn);
-    studentBtn.style.fontSize=adminStyle.fontSize;
-    studentBtn.style.fontFamily=adminStyle.fontFamily;
-    studentBtn.style.lineHeight=adminStyle.lineHeight;
-    studentBtn.style.letterSpacing=adminStyle.letterSpacing;
-  }
+  ['studentBioLoginBtn','studentCbtLoginBtn'].forEach(id=>{
+    const btn=document.getElementById(id);
+    if(btn && adminBtn){
+      const adminStyle=getComputedStyle(adminBtn);
+      btn.style.fontSize=adminStyle.fontSize;
+      btn.style.fontFamily=adminStyle.fontFamily;
+      btn.style.lineHeight=adminStyle.lineHeight;
+      btn.style.letterSpacing=adminStyle.letterSpacing;
+    }
+  });
 });
 
-// Build marker v39: student biodata portal with required member ID login.
+// Build marker v40: separate Biodata and CBT portals.
