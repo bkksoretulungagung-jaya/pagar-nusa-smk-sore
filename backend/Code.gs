@@ -1,4 +1,5 @@
-const PN_SPREADSHEET_ID = '1WBpDiXDeVCKiAKWze7Dh_J-jG8t8_PAApGkAsBEchtc';
+const PN_REG_SPREADSHEET_ID = '1WBpDiXDeVCKiAKWze7Dh_J-jG8t8_PAApGkAsBEchtc';
+const PN_BIODATA_SPREADSHEET_ID = '1t_PLScKuFhFYOSqAAkeVw4rQDzC2mE7iqFyiwYrvV7w';
 const PN_SHEET_NAME = 'Data Daftar Siswa Baru';
 const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
 const PN_BIODATA_LOG_SHEET_NAME = 'Log Perubahan Biodata';
@@ -93,7 +94,7 @@ function saveRegistration_(data) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    const sheet = SpreadsheetApp.openById(PN_SPREADSHEET_ID).getSheetByName(PN_SHEET_NAME);
+    const sheet = SpreadsheetApp.openById(PN_REG_SPREADSHEET_ID).getSheetByName(PN_SHEET_NAME);
     if (!sheet) throw new Error('Sheet database pendaftaran tidak ditemukan.');
     if (isDuplicate_(sheet, row[0], row[7])) {
       return {ok:false, code:'DUPLICATE', message:'Nama dan nomor WA tersebut sudah terdaftar.'};
@@ -203,7 +204,7 @@ function authorizePortalStudent_(data) {
   const uid = String(firebaseUser.localId || '').trim();
   if (!email || !uid) throw new Error('Akun Firebase tidak valid.');
 
-  const book = SpreadsheetApp.openById(PN_SPREADSHEET_ID);
+  const book = SpreadsheetApp.openById(PN_BIODATA_SPREADSHEET_ID);
   const accountSheet = book.getSheetByName(PN_PORTAL_ACCOUNT_SHEET_NAME);
   if (!accountSheet) throw new Error('Sheet Akun Portal Siswa tidak ditemukan.');
 
