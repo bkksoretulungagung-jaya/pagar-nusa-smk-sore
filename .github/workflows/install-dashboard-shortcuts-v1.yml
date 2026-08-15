@@ -1,0 +1,28 @@
+name: Install dashboard shortcuts v1
+on:
+  push:
+    paths:
+      - 'js/dashboard-shortcuts-v1.js'
+      - 'tools/install_dashboard_shortcuts_v1.py'
+      - '.github/workflows/install-dashboard-shortcuts-v1.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dashboard shortcut menu
+        run: python3 tools/install_dashboard_shortcuts_v1.py
+      - name: Commit shortcut menu
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+          else
+            git commit -m "Pasang menu pintasan di atas tulisan berjalan"
+            git push
+          fi
