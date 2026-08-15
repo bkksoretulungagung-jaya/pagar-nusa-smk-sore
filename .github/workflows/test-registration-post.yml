@@ -1,0 +1,31 @@
+name: Test registration POST
+
+on:
+  push:
+    paths:
+      - '.github/workflows/test-registration-post.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST test registration to Apps Script
+        shell: bash
+        run: |
+          set -x
+          curl -L --fail-with-body -sS \
+            -X POST \
+            -H 'Content-Type: application/x-www-form-urlencoded' \
+            --data-urlencode 'action=register' \
+            --data-urlencode 'name=TES SERVER OTOMATIS' \
+            --data-urlencode 'place=Tulungagung' \
+            --data-urlencode 'date=2008-01-01' \
+            --data-urlencode 'kelas=X' \
+            --data-urlencode 'major=TKJ' \
+            --data-urlencode 'address=Tes alamat sistem' \
+            --data-urlencode 'parent=Orang Tua Tes' \
+            --data-urlencode 'wa=081234567890' \
+            --data-urlencode 'email=tes@example.com' \
+            --data-urlencode 'willing=true' \
+            'https://script.google.com/macros/s/AKfycbyJi_83IJ11JshOLCzIBRMX6fEi-y9UGR9eYULuqH1BivdxeqcgMB0I2ehWBlgaad8Oyw/exec'
