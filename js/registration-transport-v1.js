@@ -1,6 +1,6 @@
 'use strict';
 
-const PN_REG_GET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyJi_83IJ11JshOLCzIBRMX6fEi-y9UGR9eYULuqH1BivdxeqcgMB0I2ehWBlgaad8Oyw/exec';
+const PN_REG_GET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyJi_83lJ11JshOLCzIBRMX6fEi-y9UGR9eYULuqH1BivdxeqcgMB0l2ehWBIgaad8Oyw/exec';
 
 async function pnSubmitRegistration(ev){
   ev.preventDefault();
