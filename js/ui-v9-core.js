@@ -99,11 +99,33 @@ function openAdminLogin(){
 function closeAdminLogin(){document.getElementById('loginModal')?.classList.add('hidden')}
 async function submitAdminLogin(ev){
   if(ev)ev.preventDefault();
-  const u=document.getElementById('adminUser')?.value.trim()||'',p=document.getElementById('adminPass')?.value||'',err=document.getElementById('loginError');
-  const hash=await sha256Hex(p);
-  if(u===PN_ADMIN_USER&&hash===PN_ADMIN_PASS_HASH){
-    sessionStorage.setItem('pnAdminAuth','1');closeAdminLogin();enterAdmin(true)
-  }else{if(err)err.textContent='Username atau password admin salah.'}
+  const u=document.getElementById('adminUser')?.value.trim()||'';
+  const p=document.getElementById('adminPass')?.value||'';
+  const err=document.getElementById('loginError');
+  const submit=document.querySelector('#loginModal .loginSubmit');
+  if(err)err.textContent='';
+  if(!u||!p){if(err)err.textContent='Username dan password admin wajib diisi.';return false}
+  if(submit){submit.disabled=true;submit.textContent='MEMERIKSA...'}
+  try{
+    if(typeof window.pnAdminServerLoginV5==='function'){
+      const r=await window.pnAdminServerLoginV5(u,p);
+      if(!r||!r.ok)throw new Error('Login admin gagal.');
+      sessionStorage.setItem('pnAdminAuth','1');
+      closeAdminLogin();
+      enterAdmin(true);
+      return false;
+    }
+    // Fallback hanya untuk keadaan file v5 belum termuat; tidak mengambil alih bila v5 tersedia.
+    const hash=await sha256Hex(p);
+    if(u===PN_ADMIN_USER&&hash===PN_ADMIN_PASS_HASH){
+      sessionStorage.setItem('pnAdminAuth','1');closeAdminLogin();enterAdmin(true);return false;
+    }
+    if(err)err.textContent='Username atau password admin salah.';
+  }catch(e){
+    if(err)err.textContent='Login server gagal: '+String(e?.message||e||'Tidak diketahui');
+  }finally{
+    if(submit){submit.disabled=false;submit.textContent='MASUK'}
+  }
   return false
 }
 function setAdminControls(show){

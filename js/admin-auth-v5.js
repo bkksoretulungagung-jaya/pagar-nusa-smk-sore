@@ -95,6 +95,24 @@ function enterAdmin(mode){
   if(typeof window.enterAdmin==='function')window.enterAdmin(true);
 }
 
+window.pnAdminServerLoginV5=async function(username,password){
+  const u=String(username||'').trim();
+  const p=String(password||'');
+  if(!u||!p)throw new Error('Username dan password admin wajib diisi.');
+  const cap=await capability();
+  if(cap.v4&&cap.configured){
+    await serverLogin(u,p);
+    return {ok:true,mode:'server'};
+  }
+  if(cap.v4&&!cap.configured){
+    if(await legacyMatches(u,p))return {ok:true,mode:'legacy'};
+    throw new Error('Username atau password admin salah.');
+  }
+  if(await legacyMatches(u,p))return {ok:true,mode:'legacy-pre-v4'};
+  throw new Error('Username atau password admin salah.');
+};
+window.pnAdminServerLoginV5.__serverAuthV5=true;
+
 window.submitAdminLogin=async function(ev){
   if(ev)ev.preventDefault();
   const u=$('adminUser')?.value.trim()||'';
