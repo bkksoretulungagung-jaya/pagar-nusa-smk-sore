@@ -216,7 +216,10 @@ async function refreshModalState(){
     return cap;
   }
 
-  if(cap.configured&&cap.recoveryAvailable&&mode==='legacy-recovery'){
+  if(!cap.configured&&cap.recoveryAvailable){
+    state.className='pnAuthV4State ok';
+    state.textContent='✓ Server bersih dan siap. Password lama akan diverifikasi sekali lalu diganti ke password baru.';
+  }else if(cap.configured&&cap.recoveryAvailable&&mode==='legacy-recovery'){
     state.className='pnAuthV4State ok';
     state.textContent='✓ Mode pemulihan siap. Masukkan password lama yang baru saja dipakai login, lalu tentukan password baru.';
   }else if(cap.configured){
@@ -261,9 +264,10 @@ async function changePassword(ev){
     if(!cap.v4)throw new Error('Backend final v4 belum aktif. Password belum diubah.');
 
     let result;
+    const oldPasswordValid=await legacyMatches('admin',cur);
 
-    if(cap.configured&&cap.recoveryAvailable&&await legacyMatches('admin',cur)){
-      setMsg('','Memulihkan sinkronisasi password dan menyimpan password baru...');
+    if(cap.recoveryAvailable&&oldPasswordValid){
+      setMsg('','Memverifikasi password lama dan menyimpan password baru...');
       result=await postReliable('adminPasswordRecover',{
         username:'admin',
         currentPassword:cur,
