@@ -40,7 +40,7 @@ function doGet(e) {
       storage:'Google Sheets',
       biodata:true,
       reviews:true,
-      reviewVersion:'5'
+      reviewVersion:'6'
     });
   }
 
@@ -48,6 +48,20 @@ function doGet(e) {
     let result;
     try {
       result = reviewPublicList_();
+    } catch (err) {
+      result = {ok:false, reviews:[], message:String(err && err.message || err)};
+    }
+    result.rid = String(data.rid || '');
+    if (data.callback) {
+      return jsonp_(result, data.callback);
+    }
+    return json_(result);
+  }
+
+  if (action === 'reviewAdminList') {
+    let result;
+    try {
+      result = reviewAdminList_(data);
     } catch (err) {
       result = {ok:false, reviews:[], message:String(err && err.message || err)};
     }
@@ -529,7 +543,7 @@ function reviewSubmit_(data) {
 function reviewPublicList_() {
   const sheet = reviewSheet_();
   const last = sheet.getLastRow();
-  if (last < 2) return {ok:true,reviews:[],version:'5'};
+  if (last < 2) return {ok:true,reviews:[],version:'6'};
   const start = Math.max(2,last-499);
   const rows = sheet.getRange(start,1,last-start+1,10).getValues();
   const reviews = rows
@@ -537,7 +551,7 @@ function reviewPublicList_() {
     .map(reviewObject_)
     .reverse()
     .slice(0,100);
-  return {ok:true,reviews:reviews,version:'5'};
+  return {ok:true,reviews:reviews,version:'6'};
 }
 
 function reviewAdminLogin_(data) {
@@ -546,9 +560,14 @@ function reviewAdminLogin_(data) {
   if (username !== PN_REVIEW_ADMIN_USER || sha256Hex_(password) !== PN_REVIEW_ADMIN_PASS_HASH) {
     throw new Error('Login admin verifikasi tidak valid.');
   }
-  const token = Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,'');
+
+  const requestedToken = String(data.token || '').trim();
+  const token = /^[A-Za-z0-9_-]{32,128}$/.test(requestedToken)
+    ? requestedToken
+    : Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,'');
+
   CacheService.getScriptCache().put('pn-review-admin:' + token, username, 21600);
-  return {ok:true,token:token,expiresIn:21600};
+  return {ok:true,token:token,expiresIn:21600,version:'6'};
 }
 
 function requireReviewAdmin_(token) {
