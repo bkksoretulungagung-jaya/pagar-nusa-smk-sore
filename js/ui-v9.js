@@ -10,7 +10,7 @@
 
 document.write('<script src="js/ui-v9-core.js?v=25"><\/script>');
 document.write('<script src="js/registration-v2.js?v=4"><\/script>');
-document.write('<script src="js/registration-transport-v1.js?v=4"><\/script>');
+document.write('<script src="js/registration-transport-v1.js?v=5"><\/script>');
 
 document.addEventListener('DOMContentLoaded',()=>{
   const adminUser=document.getElementById('adminUser');
@@ -22,16 +22,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   const adminPass=document.getElementById('adminPass');
   if(adminPass)adminPass.value='';
 
-  // Minta penyimpanan persisten agar database Excel yang sudah dipilih
-  // tetap tersimpan di browser dan tidak perlu di-upload setiap membuka web.
   if(navigator.storage?.persist){
     navigator.storage.persist().then(granted=>{
       document.documentElement.dataset.pnPersistentStorage=granted?'true':'false';
     }).catch(()=>{});
   }
 
-  // Pakai foto JPEG terbaru yang diunggah pengguna, bukan SVG galeri lama.
-  // Nomor versi mencegah browser terus menampilkan foto dari cache lama.
   const galleryThumbs=[
     'assets/galeri-6.svg.jpeg?v=21',
     'assets/galeri-3.svg.jpeg?v=21',
@@ -46,10 +42,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
-  // Bersihkan elemen duplikat dari versi lama yang pernah dibuat lewat JavaScript.
   document.querySelectorAll('#pnWelcomeWrap,.pnWelcomeWrap,#pnEkskulInfo,.pnEkskulInfo').forEach(el=>el.remove());
 
-  // Tambahkan pintu masuk Portal Siswa CBT tanpa mengubah login admin.
   const loginArea=document.getElementById('bottomAdminLogin');
   if(loginArea && !document.getElementById('studentCbtLoginBtn')){
     const style=document.createElement('style');
@@ -63,7 +57,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     loginArea.insertBefore(link,loginArea.firstChild);
   }
 
-  // Samakan tipografi tombol LOGIN SISWA / CBT dengan LOGIN ADMIN.
   const studentBtn=document.getElementById('studentCbtLoginBtn');
   const adminBtn=document.getElementById('topLoginBtn');
   if(studentBtn && adminBtn){
@@ -75,4 +68,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v36: thank-you screen shown for new and repeated submissions.
+// Build marker v38: reliable in-modal thank-you state for all successful or duplicate registrations.
