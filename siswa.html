@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Portal Siswa CBT - Pagar Nusa SMK Sore Tulungagung</title>
 <style>
 :root{--g:#14532d;--g2:#166534;--bg:#f4f8f5;--line:#d9e7dd;--text:#172033;--muted:#64748b;--red:#b91c1c}
@@ -20,11 +21,12 @@
 <main class="wrap">
 <section id="loginView" class="grid">
   <div class="card">
-    <div class="head"><h2>Login Siswa</h2><p>Masukkan username, email, dan password akun masing-masing.</p></div>
+    <div class="head"><h2>Login Siswa</h2><p>Masukkan username, ID Anggota / No. Siswa, email, dan password akun masing-masing.</p></div>
     <div class="body">
       <div id="setupNotice" class="notice">Memuat portal siswa...</div>
       <form id="loginForm">
         <label for="username">Username</label><input id="username" type="text" autocomplete="username" placeholder="Contoh: siswa01" required>
+        <label for="memberId">ID Anggota / No. Siswa</label><input id="memberId" type="text" autocomplete="off" placeholder="Contoh: PN-2026-001" required>
         <label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="siswa01@gmail.com" required>
         <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password siswa" required>
         <button id="loginBtn" class="primary" type="submit" disabled>MASUK PORTAL SISWA</button>
@@ -141,5 +143,6 @@ if(configReady){
   cbtLogoutBtn.addEventListener('click',async()=>{sessionStorage.removeItem('pnStudentUsername');await signOut(auth)});
 }
 </script>
+<script type="module" src="js/biodata-portal-v1.js?v=1"></script>
 </body>
 </html>
