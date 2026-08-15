@@ -10,9 +10,34 @@ text = text.replace(
 """      storage:'Google Sheets',
       biodata:true,
       reviews:true,
-      reviewVersion:'4'
+      reviewVersion:'5'
 """
 )
+text = text.replace("reviewVersion:'4'", "reviewVersion:'5'")
+
+# Public review reads use GET/JSONP. This avoids cross-origin POST/iframe
+# timeouts on the public dashboard while keeping write/admin actions on POST.
+get_marker = """  if (action === 'register') {
+"""
+get_block = """  if (action === 'reviewPublicList') {
+    let result;
+    try {
+      result = reviewPublicList_();
+    } catch (err) {
+      result = {ok:false, reviews:[], message:String(err && err.message || err)};
+    }
+    result.rid = String(data.rid || '');
+    if (data.callback) {
+      return jsonp_(result, data.callback);
+    }
+    return json_(result);
+  }
+
+"""
+if get_block not in text:
+    if get_marker not in text:
+        raise SystemExit('doGet register marker not found')
+    text = text.replace(get_marker, get_block + get_marker, 1)
 
 old_submit = """function reviewSubmit_(data) {
   const name = sanitize_(String(data.name || '').trim());
@@ -99,7 +124,7 @@ old_public = """function reviewPublicList_() {
 new_public = """function reviewPublicList_() {
   const sheet = reviewSheet_();
   const last = sheet.getLastRow();
-  if (last < 2) return {ok:true,reviews:[],version:'4'};
+  if (last < 2) return {ok:true,reviews:[],version:'5'};
   const start = Math.max(2,last-499);
   const rows = sheet.getRange(start,1,last-start+1,10).getValues();
   const reviews = rows
@@ -107,13 +132,32 @@ new_public = """function reviewPublicList_() {
     .map(reviewObject_)
     .reverse()
     .slice(0,100);
-  return {ok:true,reviews:reviews,version:'4'};
+  return {ok:true,reviews:reviews,version:'5'};
 }
 """
 if old_public in text:
     text = text.replace(old_public, new_public)
-elif "return {ok:true,reviews:reviews,version:'4'};" not in text:
-    raise SystemExit('reviewPublicList_ block not found; backend source changed unexpectedly')
+else:
+    text = text.replace("return {ok:true,reviews:[],version:'4'};", "return {ok:true,reviews:[],version:'5'};")
+    text = text.replace("return {ok:true,reviews:reviews,version:'4'};", "return {ok:true,reviews:reviews,version:'5'};")
+
+jsonp_helper = """
+function jsonp_(obj, callback) {
+  const cb = String(callback || '').trim();
+  if (!/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(cb)) {
+    return json_({ok:false, message:'Callback JSONP tidak valid.'});
+  }
+  const payload = JSON.stringify(obj).replace(/</g,'\\u003c').replace(/\\u2028/g,'\\\\u2028').replace(/\\u2029/g,'\\\\u2029');
+  return ContentService
+    .createTextOutput(cb + '(' + payload + ');')
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+"""
+if 'function jsonp_(obj, callback)' not in text:
+    json_marker = "function json_(obj) {"
+    if json_marker not in text:
+        raise SystemExit('json_ helper marker not found')
+    text = text.replace(json_marker, jsonp_helper + "\n" + json_marker, 1)
 
 p.write_text(text, encoding='utf-8')
-print('Backend review v4 ready.')
+print('Backend review v5 GET/JSONP ready.')
