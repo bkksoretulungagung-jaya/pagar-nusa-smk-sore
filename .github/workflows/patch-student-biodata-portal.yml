@@ -1,0 +1,57 @@
+name: Patch student biodata portal
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-student-biodata-portal.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch siswa.html
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('siswa.html')
+          s=p.read_text(encoding='utf-8')
+
+          s=s.replace(
+            '<meta name="viewport" content="width=device-width,initial-scale=1">',
+            '<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">'
+          )
+          s=s.replace(
+            'Masukkan username, email, dan password akun masing-masing.',
+            'Masukkan username, ID Anggota / No. Siswa, email, dan password akun masing-masing.'
+          )
+
+          old='''        <label for="username">Username</label><input id="username" type="text" autocomplete="username" placeholder="Contoh: siswa01" required>\n        <label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="siswa01@gmail.com" required>'''
+          new='''        <label for="username">Username</label><input id="username" type="text" autocomplete="username" placeholder="Contoh: siswa01" required>\n        <label for="memberId">ID Anggota / No. Siswa</label><input id="memberId" type="text" autocomplete="off" placeholder="Contoh: PN-2026-001" required>\n        <label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="siswa01@gmail.com" required>'''
+          if 'id="memberId"' not in s:
+              if old not in s:
+                  raise SystemExit('Login field marker not found')
+              s=s.replace(old,new)
+
+          script='<script type="module" src="js/biodata-portal-v1.js?v=1"></script>'
+          if script not in s:
+              s=s.replace('</body>',script+'\n</body>')
+
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit portal patch
+        shell: bash
+        run: |
+          if git diff --quiet -- siswa.html; then
+            echo 'No change needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add siswa.html
+          git commit -m 'Add secure Biodata Saya menu to student portal'
+          git push
