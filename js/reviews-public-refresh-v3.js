@@ -4,9 +4,11 @@
 const ENDPOINT='https://script.google.com/macros/s/AKfycbyJi_83lJ11JshOLCzIBRMX6fEi-y9UGR9eYULuqH1BivdxeqcgMB0l2ehWBIgaad8Oyw/exec';
 let loading=false;
 let lastGood=[];
+let retryTimer=0;
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const stars=n=>'★'.repeat(Math.max(0,Math.min(5,Number(n)||0)))+'☆'.repeat(5-Math.max(0,Math.min(5,Number(n)||0)));
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
 function formatDate(v){
   try{return new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Jakarta'}).format(new Date(v))}
@@ -55,7 +57,7 @@ function render(data){
   list.innerHTML=valid.slice(0,6).map(r=>`<article class="reviewCard"><div class="reviewCardTop"><span class="reviewCardStars">${stars(r.rating)}</span><span class="reviewCardDate">${formatDate(r.date)}</span></div><p class="reviewCardText">“${esc(r.message)}”</p><div class="reviewCardFoot"><div class="reviewCardName">${esc(r.name)}</div><span class="reviewVerified">✓ ${esc(r.role||'Pengunjung')} • Terverifikasi Admin</span></div></article>`).join('');
 }
 
-function requestPublic(){
+function requestPublicOnce(timeoutMs){
   return new Promise((resolve,reject)=>{
     const rid='pnreview-public-'+Date.now()+'-'+Math.random().toString(36).slice(2);
     const frame=document.createElement('iframe');
@@ -76,14 +78,31 @@ function requestPublic(){
       d.ok?resolve(Array.isArray(d.reviews)?d.reviews:[]):reject(new Error(d.message||'Gagal memuat ulasan.'));
     };
     window.addEventListener('message',onMessage);
-    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('server tidak merespons'))},8000);
+    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('server tidak merespons tepat waktu'))},timeoutMs);
     document.body.appendChild(frame);document.body.appendChild(form);form.submit();
   });
+}
+
+async function requestPublic(){
+  let lastError;
+  for(let attempt=1;attempt<=2;attempt++){
+    try{
+      return await requestPublicOnce(attempt===1?12000:18000);
+    }catch(err){
+      lastError=err;
+      if(attempt<2){
+        setState('loading','● Database sedang merespons lambat • mencoba sinkronisasi ulang...');
+        await wait(700);
+      }
+    }
+  }
+  throw lastError||new Error('sinkronisasi gagal');
 }
 
 async function refresh(){
   if(loading)return;
   loading=true;
+  if(retryTimer){clearTimeout(retryTimer);retryTimer=0;}
   setState('loading','● Menyinkronkan ulasan terverifikasi dengan database pusat...');
   try{
     const rows=await requestPublic();
@@ -91,7 +110,8 @@ async function refresh(){
     setState('online','● DATABASE ONLINE • Ulasan yang tampil telah disetujui admin dan dimuat dari database pusat.');
   }catch(err){
     if(lastGood.length)render(lastGood);else render([]);
-    setState('offline','● DATABASE ULASAN BELUM AKTIF • Dashboard tidak menampilkan data lokal agar informasi tetap konsisten di semua perangkat.');
+    setState('offline','● SINKRONISASI DATABASE TERGANGGU • Sistem akan mencoba kembali otomatis. Data lokal tidak digunakan agar informasi tetap konsisten.');
+    retryTimer=setTimeout(refresh,15000);
   }finally{loading=false;}
 }
 
@@ -107,6 +127,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   wrapPublicDashboard();
   render([]);
   setTimeout(refresh,120);
+  setTimeout(()=>{if(!loading)refresh()},2500);
 });
 window.addEventListener('pn:reviews-changed',()=>setTimeout(refresh,80));
 window.addEventListener('pn:review-public-refresh',()=>setTimeout(refresh,80));
