@@ -231,7 +231,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/harden-frontend-admin-auth-v1.yml
+          git rm -f .github/workflows/harden-frontend-admin-auth-v1.yml
           git add -A
           git commit -m "Require server-side admin authentication and remove legacy hash"
           git push
