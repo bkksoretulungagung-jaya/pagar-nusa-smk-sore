@@ -6,16 +6,18 @@ text = index.read_text(encoding='utf-8')
 for old in [
     'js/reviews-moderation-v2.js?v=2',
     'js/reviews-moderation-v2.js?v=4',
+    'js/reviews-moderation-v2.js?v=5',
 ]:
-    text = text.replace(old, 'js/reviews-moderation-v2.js?v=5')
+    text = text.replace(old, 'js/reviews-moderation-v2.js?v=6')
 for old in [
     'js/reviews-public-refresh-v3.js?v=3',
     'js/reviews-public-refresh-v3.js?v=4',
+    'js/reviews-public-refresh-v3.js?v=5',
 ]:
-    text = text.replace(old, 'js/reviews-public-refresh-v3.js?v=5')
+    text = text.replace(old, 'js/reviews-public-refresh-v3.js?v=6')
 
 legacy_start = text.find('<script>\n/* REVIEWS SCRIPT V41 */')
-modern_marker = '<script src="js/reviews-moderation-v2.js?v=5"></script>'
+modern_marker = '<script src="js/reviews-moderation-v2.js?v=6"></script>'
 if legacy_start != -1:
     modern_start = text.find(modern_marker, legacy_start)
     if modern_start == -1:
@@ -34,4 +36,4 @@ if "openBtn.dataset.reviewProBound='1'" not in js:
     js = js.replace(marker, insert)
     js_path.write_text(js, encoding='utf-8')
 
-print('Review professional controls and cache version activated.')
+print('Review professional controls and cache version v6 activated.')
