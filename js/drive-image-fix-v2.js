@@ -53,3 +53,12 @@ const observer=new MutationObserver(records=>{
 observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['src']});
 window.pnNormalizeDriveImage=normalizeDriveImage;
 })();
+
+(()=>{
+  if(document.querySelector('script[data-pn-cms-password-mask]'))return;
+  const s=document.createElement('script');
+  s.src='js/content-password-mask-v1.js?v=1';
+  s.async=false;
+  s.dataset.pnCmsPasswordMask='1';
+  document.head.appendChild(s);
+})();
