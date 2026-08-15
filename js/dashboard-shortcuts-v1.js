@@ -8,8 +8,7 @@ const ITEMS=[
   {id:'dashPengurus',icon:'🛡️',label:'Status Pengurus'},
   {id:'dashAlumniActivity',icon:'🎓',label:'Aktivitas Alumni'},
   {id:'registrationShortcut',icon:'📝',label:'PENDAFTARAN CALON ANGGOTA',action:'registration'},
-  {id:'studentBioShortcut',icon:'👤',label:'BIODATA ANGGOTA',action:'biodata'},
-  {id:'topLoginBtn',icon:'🔐',label:'LOGIN ADMIN',action:'admin'}
+  {id:'studentBioShortcut',icon:'👤',label:'BIODATA ANGGOTA',action:'biodata'}
 ];
 
 function installStyles(){
