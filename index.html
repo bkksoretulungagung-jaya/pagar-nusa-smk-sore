@@ -104,6 +104,11 @@
 .reviewStarInput{display:flex;gap:5px}.reviewStarBtn{border:0;background:transparent;color:#cbd5e1;font-size:26px;line-height:1;padding:0 2px;cursor:pointer}.reviewStarBtn.active{color:#f4b400}.reviewFormNote{grid-column:1/-1;margin:0;padding:10px 12px;border-left:3px solid #e6a700;background:#fff9e6;color:#6b5b23;border-radius:0 8px 8px 0;font-size:10px;line-height:1.55}.reviewSubmit{grid-column:1/-1;border:0;border-radius:10px;padding:11px 16px;background:#166534;color:#fff;font-weight:1000;cursor:pointer}.reviewSubmit:hover{filter:brightness(1.05)}.reviewStatus{grid-column:1/-1;display:none;padding:10px 12px;border-radius:9px;background:#ecfdf3;border:1px solid #bbf7d0;color:#166534;font-size:10px;font-weight:800;line-height:1.55}
 @media(max-width:800px){.reviewSection{margin:16px 10px 20px;padding:17px}.reviewHead{align-items:flex-start;flex-direction:column}.reviewOpenBtn{width:100%}.reviewSummary{grid-template-columns:1fr}.reviewList{grid-template-columns:1fr}.reviewFormGrid{grid-template-columns:1fr}.reviewField.full,.reviewFormNote,.reviewSubmit,.reviewStatus{grid-column:1}.reviewHead h2{font-size:18px}}
 
+
+/* HARD HIDE LEGACY ADMIN SHORTCUT V1 */
+#pnDashboardShortcuts .adminShortcut,
+#pnDashboardShortcuts [data-action="admin"]{display:none!important}
+
 </style>
 </head>
 <body>
@@ -425,7 +430,7 @@
 <script src="js/reviews-moderation-v2.js?v=10"></script>
 <script src="js/reviews-admin-session-v10.js?v=11"></script>
 <script src="js/reviews-public-refresh-v3.js?v=7"></script>
-<script src="js/dashboard-shortcuts-v1.js?v=6"></script>
+<script src="js/dashboard-shortcuts-v1.js?v=7"></script>
 <script src="js/content-manager-v1.js?v=2"></script>
 <script src="js/registration-toggle-v1.js?v=1"></script>
 <script src="js/cbt-toggle-v1.js?v=1"></script>
