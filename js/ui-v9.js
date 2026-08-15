@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       const bio=document.createElement('a');
       bio.id='studentBioLoginBtn';
       bio.className='studentBioLoginBtn';
-      bio.href='biodata.html?v=4';
+      bio.href='biodata.html?v=5';
       bio.textContent='👤 PORTAL BIODATA SISWA';
       loginArea.insertBefore(bio,loginArea.firstChild);
     }
