@@ -1,0 +1,23 @@
+name: Install admin dual login recovery v2
+on:
+  push:
+    paths:
+      - 'tools/install_admin_login_dual_recovery_v2.py'
+      - '.github/workflows/install-admin-login-dual-recovery-v2.yml'
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dual login recovery v2
+        run: python tools/install_admin_login_dual_recovery_v2.py
+      - name: Commit installation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Pasang login admin dua jalur aman v2"
+          git push
