@@ -8,7 +8,7 @@ const ITEMS=[
   {id:'dashPengurus',icon:'🛡️',label:'Status Pengurus'},
   {id:'dashAlumniActivity',icon:'🎓',label:'Aktivitas Alumni'},
   {id:'dashAlumniProgram',icon:'📚',label:'Program Alumni'},
-  {id:'studentBioShortcut',icon:'👤',label:'PORTAL BIODATA ANGGOTA',action:'biodata'},
+  {id:'studentBioShortcut',icon:'👤',label:'BIODATA ANGGOTA',action:'biodata'},
   {id:'topLoginBtn',icon:'🔐',label:'LOGIN ADMIN',action:'admin'}
 ];
 
