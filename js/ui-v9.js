@@ -10,6 +10,7 @@
 
 document.write('<script src="js/ui-v9-core.js?v=25"><\/script>');
 document.write('<script src="js/registration-v2.js?v=4"><\/script>');
+document.write('<script src="js/registration-transport-v1.js?v=1"><\/script>');
 
 document.addEventListener('DOMContentLoaded',()=>{
   const adminUser=document.getElementById('adminUser');
@@ -74,4 +75,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v32: permanent Google Sheets registration backend.
+// Build marker v33: GET iframe transport for permanent Google Sheets registration.
