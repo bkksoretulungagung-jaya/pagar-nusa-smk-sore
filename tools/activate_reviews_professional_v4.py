@@ -24,6 +24,13 @@ if legacy_start != -1:
         raise SystemExit('Modern review script marker not found after legacy block')
     text = text[:legacy_start] + modern_marker + text[modern_start + len(modern_marker):]
 
+recovery_marker = '<script src="js/reviews-admin-recovery-v7.js?v=7"></script>'
+public_marker = '<script src="js/reviews-public-refresh-v3.js?v=6"></script>'
+if recovery_marker not in text:
+    if public_marker not in text:
+        raise SystemExit('Public review script marker not found')
+    text = text.replace(public_marker, recovery_marker + '\n' + public_marker)
+
 index.write_text(text, encoding='utf-8')
 
 js_path = Path('js/reviews-moderation-v2.js')
@@ -36,4 +43,4 @@ if "openBtn.dataset.reviewProBound='1'" not in js:
     js = js.replace(marker, insert)
     js_path.write_text(js, encoding='utf-8')
 
-print('Review professional controls and cache version v6 activated.')
+print('Review professional controls v6 and admin recovery v7 activated.')
