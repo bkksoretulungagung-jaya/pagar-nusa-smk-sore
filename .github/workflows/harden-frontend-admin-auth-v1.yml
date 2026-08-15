@@ -21,23 +21,25 @@ jobs:
           from pathlib import Path
           import re
 
-          # 1) Core UI: fail closed when server auth is unavailable.
+          # 1) Core UI: password tidak boleh diverifikasi di browser.
           p = Path('js/ui-v9-core.js')
           s = p.read_text(encoding='utf-8')
           s, n = re.subn(r"^const PN_ADMIN_PASS_HASH='[0-9a-fA-F]{64}';\n", '', s, count=1, flags=re.M)
           if n != 1:
               raise SystemExit('PN_ADMIN_PASS_HASH aktif tidak ditemukan di ui-v9-core.js')
 
-          old = """    // Fallback hanya untuk keadaan file v5 belum termuat; tidak mengambil alih bila v5 tersedia.
-              const hash=await sha256Hex(p);
-              if(u===PN_ADMIN_USER&&hash===PN_ADMIN_PASS_HASH){
-                sessionStorage.setItem('pnAdminAuth','1');closeAdminLogin();enterAdmin(true);return false;
-              }
-              if(err)err.textContent='Username atau password admin salah.';"""
-          new = """    throw new Error('Autentikasi admin server belum tersedia. Muat ulang halaman lalu coba lagi.');"""
-          if old not in s:
+          s, n = re.subn(
+              r"\s*// Fallback hanya untuk keadaan file v5 belum termuat; tidak mengambil alih bila v5 tersedia\.\n"
+              r"\s*const hash=await sha256Hex\(p\);\n"
+              r"\s*if\(u===PN_ADMIN_USER&&hash===PN_ADMIN_PASS_HASH\)\{\n"
+              r"\s*sessionStorage\.setItem\('pnAdminAuth','1'\);closeAdminLogin\(\);enterAdmin\(true\);return false;\n"
+              r"\s*\}\n"
+              r"\s*if\(err\)err\.textContent='Username atau password admin salah\.';",
+              "\n    throw new Error('Autentikasi admin server belum tersedia. Muat ulang halaman lalu coba lagi.');",
+              s, count=1
+          )
+          if n != 1:
               raise SystemExit('Fallback client-side ui-v9-core tidak ditemukan')
-          s = s.replace(old, new, 1)
 
           s = s.replace(
               "function logoutAdmin(){sessionStorage.removeItem('pnAdminAuth');showPublicDashboard()}",
@@ -51,7 +53,7 @@ jobs:
           )
           p.write_text(s, encoding='utf-8')
 
-          # 2) Server auth module: never authenticate locally, never use legacy hash.
+          # 2) Server auth module: tidak ada mode legacy/local sama sekali.
           p = Path('js/admin-auth-v5.js')
           s = p.read_text(encoding='utf-8')
 
@@ -59,20 +61,26 @@ jobs:
           if n != 1:
               raise SystemExit('legacyMatches tidak ditemukan di admin-auth-v5.js')
 
-          s = s.replace("  const rid='authv5-'+Date.now()+'-'+Math.random().toString(36).slice(2);",
-                        "  const rid='authv5-'+randomToken();", 1)
+          s = s.replace(
+              "  const rid='authv5-'+Date.now()+'-'+Math.random().toString(36).slice(2);",
+              "  const rid='authv5-'+randomToken();",
+              1
+          )
 
-          old_server_login = """  const token=String(r?.token||requested||'');
-              if(!token)throw new Error('Token admin tidak diterima server.');
-              sessionStorage.setItem(TOKEN_KEY,token);
-              return token;"""
-          new_server_login = """  const token=String(r?.token||'');
-              if(!/^[A-Fa-f0-9]{64}$/.test(token))throw new Error('Token admin dari server tidak valid.');
-              sessionStorage.setItem(TOKEN_KEY,token);
-              return token;"""
-          if old_server_login not in s:
-              raise SystemExit('serverLogin token block tidak ditemukan')
-          s = s.replace(old_server_login, new_server_login, 1)
+          server_login = r'''async function serverLogin(username,password){
+            const requested=randomToken();
+            const r=await postReliable('contentAdminLogin',{username,password,token:requested},30000);
+            const token=String(r?.token||'');
+            if(!/^[A-Fa-f0-9]{64}$/.test(token))throw new Error('Token admin dari server tidak valid.');
+            sessionStorage.setItem(TOKEN_KEY,token);
+            return token;
+          }'''
+          s, n = re.subn(
+              r"async function serverLogin\(username,password\)\{.*?\n\}",
+              server_login, s, count=1, flags=re.S
+          )
+          if n != 1:
+              raise SystemExit('serverLogin block tidak ditemukan')
 
           login_api = r'''window.pnAdminServerLoginV5=async function(username,password){
             const u=String(username||'').trim();
@@ -82,7 +90,10 @@ jobs:
             return {ok:true,mode:'server'};
           };
           window.pnAdminServerLoginV5.__serverAuthV5=true;'''
-          s, n = re.subn(r"window\.pnAdminServerLoginV5=async function\(username,password\)\{.*?window\.pnAdminServerLoginV5\.__serverAuthV5=true;", login_api, s, count=1, flags=re.S)
+          s, n = re.subn(
+              r"window\.pnAdminServerLoginV5=async function\(username,password\)\{.*?window\.pnAdminServerLoginV5\.__serverAuthV5=true;",
+              login_api, s, count=1, flags=re.S
+          )
           if n != 1:
               raise SystemExit('pnAdminServerLoginV5 block tidak ditemukan')
 
@@ -106,20 +117,30 @@ jobs:
             return false;
           };
           window.submitAdminLogin.__serverAuthV5=true;'''
-          s, n = re.subn(r"window\.submitAdminLogin=async function\(ev\)\{.*?window\.submitAdminLogin\.__serverAuthV5=true;", submit_api, s, count=1, flags=re.S)
+          s, n = re.subn(
+              r"window\.submitAdminLogin=async function\(ev\)\{.*?window\.submitAdminLogin\.__serverAuthV5=true;",
+              submit_api, s, count=1, flags=re.S
+          )
           if n != 1:
               raise SystemExit('submitAdminLogin v5 block tidak ditemukan')
 
-          # Ganti password selalu memverifikasi password saat ini melalui server lebih dulu.
-          old_change = re.compile(r"    const cap=await capability\(\);\n    if\(!cap\.v4\)throw new Error\('Backend password v4 belum aktif\.'\);\n    let result;\n    if\(cap\.recoveryAvailable\)\{.*?\n    \}\n    if\(!result\?\.ok\)", re.S)
-          replacement = """    const cap=await capability();
-              if(!cap.online)throw new Error('Backend admin tidak dapat dihubungi.');
-              setMsg('','Memverifikasi password saat ini langsung ke server...');
-              const token=await serverLogin('admin',cur);
-              setMsg('','Verifikasi berhasil. Menyimpan password baru...');
-              const result=await postReliable('adminChangePassword',{token,currentPassword:cur,newPassword:next},35000);
-              if(!result?.ok)"""
-          s, n = old_change.subn(replacement, s, count=1)
+          # Password change: selalu login ulang ke server, tanpa jalur recovery lama.
+          s, n = re.subn(
+              r"    const cap=await capability\(\);\n"
+              r"    if\(!cap\.v4\)throw new Error\('Backend password v4 belum aktif\.'\);\n"
+              r"    let result;\n"
+              r"    if\(cap\.recoveryAvailable\)\{.*?"
+              r"    \}\n"
+              r"    if\(!result\?\.ok\)",
+              "    const cap=await capability();\n"
+              "    if(!cap.online)throw new Error('Backend admin tidak dapat dihubungi.');\n"
+              "    setMsg('','Memverifikasi password saat ini langsung ke server...');\n"
+              "    const token=await serverLogin('admin',cur);\n"
+              "    setMsg('','Verifikasi berhasil. Menyimpan password baru...');\n"
+              "    const result=await postReliable('adminChangePassword',{token,currentPassword:cur,newPassword:next},35000);\n"
+              "    if(!result?.ok)",
+              s, count=1, flags=re.S
+          )
           if n != 1:
               raise SystemExit('changePassword legacy recovery block tidak ditemukan')
 
@@ -127,7 +148,6 @@ jobs:
           s = s.replace('minlength="8"', 'minlength="12"')
           s = s.replace('if(next.length<8)', 'if(next.length<12)')
 
-          # Validasi token ketika halaman mencoba melanjutkan sesi admin.
           resume = r'''
           async function validateStoredToken(){
             const token=String(sessionStorage.getItem(TOKEN_KEY)||'');
@@ -158,10 +178,10 @@ jobs:
           s = s.replace(marker, resume + marker, 1)
           p.write_text(s, encoding='utf-8')
 
-          # 3) Legacy recovery file can no longer override submitAdminLogin.
+          # 3) File recovery lama menjadi shim aman dan tidak boleh override fungsi login.
           Path('js/admin-login-recovery-v1.js').write_text("""(()=>{\n'use strict';\n// Dinonaktifkan: autentikasi admin wajib diverifikasi server.\nfunction hideLegacyRecovery(){\n  const b=document.getElementById('pnAdminPasswordBtn');\n  if(b)b.style.display='none';\n}\nif(document.readyState==='loading')document.addEventListener('DOMContentLoaded',hideLegacyRecovery);else hideLegacyRecovery();\n})();\n""", encoding='utf-8')
 
-          # 4) Cache busting untuk core + auth server.
+          # 4) Cache busting.
           p = Path('js/ui-v9.js')
           s = p.read_text(encoding='utf-8')
           s, n = re.subn(r'js/ui-v9-core\.js\?v=\d+', 'js/ui-v9-core.js?v=29', s, count=1)
@@ -185,7 +205,7 @@ jobs:
               raise SystemExit('index ui-v9 loader tidak ditemukan')
           p.write_text(s, encoding='utf-8')
 
-          # 5) Hapus hash admin lama dari current tree (file historis/tools lama menjadi nonaktif).
+          # 5) Buang hash admin lama dari seluruh current tree text.
           legacy_hash='3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639'
           for f in Path('.').rglob('*'):
               if not f.is_file() or '.git' in f.parts:
@@ -198,14 +218,14 @@ jobs:
                   f.write_text(text.replace(legacy_hash,'REMOVED_LEGACY_ADMIN_HASH'),encoding='utf-8')
           PY
 
-      - name: Syntax check changed JavaScript
+      - name: Syntax and security checks
         run: |
-          cp js/ui-v9-core.js /tmp/ui-v9-core.js
-          cp js/admin-auth-v5.js /tmp/admin-auth-v5.js
-          cp js/admin-login-recovery-v1.js /tmp/admin-login-recovery-v1.js
-          node --check /tmp/ui-v9-core.js
-          node --check /tmp/admin-auth-v5.js
-          node --check /tmp/admin-login-recovery-v1.js
+          node --check js/ui-v9-core.js
+          node --check js/admin-auth-v5.js
+          node --check js/admin-login-recovery-v1.js
+          ! grep -R --exclude-dir=.git -F '3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639' .
+          ! grep -F 'legacyMatches' js/admin-auth-v5.js
+          ! grep -F 'PN_ADMIN_PASS_HASH' js/ui-v9-core.js
 
       - name: Commit frontend hardening and remove one-shot workflow
         run: |
