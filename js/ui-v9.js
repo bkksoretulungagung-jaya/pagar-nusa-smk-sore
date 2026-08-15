@@ -9,6 +9,7 @@
 })();
 
 document.write('<script src="js/ui-v9-core.js?v=25"><\/script>');
+document.write('<script src="js/registration-v1.js?v=1"><\/script>');
 
 document.addEventListener('DOMContentLoaded',()=>{
   const adminUser=document.getElementById('adminUser');
@@ -73,4 +74,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v28: gallery 5 photos only.
+// Build marker v29: public registration form + Data Daftar Siswa Baru.
