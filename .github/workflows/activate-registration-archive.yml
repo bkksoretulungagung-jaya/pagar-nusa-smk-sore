@@ -1,0 +1,26 @@
+name: Activate registration archive
+
+on:
+  push:
+    paths:
+      - '.github/workflows/activate-registration-archive.yml'
+  workflow_dispatch:
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger FormSubmit activation email
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error \
+            -X POST 'https://formsubmit.co/ajax/pagarnusasmksore86@gmail.com' \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json' \
+            --data '{"_subject":"Aktivasi Arsip Pendaftaran Pagar Nusa","_template":"table","_captcha":"false","Nama Lengkap":"[AKTIVASI SISTEM]","Alamat Email":"pagarnusasmksore86@gmail.com","Pernyataan":"Aktivasi sistem pendaftaran online Pagar Nusa Rayon SMK Sore Tulungagung"}'
+
+      - name: Request FormSubmit API key by email
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error \
+            'https://formsubmit.co/api/get-apikey/pagarnusasmksore86@gmail.com'
