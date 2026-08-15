@@ -1,0 +1,191 @@
+name: Add reviews and rating section
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-reviews-section.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add reviews section to homepage
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          css = r'''
+/* REVIEWS SECTION V41 */
+.reviewSection{max-width:1180px;margin:20px auto 22px;padding:22px;background:linear-gradient(145deg,#0f3d24,#14532d);border:1px solid #1c6a3c;border-radius:16px;box-shadow:0 10px 28px rgba(15,61,36,.16);color:#fff;overflow:hidden}
+.reviewHead{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+.reviewHead h2{margin:0;font-size:20px;line-height:1.25;font-weight:1000;letter-spacing:.4px;color:#fff}
+.reviewHead p{margin:5px 0 0;max-width:720px;font-size:12px;line-height:1.6;color:#dff7e8}
+.reviewOpenBtn{border:1px solid rgba(255,255,255,.24);border-radius:11px;padding:11px 17px;background:#fff;color:#14532d;font-weight:1000;cursor:pointer;white-space:nowrap;box-shadow:0 5px 14px rgba(0,0,0,.14)}
+.reviewOpenBtn:hover{filter:brightness(.97)}
+.reviewSummary{display:grid;grid-template-columns:220px 1fr;gap:14px;margin-bottom:16px}
+.reviewScoreCard,.reviewBarsCard{background:rgba(255,255,255,.97);border:1px solid rgba(255,255,255,.7);border-radius:13px;color:#183528}
+.reviewScoreCard{padding:18px;display:flex;align-items:center;gap:15px}
+.reviewScore{font-size:42px;line-height:1;font-weight:1000;color:#14532d;letter-spacing:-1px}
+.reviewStars{color:#f4b400;font-size:17px;letter-spacing:2px;white-space:nowrap}
+.reviewCount{margin-top:5px;color:#64748b;font-size:10px;font-weight:800}
+.reviewBarsCard{padding:13px 16px}
+.reviewBarRow{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;gap:9px;margin:6px 0;font-size:10px;font-weight:800;color:#475569}
+.reviewBar{height:7px;background:#e8efe9;border-radius:999px;overflow:hidden}
+.reviewBarFill{height:100%;background:linear-gradient(90deg,#e6a700,#f4c430);border-radius:999px}
+.reviewList{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.reviewCard{display:flex;flex-direction:column;min-height:180px;padding:16px;background:#fff;border:1px solid #d6e6dc;border-radius:13px;color:#1e293b;box-shadow:0 5px 16px rgba(0,0,0,.09)}
+.reviewCardTop{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:10px}
+.reviewCardStars{color:#f4b400;font-size:13px;letter-spacing:1px}.reviewCardDate{color:#94a3b8;font-size:9px;font-weight:700}
+.reviewCardText{flex:1;margin:0;color:#334155;font-size:11px;line-height:1.7;text-align:justify}
+.reviewCardFoot{margin-top:14px;padding-top:11px;border-top:1px solid #e7eee9}.reviewCardName{font-size:11px;font-weight:1000;color:#14532d}.reviewVerified{display:block;margin-top:3px;color:#16803f;font-size:9px;font-weight:900}
+.reviewEmpty{grid-column:1/-1;padding:22px;background:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.8);border-radius:13px;color:#475569;text-align:center;font-size:11px;line-height:1.65}
+.reviewFormWrap{display:none;margin-top:16px;padding:18px;background:#fff;border-radius:13px;color:#1e293b}.reviewFormWrap.open{display:block}.reviewFormTitle{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.reviewFormTitle h3{margin:0;color:#14532d;font-size:14px;font-weight:1000}.reviewCloseBtn{border:0;background:#edf5ef;color:#14532d;width:31px;height:31px;border-radius:50%;font-size:18px;font-weight:900;cursor:pointer}
+.reviewFormGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.reviewField.full{grid-column:1/-1}.reviewField label{display:block;margin-bottom:6px;color:#334155;font-size:10px;font-weight:900}.reviewField input,.reviewField select,.reviewField textarea{width:100%;box-sizing:border-box;border:1px solid #cddbd1;border-radius:9px;background:#fff;color:#1e293b;padding:10px 11px;font:inherit;font-size:12px;outline:none}.reviewField textarea{min-height:100px;resize:vertical}.reviewField input:focus,.reviewField select:focus,.reviewField textarea:focus{border-color:#16803f;box-shadow:0 0 0 3px rgba(22,128,63,.10)}
+.reviewStarInput{display:flex;gap:5px}.reviewStarBtn{border:0;background:transparent;color:#cbd5e1;font-size:26px;line-height:1;padding:0 2px;cursor:pointer}.reviewStarBtn.active{color:#f4b400}.reviewFormNote{grid-column:1/-1;margin:0;padding:10px 12px;border-left:3px solid #e6a700;background:#fff9e6;color:#6b5b23;border-radius:0 8px 8px 0;font-size:10px;line-height:1.55}.reviewSubmit{grid-column:1/-1;border:0;border-radius:10px;padding:11px 16px;background:#166534;color:#fff;font-weight:1000;cursor:pointer}.reviewSubmit:hover{filter:brightness(1.05)}.reviewStatus{grid-column:1/-1;display:none;padding:10px 12px;border-radius:9px;background:#ecfdf3;border:1px solid #bbf7d0;color:#166534;font-size:10px;font-weight:800;line-height:1.55}
+@media(max-width:800px){.reviewSection{margin:16px 10px 20px;padding:17px}.reviewHead{align-items:flex-start;flex-direction:column}.reviewOpenBtn{width:100%}.reviewSummary{grid-template-columns:1fr}.reviewList{grid-template-columns:1fr}.reviewFormGrid{grid-template-columns:1fr}.reviewField.full,.reviewFormNote,.reviewSubmit,.reviewStatus{grid-column:1}.reviewHead h2{font-size:18px}}
+'''
+
+          html = r'''
+  <section id="reviewsSection" class="reviewSection" aria-label="Ulasan dan penilaian Pagar Nusa SMK Sore">
+    <div class="reviewHead">
+      <div>
+        <h2>ULASAN & PENILAIAN</h2>
+        <p>Penilaian anggota, alumni, dan siswa. Ulasan ditampilkan setelah melalui verifikasi admin.</p>
+      </div>
+      <button id="reviewOpenBtn" class="reviewOpenBtn" type="button">★ BERIKAN ULASAN</button>
+    </div>
+
+    <div class="reviewSummary">
+      <div class="reviewScoreCard">
+        <div id="reviewAvg" class="reviewScore">0.0</div>
+        <div><div id="reviewAvgStars" class="reviewStars">☆☆☆☆☆</div><div class="reviewCount"><span id="reviewTotal">0</span> ulasan terverifikasi</div></div>
+      </div>
+      <div id="reviewBars" class="reviewBarsCard"></div>
+    </div>
+
+    <div id="reviewList" class="reviewList"><div class="reviewEmpty">Memuat ulasan terverifikasi...</div></div>
+
+    <div id="reviewFormWrap" class="reviewFormWrap">
+      <div class="reviewFormTitle"><h3>KIRIM ULASAN</h3><button id="reviewCloseBtn" class="reviewCloseBtn" type="button" aria-label="Tutup form ulasan">×</button></div>
+      <form id="reviewForm" class="reviewFormGrid">
+        <div class="reviewField"><label for="reviewName">Nama</label><input id="reviewName" maxlength="60" required placeholder="Nama lengkap"></div>
+        <div class="reviewField"><label for="reviewRole">Status</label><select id="reviewRole" required><option value="">Pilih status</option><option>Anggota</option><option>Alumni</option><option>Siswa</option><option>Orang Tua/Wali</option></select></div>
+        <div class="reviewField full"><label>Rating</label><div id="reviewStarInput" class="reviewStarInput" aria-label="Pilih rating 1 sampai 5"><button class="reviewStarBtn" type="button" data-rating="1">★</button><button class="reviewStarBtn" type="button" data-rating="2">★</button><button class="reviewStarBtn" type="button" data-rating="3">★</button><button class="reviewStarBtn" type="button" data-rating="4">★</button><button class="reviewStarBtn" type="button" data-rating="5">★</button></div><input id="reviewRating" type="hidden"></div>
+        <div class="reviewField full"><label for="reviewMessage">Ulasan / Komentar</label><textarea id="reviewMessage" maxlength="500" required placeholder="Tulis pengalaman atau penilaian Anda..."></textarea></div>
+        <p class="reviewFormNote">Ulasan tidak langsung tampil di website. Setelah dikirim, pesan diteruskan ke WhatsApp resmi untuk diperiksa admin sebelum dipublikasikan.</p>
+        <button class="reviewSubmit" type="submit">KIRIM ULASAN KE ADMIN</button>
+        <div id="reviewStatus" class="reviewStatus"></div>
+      </form>
+    </div>
+  </section>
+'''
+
+          js = r'''
+<script>
+/* REVIEWS SCRIPT V41 */
+(function(){
+  const ADMIN_WA='6285736062138';
+  let selectedRating=0;
+  const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const stars=n=>'★'.repeat(Math.max(0,Math.min(5,Number(n)||0)))+'☆'.repeat(5-Math.max(0,Math.min(5,Number(n)||0)));
+  const formatDate=v=>{try{return new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'long',year:'numeric'}).format(new Date(v+'T00:00:00'))}catch(_){return String(v||'')}};
+
+  function renderReviews(data){
+    const list=document.getElementById('reviewList');
+    const valid=Array.isArray(data)?data.filter(r=>Number(r.rating)>=1&&Number(r.rating)<=5&&r.name&&r.message):[];
+    const total=valid.length;
+    const avg=total?valid.reduce((a,r)=>a+Number(r.rating),0)/total:0;
+    document.getElementById('reviewAvg').textContent=avg.toFixed(1);
+    document.getElementById('reviewAvgStars').textContent=total?stars(Math.round(avg)):'☆☆☆☆☆';
+    document.getElementById('reviewTotal').textContent=String(total);
+
+    const bars=document.getElementById('reviewBars');
+    bars.innerHTML=[5,4,3,2,1].map(n=>{const c=valid.filter(r=>Number(r.rating)===n).length;const pct=total?Math.round(c/total*100):0;return `<div class="reviewBarRow"><span>${n}★</span><div class="reviewBar"><div class="reviewBarFill" style="width:${pct}%"></div></div><span>${pct}%</span></div>`}).join('');
+
+    if(!total){
+      list.innerHTML='<div class="reviewEmpty"><b>Belum ada ulasan yang dipublikasikan.</b><br>Jadilah yang pertama memberikan penilaian. Ulasan akan tampil setelah diverifikasi admin.</div>';
+      return;
+    }
+    valid.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+    list.innerHTML=valid.slice(0,6).map(r=>`<article class="reviewCard"><div class="reviewCardTop"><span class="reviewCardStars">${stars(r.rating)}</span><span class="reviewCardDate">${formatDate(r.date)}</span></div><p class="reviewCardText">“${esc(r.message)}”</p><div class="reviewCardFoot"><div class="reviewCardName">${esc(r.name)}</div><span class="reviewVerified">✓ ${esc(r.role||'Pengunjung')} Terverifikasi</span></div></article>`).join('');
+  }
+
+  async function loadReviews(){
+    try{
+      const res=await fetch('data/reviews.json?v=41',{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      renderReviews(await res.json());
+    }catch(_){renderReviews([])}
+  }
+
+  function setRating(n){
+    selectedRating=Number(n)||0;
+    document.getElementById('reviewRating').value=selectedRating?String(selectedRating):'';
+    document.querySelectorAll('.reviewStarBtn').forEach(btn=>btn.classList.toggle('active',Number(btn.dataset.rating)<=selectedRating));
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    loadReviews();
+    const wrap=document.getElementById('reviewFormWrap');
+    document.getElementById('reviewOpenBtn')?.addEventListener('click',()=>{wrap?.classList.add('open');setTimeout(()=>wrap?.scrollIntoView({behavior:'smooth',block:'nearest'}),50)});
+    document.getElementById('reviewCloseBtn')?.addEventListener('click',()=>wrap?.classList.remove('open'));
+    document.querySelectorAll('.reviewStarBtn').forEach(btn=>btn.addEventListener('click',()=>setRating(btn.dataset.rating)));
+
+    document.getElementById('reviewForm')?.addEventListener('submit',ev=>{
+      ev.preventDefault();
+      const name=document.getElementById('reviewName').value.trim();
+      const role=document.getElementById('reviewRole').value;
+      const message=document.getElementById('reviewMessage').value.trim();
+      const status=document.getElementById('reviewStatus');
+      if(!name||!role||!message||!selectedRating){
+        status.style.display='block';status.textContent='Lengkapi nama, status, rating bintang, dan ulasan terlebih dahulu.';return;
+      }
+      let last=0;try{last=Number(localStorage.getItem('pnReviewLastSent')||0)}catch(_){}
+      if(Date.now()-last<60000){status.style.display='block';status.textContent='Ulasan baru saja dikirim. Mohon tunggu sebentar sebelum mengirim lagi.';return}
+      const text=`ULASAN WEBSITE PAGAR NUSA SMK SORE\n\nNama: ${name}\nStatus: ${role}\nRating: ${selectedRating}/5 ${'★'.repeat(selectedRating)}\nUlasan: ${message}\n\nMohon diverifikasi sebelum dipublikasikan di website.`;
+      const url='https://wa.me/'+ADMIN_WA+'?text='+encodeURIComponent(text);
+      try{localStorage.setItem('pnReviewLastSent',String(Date.now()))}catch(_){}
+      status.style.display='block';status.textContent='Ulasan siap dikirim ke WhatsApp admin untuk verifikasi.';
+      window.open(url,'_blank','noopener,noreferrer');
+    });
+  });
+})();
+</script>
+'''
+
+          if '/* REVIEWS SECTION V41 */' not in s:
+              if '</style>' not in s:
+                  raise SystemExit('Style marker not found')
+              s = s.replace('</style>', css + '\n</style>', 1)
+
+          if 'id="reviewsSection"' not in s:
+              marker = '  <div id="bottomAdminLogin" class="bottomAdminLogin">'
+              if marker not in s:
+                  raise SystemExit('Bottom login marker not found')
+              s = s.replace(marker, html + '\n' + marker, 1)
+
+          if '/* REVIEWS SCRIPT V41 */' not in s:
+              if '</body>' not in s:
+                  raise SystemExit('Body marker not found')
+              s = s.replace('</body>', js + '\n</body>', 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit homepage reviews
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Tambahkan ulasan dan rating di dashboard'
+          git push
