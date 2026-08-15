@@ -2,13 +2,15 @@
 
 const PN_REG_GET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyJi_83lJ11JshOLCzIBRMX6fEi-y9UGR9eYULuqH1BivdxeqcgMB0l2ehWBIgaad8Oyw/exec';
 
+function pnEscapeRegistrationHtml(value){
+  return String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
 function pnInstallRegistrationThanksUI(){
   if(document.getElementById('pnRegistrationThanksStyle')) return;
   const style=document.createElement('style');
   style.id='pnRegistrationThanksStyle';
   style.textContent=`
-    .pnThanksModal{position:fixed;inset:0;z-index:10150;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(2,20,12,.76);backdrop-filter:blur(5px)}
-    .pnThanksModal.open{display:flex}
     .pnThanksCard{width:min(520px,100%);overflow:hidden;background:#fff;border-radius:22px;box-shadow:0 28px 80px rgba(0,0,0,.32);text-align:center;animation:pnThanksPop .22s ease-out}
     @keyframes pnThanksPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
     .pnThanksTop{padding:30px 28px 24px;background:linear-gradient(135deg,#0f3d24,#16803f);color:#fff}
@@ -22,41 +24,52 @@ function pnInstallRegistrationThanksUI(){
   document.head.appendChild(style);
 }
 
-function pnCloseRegistrationThanks(){
-  const modal=document.getElementById('pnRegistrationThanksModal');
-  if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true')}
-  document.body.style.overflow='';
+function pnCloseRegistrationThanks(goHome){
+  const modal=document.getElementById('pnRegistrationModal');
+  if(modal){
+    const panel=modal.querySelector('#pnRegistrationThanksPanel');
+    const card=modal.querySelector('.pnRegCard');
+    if(panel) panel.remove();
+    if(card) card.style.display='';
+  }
+  try{pnCloseRegistration()}catch(_){
+    if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true')}
+    document.body.style.overflow='';
+  }
+  if(goHome) window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function pnShowRegistrationThanks(name){
+function pnShowRegistrationThanks(name,alreadyRegistered){
   pnInstallRegistrationThanksUI();
-  let modal=document.getElementById('pnRegistrationThanksModal');
+  const modal=document.getElementById('pnRegistrationModal');
   if(!modal){
-    modal=document.createElement('div');
-    modal.id='pnRegistrationThanksModal';
-    modal.className='pnThanksModal';
-    modal.setAttribute('aria-hidden','true');
-    modal.onclick=e=>{if(e.target===modal)pnCloseRegistrationThanks()};
-    document.body.appendChild(modal);
+    alert('Terima kasih. Pendaftaran Anda sudah terkirim.');
+    return;
   }
-  const safeName=String(name||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  modal.innerHTML=`
-    <div class="pnThanksCard" role="dialog" aria-modal="true" aria-labelledby="pnThanksTitle">
-      <div class="pnThanksTop">
-        <div class="pnThanksIcon">✓</div>
-        <h2 id="pnThanksTitle">TERIMA KASIH</h2>
-        <p>Pendaftaran calon anggota sudah berhasil terkirim.</p>
-      </div>
-      <div class="pnThanksBody">
-        <p class="pnThanksName">${safeName ? 'Saudara/i '+safeName : 'Pendaftaran Anda'}</p>
-        <p class="pnThanksText">Data pendaftaran Anda telah kami terima. Terima kasih atas kesiapan Anda mengikuti Ekstrakurikuler Pencak Silat Pagar Nusa Rayon SMK Sore Tulungagung.</p>
-        <div class="pnThanksInfo">✓ Data sudah tersimpan permanen di database Pagar Nusa.<br>Silakan menunggu informasi selanjutnya dari pengurus.</div>
-        <div class="pnThanksActions">
-          <button type="button" class="pnThanksHome" onclick="pnCloseRegistrationThanks();window.scrollTo({top:0,behavior:'smooth'})">KEMBALI KE BERANDA</button>
-          <button type="button" class="pnThanksDone" onclick="pnCloseRegistrationThanks()">SELESAI</button>
-        </div>
+  const card=modal.querySelector('.pnRegCard');
+  if(card) card.style.display='none';
+  modal.querySelector('#pnRegistrationThanksPanel')?.remove();
+
+  const panel=document.createElement('div');
+  panel.id='pnRegistrationThanksPanel';
+  panel.className='pnThanksCard';
+  const safeName=pnEscapeRegistrationHtml(name);
+  panel.innerHTML=`
+    <div class="pnThanksTop">
+      <div class="pnThanksIcon">✓</div>
+      <h2>TERIMA KASIH</h2>
+      <p>${alreadyRegistered?'Data pendaftaran Anda sudah tercatat.':'Pendaftaran calon anggota sudah berhasil terkirim.'}</p>
+    </div>
+    <div class="pnThanksBody">
+      <p class="pnThanksName">${safeName ? 'Saudara/i '+safeName : 'Pendaftaran Anda'}</p>
+      <p class="pnThanksText">Data pendaftaran Anda telah kami terima. Terima kasih atas kesiapan Anda mengikuti Ekstrakurikuler Pencak Silat Pagar Nusa Rayon SMK Sore Tulungagung.</p>
+      <div class="pnThanksInfo">✓ Data sudah tersimpan permanen di database Pagar Nusa.<br>Silakan menunggu informasi selanjutnya dari pengurus.</div>
+      <div class="pnThanksActions">
+        <button type="button" class="pnThanksHome" onclick="pnCloseRegistrationThanks(true)">KEMBALI KE BERANDA</button>
+        <button type="button" class="pnThanksDone" onclick="pnCloseRegistrationThanks(false)">SELESAI</button>
       </div>
     </div>`;
+  modal.appendChild(panel);
   modal.classList.add('open');
   modal.setAttribute('aria-hidden','false');
   document.body.style.overflow='hidden';
@@ -95,15 +108,12 @@ async function pnSubmitRegistration(ev){
   }
 
   const normalizedWa=String(v.wa).replace(/\D/g,'');
-  const submitKey=(String(v.name).trim().toLowerCase()+'|'+normalizedWa);
+  const submitKey=String(v.name).trim().toLowerCase()+'|'+normalizedWa;
   try{
     const last=JSON.parse(localStorage.getItem('pnLastRegistration')||'null');
     if(last && last.key===submitKey && Date.now()-Number(last.at||0)<120000){
       document.getElementById('pnRegistrationForm')?.reset();
-      msg.className='pnRegMsg ok';
-      msg.textContent='Data ini sudah terkirim sebelumnya dan tidak dikirim ulang.';
-      try{pnCloseRegistration()}catch(_){}
-      setTimeout(()=>pnShowRegistrationThanks(v.name),120);
+      pnShowRegistrationThanks(v.name,true);
       return false;
     }
   }catch(_){}
@@ -121,27 +131,10 @@ async function pnSubmitRegistration(ev){
   form.target=frame.name;
   form.style.display='none';
 
-  const payload={
-    action:'register',
-    rid,
-    name:v.name,
-    place:v.place,
-    date:v.date,
-    kelas:v.kelas,
-    major:v.major,
-    address:v.address,
-    parent:v.parent,
-    wa:v.wa,
-    email:v.email,
-    willing:'true'
-  };
-
+  const payload={action:'register',rid,name:v.name,place:v.place,date:v.date,kelas:v.kelas,major:v.major,address:v.address,parent:v.parent,wa:v.wa,email:v.email,willing:'true'};
   Object.entries(payload).forEach(([name,value])=>{
     const input=document.createElement('input');
-    input.type='hidden';
-    input.name=name;
-    input.value=String(value ?? '');
-    form.appendChild(input);
+    input.type='hidden';input.name=name;input.value=String(value ?? '');form.appendChild(input);
   });
   document.body.appendChild(form);
 
@@ -153,48 +146,41 @@ async function pnSubmitRegistration(ev){
   function cleanup(){
     window.removeEventListener('message',onMessage);
     frame.removeEventListener('load',onFrameLoad);
-    clearTimeout(timeoutId);
-    clearTimeout(fallbackId);
-    form.remove();
-    setTimeout(()=>frame.remove(),800);
+    clearTimeout(timeoutId);clearTimeout(fallbackId);
+    form.remove();setTimeout(()=>frame.remove(),800);
   }
 
-  function finishSuccess(){
+  function finishSuccess(alreadyRegistered){
     if(finished) return;
     finished=true;
     try{localStorage.setItem('pnLastRegistration',JSON.stringify({key:submitKey,name:v.name,wa:v.wa,at:Date.now()}))}catch(_){}
     cleanup();
     document.getElementById('pnRegistrationForm')?.reset();
     msg.className='pnRegMsg ok';
-    msg.textContent='Pendaftaran berhasil. Data sudah tersimpan permanen di Google Sheets Pagar Nusa.';
+    msg.textContent=alreadyRegistered?'Data pendaftaran sudah tercatat sebelumnya.':'Pendaftaran berhasil. Data sudah tersimpan permanen di Google Sheets Pagar Nusa.';
     if(submit){submit.disabled=false;submit.textContent='KIRIM PENDAFTARAN'}
     try{pnRegStatus()}catch(_){}
-    try{pnCloseRegistration()}catch(_){}
-    setTimeout(()=>pnShowRegistrationThanks(v.name),120);
+    pnShowRegistrationThanks(v.name,!!alreadyRegistered);
   }
 
   function finishError(text){
     if(finished) return;
-    finished=true;
-    cleanup();
-    msg.className='pnRegMsg err';
-    msg.textContent=text;
+    finished=true;cleanup();
+    msg.className='pnRegMsg err';msg.textContent=text;
     if(submit){submit.disabled=false;submit.textContent='KIRIM PENDAFTARAN'}
   }
 
   function onMessage(event){
     const d=event.data;
     if(!d || d.source!=='pn-registration' || d.rid!==rid) return;
-    if(d.ok){
-      finishSuccess();
-    }else{
-      finishError(d.message||'Pendaftaran belum berhasil disimpan.');
-    }
+    if(d.ok) finishSuccess(false);
+    else if(d.code==='DUPLICATE') finishSuccess(true);
+    else finishError(d.message||'Pendaftaran belum berhasil disimpan.');
   }
 
   function onFrameLoad(){
     if(!submitted || finished) return;
-    fallbackId=setTimeout(()=>finishSuccess(),450);
+    fallbackId=setTimeout(()=>finishSuccess(false),500);
   }
 
   window.addEventListener('message',onMessage);
