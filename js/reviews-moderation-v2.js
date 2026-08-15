@@ -30,26 +30,58 @@ function request(action,payload={}){
       input.type='hidden';input.name=name;input.value=String(value??'');
       form.appendChild(input);
     });
+
     let done=false;
+    let submitStartedAt=0;
+    let loadFallbackTimer=0;
+
     const cleanup=()=>{
       window.removeEventListener('message',onMessage);
+      frame.removeEventListener('load',onLoad);
       clearTimeout(timer);
+      clearTimeout(loadFallbackTimer);
       form.remove();
       setTimeout(()=>frame.remove(),250);
     };
+
+    const finishOk=data=>{
+      if(done)return;
+      done=true;cleanup();resolve(data||{ok:true});
+    };
+
     const onMessage=e=>{
       const d=e.data;
       if(done||!d||d.source!==REVIEW_SOURCE||d.rid!==rid)return;
-      done=true;cleanup();
-      d.ok?resolve(d):reject(new Error(d.message||'Permintaan gagal.'));
+      if(d.ok)finishOk(d);
+      else{
+        done=true;cleanup();reject(new Error(d.message||'Permintaan gagal.'));
+      }
     };
+
+    // iOS/HP tertentu menyimpan POST dengan benar tetapi postMessage dari
+    // iframe Apps Script tidak sampai. Jika halaman respons POST sudah selesai
+    // dimuat, khusus reviewSubmit kita anggap permintaan telah diterima server.
+    const onLoad=()=>{
+      if(done||action!=='reviewSubmit'||!submitStartedAt)return;
+      if(Date.now()-submitStartedAt<500)return; // abaikan about:blank awal iframe
+      clearTimeout(loadFallbackTimer);
+      loadFallbackTimer=setTimeout(()=>{
+        finishOk({ok:true,assumed:true,id:'',status:'PENDING'});
+      },600);
+    };
+
     window.addEventListener('message',onMessage);
+    frame.addEventListener('load',onLoad);
+
     const timer=setTimeout(()=>{
       if(done)return;
-      done=true;cleanup();reject(new Error('Server ulasan belum aktif atau tidak merespons.'));
-    },10000);
+      done=true;cleanup();
+      reject(new Error('Server belum menyelesaikan permintaan. Coba lagi setelah beberapa saat.'));
+    },45000);
+
     document.body.appendChild(frame);
     document.body.appendChild(form);
+    submitStartedAt=Date.now();
     form.submit();
   });
 }
@@ -114,7 +146,7 @@ function installPublicForm(){
     setFormStatus('info','Menghubungkan ke database ulasan...');
     try{
       const r=await request('reviewSubmit',{name,role,rating:selectedRating,message});
-      setFormStatus('ok','✓ Ulasan tersimpan dengan ID '+String(r.id||'')+'. Status: MENUNGGU VERIFIKASI ADMIN.');
+      setFormStatus('ok',r.assumed?'✓ Ulasan telah dikirim ke database. Status: MENUNGGU VERIFIKASI ADMIN.':'✓ Ulasan tersimpan dengan ID '+String(r.id||'')+'. Status: MENUNGGU VERIFIKASI ADMIN.');
       form.reset();setStars(0);
       window.dispatchEvent(new CustomEvent('pn:review-submitted'));
     }catch(err){
