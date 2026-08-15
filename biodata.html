@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>Portal Biodata Siswa / Anggota - Pagar Nusa SMK Sore Tulungagung</title>
+<title>Portal Biodata Anggota - Pagar Nusa SMK Sore Tulungagung</title>
 <style>
 :root{--g:#14532d;--g2:#166534;--bg:#f4f8f5;--line:#d9e7dd;--text:#172033;--muted:#64748b;--red:#b91c1c}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}.hidden{display:none!important}
@@ -15,16 +15,16 @@
 </style>
 </head>
 <body>
-<header class="top"><div class="topin"><div class="logos"><span><img src="assets/logo-smk-sore-v4.svg?v=17" alt="SMK Sore"></span><span><img src="assets/logo-pagar-nusa-v3.svg?v=17" alt="Pagar Nusa"></span></div><div><h1>PORTAL BIODATA SISWA / ANGGOTA</h1><p>Pagar Nusa Rayon SMK Sore Tulungagung · Cek dan perbarui biodata pribadi</p></div></div></header>
+<header class="top"><div class="topin"><div class="logos"><span><img src="assets/logo-smk-sore-v4.svg?v=17" alt="SMK Sore"></span><span><img src="assets/logo-pagar-nusa-v3.svg?v=17" alt="Pagar Nusa"></span></div><div><h1>PORTAL BIODATA ANGGOTA</h1><p>Pagar Nusa Rayon SMK Sore Tulungagung · Cek dan perbarui biodata pribadi</p></div></div></header>
 <main class="wrap">
 <section id="loginView" class="loginGrid">
-  <div class="card"><div class="head"><h2>Login Portal Biodata</h2><p>Masukkan Username, ID Anggota / No. Siswa, email, dan password akun masing-masing.</p></div><div class="body">
+  <div class="card"><div class="head"><h2>Login Portal Biodata</h2><p>Masukkan Username, ID Anggota, email, dan password akun masing-masing.</p></div><div class="body">
     <div id="setupNotice" class="notice">Memuat Portal Biodata...</div>
     <form id="loginForm">
-      <div class="formRow"><label for="username">Username</label><input id="username" type="text" autocomplete="username" placeholder="Contoh: siswa01" required></div>
-      <div class="formRow"><label for="memberId">ID Anggota / No. Siswa</label><input id="memberId" type="text" autocomplete="off" placeholder="Contoh: PN-2026-001" required></div>
-      <div class="formRow"><label for="email">Email akun</label><input id="email" type="email" autocomplete="email" placeholder="siswa01@gmail.com" required></div>
-      <div class="formRow"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password siswa" required></div>
+      <div class="formRow"><label for="username">Username</label><input id="username" type="text" autocomplete="username" placeholder="Contoh: anggota01" required></div>
+      <div class="formRow"><label for="memberId">ID Anggota</label><input id="memberId" type="text" autocomplete="off" placeholder="Contoh: PN-2026-001" required></div>
+      <div class="formRow"><label for="email">Email akun</label><input id="email" type="email" autocomplete="email" placeholder="anggota01@gmail.com" required></div>
+      <div class="formRow"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password anggota" required></div>
       <button id="loginBtn" class="primary" type="submit" disabled>MASUK PORTAL BIODATA</button>
       <div id="loginError" class="error" aria-live="polite"></div>
     </form>
@@ -32,7 +32,7 @@
   </div></div>
 </section>
 <section id="portalView" class="hidden">
-  <div class="studentbar"><div class="who"><strong id="studentName">Siswa / Anggota</strong><span id="studentIdentity">-</span></div><button id="logoutBtn" class="logout" type="button">KELUAR</button></div>
+  <div class="studentbar"><div class="who"><strong id="studentName">Anggota</strong><span id="studentIdentity">-</span></div><button id="logoutBtn" class="logout" type="button">KELUAR</button></div>
   <article class="bioCard"><div class="bioHead"><h2>BIODATA SAYA</h2><p>Periksa data Anda dengan teliti. Data yang dikunci hanya dapat diubah oleh admin Pagar Nusa.</p></div><div class="bioBody">
     <div class="lockedNote"><b>Data yang dikunci:</b> ID Anggota, Tahun Pengesahan, Tahun Masuk, Tingkat/Sabuk, Status Keanggotaan, Status Siswa, Nomor Sertifikat, dan Tanggal Pengesahan.</div>
     <div id="bioGrid" class="bioGrid"></div>
@@ -54,7 +54,7 @@ const PROGRAMS=['DPIB','TITL','TPM','TKR','TP','TSM','TEI','TKJ'];
 const $=id=>document.getElementById(id);
 const lockedKeys=new Set(['memberId','approvalYear','entryYear','belt','membershipStatus','studentStatus','certificateNumber','approvalDate']);
 const fields=[
- ['ID Anggota','memberId'],['Nama Lengkap','name'],['L/P','gender','select',['','L','P']],['Tempat Lahir','birthPlace'],['Tanggal Lahir','birthDate','date'],['Kelas','className','select',['','X','XI','XII']],['Program Keahlian','program','select',['',...PROGRAMS]],['Alamat','address','textarea'],['No. HP Siswa','studentPhone'],['Nama Orang Tua/Wali','parentName'],['No. HP Wali','parentPhone'],['Tahun Pengesahan','approvalYear'],['Tahun Masuk','entryYear'],['Tingkat/Sabuk','belt'],['Status Keanggotaan','membershipStatus'],['Status Siswa','studentStatus'],['Nomor Sertifikat','certificateNumber'],['Catatan','notes','textarea'],['Tanggal Pengesahan','approvalDate','date']
+ ['ID Anggota','memberId'],['Nama Lengkap','name'],['L/P','gender','select',['','L','P']],['Tempat Lahir','birthPlace'],['Tanggal Lahir','birthDate','date'],['Kelas','className','select',['','X','XI','XII']],['Program Keahlian','program','select',['',...PROGRAMS]],['Alamat','address','textarea'],['No. HP Anggota','studentPhone'],['Nama Orang Tua/Wali','parentName'],['No. HP Wali','parentPhone'],['Tahun Pengesahan','approvalYear'],['Tahun Masuk','entryYear'],['Tingkat/Sabuk','belt'],['Status Keanggotaan','membershipStatus'],['Status Siswa','studentStatus'],['Nomor Sertifikat','certificateNumber'],['Catatan','notes','textarea'],['Tanggal Pengesahan','approvalDate','date']
 ];
 let auth,user=null,bio=null,currentUsername='',currentMemberId='',loginInFlight=false;
 function endpointReady(){return /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/i.test(PN_BIODATA_ENDPOINT.trim())}
@@ -62,8 +62,8 @@ function buildFields(){const grid=$('bioGrid');grid.innerHTML='';fields.forEach(
 function request(action,payload){return new Promise((resolve,reject)=>{if(!endpointReady()){reject(new Error('Web App biodata belum diaktifkan.'));return}const rid='bio-'+Date.now()+'-'+Math.random().toString(36).slice(2);const frame=document.createElement('iframe');frame.name='bioFrame'+rid.replace(/\W/g,'');frame.style.display='none';const form=document.createElement('form');form.method='POST';form.action=PN_BIODATA_ENDPOINT;form.target=frame.name;form.style.display='none';Object.entries({action,rid,...payload}).forEach(([k,v])=>{const inp=document.createElement('input');inp.type='hidden';inp.name=k;inp.value=String(v??'');form.appendChild(inp)});let done=false;const cleanup=()=>{window.removeEventListener('message',onMsg);clearTimeout(timer);form.remove();setTimeout(()=>frame.remove(),300)};const onMsg=e=>{const d=e.data;if(!d||d.source!=='pn-biodata'||d.rid!==rid||done)return;done=true;cleanup();d.ok?resolve(d):reject(new Error(d.message||'Permintaan biodata gagal.'))};window.addEventListener('message',onMsg);const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Server biodata terlalu lama merespons.'))},30000);document.body.append(frame,form);form.submit()})}
 function render(data){bio=data;fields.forEach(([,key])=>{const el=$('bio_'+key);if(el)el.value=String(data?.[key]??'')});setEdit(false)}
 function setEdit(edit){document.querySelectorAll('#bioGrid [data-key]').forEach(el=>{el.disabled=!edit||lockedKeys.has(el.dataset.key)});$('editBtn').classList.toggle('hidden',edit);$('saveBtn').classList.toggle('hidden',!edit);$('cancelBtn').classList.toggle('hidden',!edit);$('savedBox').classList.remove('show');$('bioStatus').textContent='';$('bioStatus').className='status'}
-async function loadBio(loginUsername=currentUsername,loginMemberId=currentMemberId,loginUser=user){if(!loginUser)throw new Error('Sesi Firebase belum tersedia.');const token=await loginUser.getIdToken(true);if(!loginUsername||!loginMemberId||!token)throw new Error('Data login lokal belum lengkap.');const r=await request('biodataGet',{username:loginUsername,memberId:loginMemberId,idToken:token});currentUsername=loginUsername;currentMemberId=loginMemberId;user=loginUser;render(r.biodata);$('studentName').textContent=r.biodata?.name||'Siswa / Anggota';$('studentIdentity').textContent=(r.account?.memberId||loginMemberId)+' · '+(r.account?.email||loginUser.email||'');$('loginView').classList.add('hidden');$('portalView').classList.remove('hidden')}
-async function saveBio(){const s=$('bioStatus');s.className='status';s.textContent='Menyimpan perubahan...';$('saveBtn').disabled=true;try{const token=await user.getIdToken(true);const payload={username:currentUsername,memberId:currentMemberId,idToken:token};document.querySelectorAll('#bioGrid [data-key]').forEach(el=>{if(!lockedKeys.has(el.dataset.key))payload[el.dataset.key]=el.value});const r=await request('biodataUpdate',payload);render(r.biodata);$('savedBox').classList.add('show');s.className='status ok';s.textContent=r.message||'Perubahan biodata berhasil disimpan.';$('studentName').textContent=r.biodata?.name||'Siswa / Anggota'}catch(e){s.className='status err';s.textContent=e.message||'Gagal menyimpan biodata.'}finally{$('saveBtn').disabled=false}}
+async function loadBio(loginUsername=currentUsername,loginMemberId=currentMemberId,loginUser=user){if(!loginUser)throw new Error('Sesi Firebase belum tersedia.');const token=await loginUser.getIdToken(true);if(!loginUsername||!loginMemberId||!token)throw new Error('Data login lokal belum lengkap.');const r=await request('biodataGet',{username:loginUsername,memberId:loginMemberId,idToken:token});currentUsername=loginUsername;currentMemberId=loginMemberId;user=loginUser;render(r.biodata);$('studentName').textContent=r.biodata?.name||'Anggota';$('studentIdentity').textContent=(r.account?.memberId||loginMemberId)+' · '+(r.account?.email||loginUser.email||'');$('loginView').classList.add('hidden');$('portalView').classList.remove('hidden')}
+async function saveBio(){const s=$('bioStatus');s.className='status';s.textContent='Menyimpan perubahan...';$('saveBtn').disabled=true;try{const token=await user.getIdToken(true);const payload={username:currentUsername,memberId:currentMemberId,idToken:token};document.querySelectorAll('#bioGrid [data-key]').forEach(el=>{if(!lockedKeys.has(el.dataset.key))payload[el.dataset.key]=el.value});const r=await request('biodataUpdate',payload);render(r.biodata);$('savedBox').classList.add('show');s.className='status ok';s.textContent=r.message||'Perubahan biodata berhasil disimpan.';$('studentName').textContent=r.biodata?.name||'Anggota'}catch(e){s.className='status err';s.textContent=e.message||'Gagal menyimpan biodata.'}finally{$('saveBtn').disabled=false}}
 function loginErrorText(e){const c=String(e?.code||'');if(c.includes('invalid-credential')||c.includes('wrong-password')||c.includes('user-not-found'))return'Email atau password tidak benar.';if(c.includes('too-many-requests'))return'Terlalu banyak percobaan login. Coba beberapa saat lagi.';return e?.message||'Login gagal.'}
 buildFields();
 if(endpointReady()){$('setupNotice').textContent='Portal Biodata aktif · versi 5. Silakan login menggunakan akun masing-masing.';$('setupNotice').classList.add('ok');$('loginBtn').disabled=false}else{$('setupNotice').innerHTML='<b>Portal Biodata sudah dipisahkan dari CBT.</b><br>Menunggu URL Web App Apps Script biodata baru dipasang oleh admin.'}

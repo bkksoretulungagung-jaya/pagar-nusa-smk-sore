@@ -187,7 +187,7 @@ function pnBioEnsureCard(){
         ${pnBioField('Kelas','className',{select:['','X','XI','XII']})}
         ${pnBioField('Program Keahlian','program',{select:['',...PN_PROGRAMS]})}
         ${pnBioField('Alamat','address',{type:'textarea',full:true})}
-        ${pnBioField('No. HP Siswa','studentPhone')}
+        ${pnBioField('No. HP Anggota','studentPhone')}
         ${pnBioField('Nama Orang Tua/Wali','parentName')}
         ${pnBioField('No. HP Wali','parentPhone')}
         ${pnBioField('Tahun Pengesahan','approvalYear',{locked:true})}
