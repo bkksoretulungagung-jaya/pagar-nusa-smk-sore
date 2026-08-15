@@ -10,7 +10,7 @@
 
 document.write('<script src="js/ui-v9-core.js?v=25"><\/script>');
 document.write('<script src="js/registration-v2.js?v=4"><\/script>');
-document.write('<script src="js/registration-transport-v1.js?v=1"><\/script>');
+document.write('<script src="js/registration-transport-v1.js?v=2"><\/script>');
 
 document.addEventListener('DOMContentLoaded',()=>{
   const adminUser=document.getElementById('adminUser');
@@ -75,4 +75,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v33: GET iframe transport for permanent Google Sheets registration.
+// Build marker v34: corrected Apps Script deployment URL for permanent registration.
