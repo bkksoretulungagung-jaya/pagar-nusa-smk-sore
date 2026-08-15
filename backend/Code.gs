@@ -47,7 +47,9 @@ function doGet(e) {
       reviews:true,
       reviewVersion:'7',
       content:true,
-      contentVersion:'1'
+      contentVersion:'1',
+      adminPassword:true,
+      adminPasswordVersion:'2'
     });
   }
 
@@ -789,7 +791,9 @@ function contentPublicList_() {
     ok:true,
     content:contentReadContent_(sheets.content, false),
     gallery:contentReadGallery_(sheets.gallery, false),
-    version:'1'
+    version:'1',
+    adminPassword:true,
+    adminPasswordVersion:'2'
   };
 }
 
