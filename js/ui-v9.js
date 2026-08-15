@@ -10,7 +10,7 @@
 
 document.write('<script src="js/ui-v9-core.js?v=25"><\/script>');
 document.write('<script src="js/registration-v2.js?v=4"><\/script>');
-document.write('<script src="js/registration-transport-v1.js?v=3"><\/script>');
+document.write('<script src="js/registration-transport-v1.js?v=4"><\/script>');
 
 document.addEventListener('DOMContentLoaded',()=>{
   const adminUser=document.getElementById('adminUser');
@@ -75,4 +75,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v35: faster confirmation after Apps Script iframe completes.
+// Build marker v36: thank-you screen shown for new and repeated submissions.
