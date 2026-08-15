@@ -59,8 +59,8 @@ async function postReliable(action,payload={},timeout=45000){
 function ensureStyles(){
   if($('pnCbtToggleStyle'))return;
   const s=document.createElement('style');s.id='pnCbtToggleStyle';s.textContent=`
-  html:not([data-pn-cbt="on"]) #studentCbtLoginBtn{display:none!important}
-  html[data-pn-cbt="on"] #studentCbtLoginBtn{display:inline-flex!important}
+  html:not([data-pn-cbt="on"]) #studentCbtLoginBtn,html:not([data-pn-cbt="on"]) #pnDashboardShortcuts [data-action="cbt"]{display:none!important}
+  html[data-pn-cbt="on"] #studentCbtLoginBtn,html[data-pn-cbt="on"] #pnDashboardShortcuts [data-action="cbt"]{display:inline-flex!important}
   .pnCbtSwitchBox{margin:0 0 13px;padding:12px 13px;border:1px solid #cfe0d5;border-radius:11px;background:#f8fbf9;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
   .pnCbtSwitchInfo{min-width:220px;flex:1}.pnCbtSwitchInfo strong{display:block;color:#14532d;font-size:12px}.pnCbtSwitchInfo span{display:block;margin-top:4px;color:#64748b;font-size:10px;line-height:1.45}
   .pnCbtSwitchActions{display:flex;align-items:center;gap:7px}.pnCbtSwitchBtn{min-width:70px;border:1px solid #cbd5e1;border-radius:9px;padding:9px 12px;background:#fff;color:#475569;font:inherit;font-size:10px;font-weight:1000;cursor:pointer}.pnCbtSwitchBtn.on.active{background:#166534;border-color:#166534;color:#fff}.pnCbtSwitchBtn.off.active{background:#b91c1c;border-color:#b91c1c;color:#fff}.pnCbtSwitchBtn:disabled{opacity:.5;cursor:not-allowed}.pnCbtSwitchBadge{padding:7px 9px;border-radius:999px;font-size:9px;font-weight:1000;background:#e2e8f0;color:#475569}.pnCbtSwitchBadge.on{background:#dcfce7;color:#166534}.pnCbtSwitchBadge.off{background:#fee2e2;color:#991b1b}

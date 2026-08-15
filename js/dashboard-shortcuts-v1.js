@@ -8,7 +8,8 @@ const ITEMS=[
   {id:'dashPengurus',icon:'🛡️',label:'Status Pengurus'},
   {id:'dashAlumniActivity',icon:'🎓',label:'Aktivitas Alumni'},
   {id:'registrationShortcut',icon:'📝',label:'PENDAFTARAN CALON ANGGOTA',action:'registration'},
-  {id:'studentBioShortcut',icon:'👤',label:'BIODATA ANGGOTA',action:'biodata'}
+  {id:'studentBioShortcut',icon:'👤',label:'BIODATA ANGGOTA',action:'biodata'},
+  {id:'studentCbtShortcut',icon:'📝',label:'PORTAL CBT ONLINE',action:'cbt'}
 ];
 
 function installStyles(){
@@ -28,6 +29,8 @@ function installStyles(){
     .pnDashShortcutBtn.registrationShortcut:hover,.pnDashShortcutBtn.registrationShortcut:focus-visible{background:#14532d;border-color:#14532d;color:#fff}
     .pnDashShortcutBtn.bioShortcut{background:#0f766e;border-color:#0f766e;color:#fff}
     .pnDashShortcutBtn.bioShortcut:hover,.pnDashShortcutBtn.bioShortcut:focus-visible{background:#0b5f59;border-color:#0b5f59;color:#fff}
+    .pnDashShortcutBtn.cbtShortcut{background:#166534;border-color:#166534;color:#fff}
+    .pnDashShortcutBtn.cbtShortcut:hover,.pnDashShortcutBtn.cbtShortcut:focus-visible{background:#14532d;border-color:#14532d;color:#fff}
     .pnDashShortcutBtn.adminShortcut{background:#14532d;border-color:#14532d;color:#fff}
     .pnDashShortcutBtn.adminShortcut:hover,.pnDashShortcutBtn.adminShortcut:focus-visible{background:#0f3d24;border-color:#0f3d24;color:#fff}
     .pnDashShortcutIcon{font-size:14px;line-height:1}
@@ -99,6 +102,11 @@ function openBiodataFromShortcut(btn){
   window.location.href='biodata.html?v=5';
 }
 
+function openCbtFromShortcut(btn){
+  pulse(btn);
+  window.location.href='siswa.html';
+}
+
 function install(){
   installStyles();
   if(document.getElementById('pnDashboardShortcuts'))return;
@@ -106,7 +114,7 @@ function install(){
   const ticker=home?.querySelector('.welcomeTicker');
   if(!home||!ticker)return;
 
-  const available=ITEMS.filter(item=>['admin','biodata','registration'].includes(item.action)||document.getElementById(item.id));
+  const available=ITEMS.filter(item=>['admin','biodata','registration','cbt'].includes(item.action)||document.getElementById(item.id));
   if(!available.length)return;
 
   const wrap=document.createElement('nav');
@@ -119,7 +127,7 @@ function install(){
       <div class="pnDashShortcutHint">Klik menu untuk langsung menuju ringkasan data</div>
     </div>
     <div class="pnDashShortcutBar">
-      ${available.map(item=>`<button class="pnDashShortcutBtn${item.action==='admin'?' adminShortcut':''}${item.action==='biodata'?' bioShortcut':''}${item.action==='registration'?' registrationShortcut':''}" type="button" data-target="${item.id}" data-action="${item.action||'scroll'}"><span class="pnDashShortcutIcon" aria-hidden="true">${item.icon}</span><span>${item.label}</span></button>`).join('')}
+      ${available.map(item=>`<button class="pnDashShortcutBtn${item.action==='admin'?' adminShortcut':''}${item.action==='biodata'?' bioShortcut':''}${item.action==='registration'?' registrationShortcut':''}${item.action==='cbt'?' cbtShortcut':''}" type="button" data-target="${item.id}" data-action="${item.action||'scroll'}"><span class="pnDashShortcutIcon" aria-hidden="true">${item.icon}</span><span>${item.label}</span></button>`).join('')}
     </div>`;
 
   wrap.querySelectorAll('.pnDashShortcutBtn').forEach(btn=>{
@@ -127,6 +135,7 @@ function install(){
       if(btn.dataset.action==='admin')openAdminFromShortcut(btn);
       else if(btn.dataset.action==='registration')openRegistrationFromShortcut(btn);
       else if(btn.dataset.action==='biodata')openBiodataFromShortcut(btn);
+      else if(btn.dataset.action==='cbt')openCbtFromShortcut(btn);
       else goTo(btn.dataset.target);
     });
   });
