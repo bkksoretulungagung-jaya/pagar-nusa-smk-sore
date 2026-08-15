@@ -16,8 +16,8 @@ elif new_shortcut not in text:
     text = text.replace(marker, new_shortcut + '\n' + marker, 1)
 
 text = text.replace(
-    '<script src="js/ui-v9.js?v=44"></script>',
     '<script src="js/ui-v9.js?v=45"></script>',
+    '<script src="js/ui-v9.js?v=46"></script>',
     1,
 )
 
