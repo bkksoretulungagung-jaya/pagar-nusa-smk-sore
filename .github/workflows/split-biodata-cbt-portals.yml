@@ -1,0 +1,51 @@
+name: Split Biodata and CBT portals
+
+on:
+  push:
+    paths:
+      - '.github/workflows/split-biodata-cbt-portals.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make CBT portal CBT-only
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('siswa.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('Masukkan username, ID Anggota / No. Siswa, email, dan password akun masing-masing.','Masukkan username, email, dan password akun masing-masing.')
+          s=s.replace('<div class="head"><h2>Login Siswa</h2><p>Masukkan username, email, dan password akun masing-masing.</p></div>','<div class="head"><h2>Login CBT Online</h2><p>Masukkan username, email, dan password akun CBT masing-masing.</p></div>')
+          s=s.replace('        <label for="memberId">ID Anggota / No. Siswa</label><input id="memberId" type="text" autocomplete="off" placeholder="Contoh: PN-2026-001" required>\n','')
+          s=s.replace('MASUK PORTAL SISWA','MASUK PORTAL CBT ONLINE')
+          s=s.replace('<script type="module" src="js/biodata-portal-v1.js?v=1"></script>\n','')
+          if 'id="memberId"' in s:
+              raise SystemExit('memberId field still present in CBT page')
+          if 'biodata-portal-v1.js' in s:
+              raise SystemExit('biodata module still present in CBT page')
+          p.write_text(s,encoding='utf-8')
+
+          i=Path('index.html')
+          x=i.read_text(encoding='utf-8')
+          for old in ('js/ui-v9.js?v=39','js/ui-v9.js?v=40'):
+              x=x.replace(old,'js/ui-v9.js?v=40')
+          i.write_text(x,encoding='utf-8')
+          PY
+      - name: Commit split portals
+        shell: bash
+        run: |
+          if git diff --quiet -- siswa.html index.html; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add siswa.html index.html
+          git commit -m 'Separate Biodata portal from CBT portal'
+          git push
