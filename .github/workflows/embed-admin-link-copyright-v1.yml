@@ -1,0 +1,30 @@
+name: Embed admin link in copyright v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/embed_admin_link_in_copyright.py'
+      - '.github/workflows/embed-admin-link-copyright-v1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Embed admin link in copyright
+        run: python tools/embed_admin_link_in_copyright.py
+      - name: Commit changes
+        run: |
+          if git diff --quiet -- index.html; then
+            echo 'No index change needed'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Satukan akses admin ke teks copyright'
+          git push
