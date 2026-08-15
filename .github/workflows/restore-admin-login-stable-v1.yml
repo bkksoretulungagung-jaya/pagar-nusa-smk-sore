@@ -1,0 +1,26 @@
+name: Restore admin login stable v1
+on:
+  push:
+    paths:
+      - 'tools/restore_admin_login_stable_v1.py'
+      - '.github/workflows/restore-admin-login-stable-v1.yml'
+permissions:
+  contents: write
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore stable admin login
+        run: python tools/restore_admin_login_stable_v1.py
+      - name: Commit restore
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/ui-v9-core.js js/ui-v9.js index.html
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Pulihkan login admin lama secara stabil"
+            git push
+          fi
