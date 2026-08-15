@@ -76,7 +76,8 @@ function ensureStyles(){
 function newsIcon(type){const t=String(type||'').toUpperCase();if(t.includes('PENGUMUMAN'))return'📢';if(t.includes('INFORMASI'))return'ℹ️';if(t.includes('PRESTASI'))return'🏆';if(t.includes('ORGANISASI'))return'🏛️';return'📰'}
 
 function applyPublicNews(items){
-  if(!Array.isArray(items)||!items.length)return;
+  items=Array.isArray(items)?items.filter(item=>String(item?.id||'')!=='CFG-REGISTRATION'&&String(item?.type||'').toUpperCase()!=='PENGATURAN'):[];
+  if(!items.length)return;
   const grid=document.querySelector('.newsSection .newsGrid');if(!grid)return;
   grid.innerHTML='';
   items.forEach(item=>{
@@ -195,8 +196,8 @@ async function loadAdmin(){
   try{
     let r=await jsonp('contentAdminList',{token:token()},18000);
     if(!r.ok)throw new Error(r.message||'Sesi admin konten tidak valid.');
-    adminContent=Array.isArray(r.content)?r.content:[];adminGallery=Array.isArray(r.gallery)?r.gallery:[];
-    if(!adminContent.length&&!adminGallery.length){await maybeSeed();r=await jsonp('contentAdminList',{token:token()},18000);adminContent=r.content||[];adminGallery=r.gallery||[]}
+    adminContent=Array.isArray(r.content)?r.content.filter(x=>String(x?.id||'')!=='CFG-REGISTRATION'&&String(x?.type||'').toUpperCase()!=='PENGATURAN'):[];adminGallery=Array.isArray(r.gallery)?r.gallery:[];
+    if(!adminContent.length&&!adminGallery.length){await maybeSeed();r=await jsonp('contentAdminList',{token:token()},18000);adminContent=Array.isArray(r.content)?r.content.filter(x=>String(x?.id||'')!=='CFG-REGISTRATION'&&String(x?.type||'').toUpperCase()!=='PENGATURAN'):[];adminGallery=r.gallery||[]}
     setStatus(`✓ Database konten online • ${adminContent.length} kabar/informasi • ${adminGallery.length} foto`,'ok');renderContentList();renderGalleryList();
   }catch(err){if(/sesi|berakhir|login/i.test(err.message||''))sessionStorage.removeItem(TOKEN_KEY);setStatus(err.message||'Gagal memuat database konten.','err')}
 }
