@@ -82,9 +82,10 @@ new_submit = """function reviewSubmit_(data) {
 }
 """
 
-if old_submit not in text:
+if old_submit in text:
+    text = text.replace(old_submit, new_submit)
+elif "const rawName = String(data.name || '').trim().replace" not in text:
     raise SystemExit('reviewSubmit_ block not found; backend source changed unexpectedly')
-text = text.replace(old_submit, new_submit)
 
 old_public = """function reviewPublicList_() {
   const sheet = reviewSheet_();
@@ -109,9 +110,10 @@ new_public = """function reviewPublicList_() {
   return {ok:true,reviews:reviews,version:'4'};
 }
 """
-if old_public not in text:
+if old_public in text:
+    text = text.replace(old_public, new_public)
+elif "return {ok:true,reviews:reviews,version:'4'};" not in text:
     raise SystemExit('reviewPublicList_ block not found; backend source changed unexpectedly')
-text = text.replace(old_public, new_public)
 
 p.write_text(text, encoding='utf-8')
-print('Backend review v4 upgraded.')
+print('Backend review v4 ready.')
