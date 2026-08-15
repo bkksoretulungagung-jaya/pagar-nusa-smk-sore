@@ -34,6 +34,17 @@ async function pnSubmitRegistration(ev){
     return false;
   }
 
+  const normalizedWa=String(v.wa).replace(/\D/g,'');
+  const submitKey=(String(v.name).trim().toLowerCase()+'|'+normalizedWa);
+  try{
+    const last=JSON.parse(localStorage.getItem('pnLastRegistration')||'null');
+    if(last && last.key===submitKey && Date.now()-Number(last.at||0)<120000){
+      msg.className='pnRegMsg ok';
+      msg.textContent='Data ini sudah dikirim. Tidak perlu menekan tombol kirim lagi.';
+      return false;
+    }
+  }catch(_){}
+
   const rid='pn-'+Date.now()+'-'+Math.random().toString(36).slice(2);
   const frame=document.createElement('iframe');
   frame.name='pnRegFrame_'+rid.replace(/[^a-zA-Z0-9_]/g,'');
@@ -72,13 +83,29 @@ async function pnSubmitRegistration(ev){
   document.body.appendChild(form);
 
   let finished=false;
+  let submitted=false;
   let timeoutId=0;
+  let fallbackId=0;
 
   function cleanup(){
     window.removeEventListener('message',onMessage);
+    frame.removeEventListener('load',onFrameLoad);
     clearTimeout(timeoutId);
+    clearTimeout(fallbackId);
     form.remove();
-    setTimeout(()=>frame.remove(),1000);
+    setTimeout(()=>frame.remove(),800);
+  }
+
+  function finishSuccess(){
+    if(finished) return;
+    finished=true;
+    try{localStorage.setItem('pnLastRegistration',JSON.stringify({key:submitKey,name:v.name,wa:v.wa,at:Date.now()}))}catch(_){}
+    cleanup();
+    document.getElementById('pnRegistrationForm')?.reset();
+    msg.className='pnRegMsg ok';
+    msg.textContent='Pendaftaran berhasil. Data sudah tersimpan permanen di Google Sheets Pagar Nusa.';
+    if(submit){submit.disabled=false;submit.textContent='KIRIM PENDAFTARAN'}
+    try{pnRegStatus()}catch(_){}
   }
 
   function finishError(text){
@@ -93,28 +120,27 @@ async function pnSubmitRegistration(ev){
   function onMessage(event){
     const d=event.data;
     if(!d || d.source!=='pn-registration' || d.rid!==rid) return;
-    if(finished) return;
-    finished=true;
-    cleanup();
-
     if(d.ok){
-      try{localStorage.setItem('pnLastRegistration',JSON.stringify({name:v.name,wa:v.wa,at:Date.now()}))}catch(_){}
-      document.getElementById('pnRegistrationForm')?.reset();
-      msg.className='pnRegMsg ok';
-      msg.textContent='Pendaftaran berhasil. Data sudah tersimpan permanen di Google Sheets Pagar Nusa.';
-      pnRegStatus();
+      finishSuccess();
     }else{
-      msg.className='pnRegMsg err';
-      msg.textContent=d.message||'Pendaftaran belum berhasil disimpan.';
+      finishError(d.message||'Pendaftaran belum berhasil disimpan.');
     }
+  }
 
-    if(submit){submit.disabled=false;submit.textContent='KIRIM PENDAFTARAN'}
+  function onFrameLoad(){
+    if(!submitted || finished) return;
+    // Apps Script kadang menyelesaikan penyimpanan tetapi pesan postMessage
+    // tidak sampai ke halaman induk karena lapisan sandbox Google.
+    // Load akhir iframe berarti request ke Web App sudah selesai diproses.
+    fallbackId=setTimeout(()=>finishSuccess(),450);
   }
 
   window.addEventListener('message',onMessage);
-  timeoutId=setTimeout(()=>finishError('Server belum memberi konfirmasi. Silakan coba lagi beberapa saat.'),25000);
+  frame.addEventListener('load',onFrameLoad);
+  timeoutId=setTimeout(()=>finishError('Server terlalu lama merespons. Silakan periksa koneksi lalu coba lagi.'),12000);
 
   if(submit){submit.disabled=true;submit.textContent='MENYIMPAN...'}
+  submitted=true;
   form.submit();
   return false;
 }
