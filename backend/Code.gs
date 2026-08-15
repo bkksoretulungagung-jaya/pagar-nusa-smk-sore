@@ -7,6 +7,8 @@ const PN_GALLERY_SHEET_NAME = 'Galeri Website';
 const PN_CONTENT_FOLDER_ID = '1DaUWvaUAMTIPm1PbVdrQilv83vN6XMKv';
 const PN_REVIEW_ADMIN_USER = 'admin';
 const PN_REVIEW_ADMIN_PASS_HASH = '3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639';
+const PN_ADMIN_PASS_PROPERTY = 'PN_ADMIN_PASS_HASH_V1';
+const PN_ADMIN_AUTH_VERSION_PROPERTY = 'PN_ADMIN_AUTH_VERSION_V1';
 const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
 const PN_BIODATA_LOG_SHEET_NAME = 'Log Perubahan Biodata';
 const PN_PORTAL_ACCOUNT_SHEET_NAME = 'Akun Portal Siswa';
@@ -43,7 +45,7 @@ function doGet(e) {
       storage:'Google Sheets',
       biodata:true,
       reviews:true,
-      reviewVersion:'6',
+      reviewVersion:'7',
       content:true,
       contentVersion:'1'
     });
@@ -180,6 +182,13 @@ function doPost(e) {
       return iframeResult_(result, 'pn-reviews');
     }
 
+    if (action === 'adminChangePassword') {
+      result = adminChangePassword_(data);
+      result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
+      return iframeResult_(result, 'pn-content');
+    }
+
     if (action === 'contentAdminLogin') {
       result = reviewAdminLogin_(data);
       result.rid = String(data.rid || '');
@@ -228,7 +237,7 @@ function doPost(e) {
     if (['reviewSubmit','reviewPublicList','reviewAdminLogin','reviewAdminList','reviewModerate'].includes(action)) {
       return iframeResult_(result, 'pn-reviews');
     }
-    if (['contentAdminLogin','contentAdminSave','contentAdminDelete','contentAdminSeed','contentUploadImage'].includes(action)) {
+    if (['contentAdminLogin','contentAdminSave','contentAdminDelete','contentAdminSeed','contentUploadImage','adminChangePassword'].includes(action)) {
       contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-content');
     }
@@ -634,10 +643,18 @@ function reviewPublicList_() {
   return {ok:true,reviews:reviews,version:'6'};
 }
 
+function adminPasswordHash_() {
+  return PropertiesService.getScriptProperties().getProperty(PN_ADMIN_PASS_PROPERTY) || PN_REVIEW_ADMIN_PASS_HASH;
+}
+
+function adminAuthVersion_() {
+  return PropertiesService.getScriptProperties().getProperty(PN_ADMIN_AUTH_VERSION_PROPERTY) || 'legacy';
+}
+
 function reviewAdminLogin_(data) {
   const username = String(data.username || '').trim();
   const password = String(data.password || '');
-  if (username !== PN_REVIEW_ADMIN_USER || sha256Hex_(password) !== PN_REVIEW_ADMIN_PASS_HASH) {
+  if (username !== PN_REVIEW_ADMIN_USER || sha256Hex_(password) !== adminPasswordHash_()) {
     throw new Error('Login admin verifikasi tidak valid.');
   }
 
@@ -646,16 +663,53 @@ function reviewAdminLogin_(data) {
     ? requestedToken
     : Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,'');
 
-  CacheService.getScriptCache().put('pn-review-admin:' + token, username, 21600);
-  return {ok:true,token:token,expiresIn:21600,version:'6'};
+  const authValue = JSON.stringify({username:username, version:adminAuthVersion_()});
+  CacheService.getScriptCache().put('pn-review-admin:' + token, authValue, 21600);
+  return {ok:true,token:token,expiresIn:21600,version:'7'};
 }
 
 function requireReviewAdmin_(token) {
   token = String(token || '').trim();
   if (!token) throw new Error('Sesi verifikasi admin tidak tersedia. Silakan login ulang.');
-  const username = CacheService.getScriptCache().get('pn-review-admin:' + token);
-  if (!username) throw new Error('Sesi verifikasi admin sudah berakhir. Silakan login ulang.');
+  const raw = CacheService.getScriptCache().get('pn-review-admin:' + token);
+  if (!raw) throw new Error('Sesi verifikasi admin sudah berakhir. Silakan login ulang.');
+
+  const currentVersion = adminAuthVersion_();
+  let username = '';
+  let tokenVersion = 'legacy';
+  try {
+    const obj = JSON.parse(raw);
+    username = String(obj && obj.username || '');
+    tokenVersion = String(obj && obj.version || 'legacy');
+  } catch (_) {
+    username = String(raw || '');
+  }
+  if (!username) throw new Error('Sesi verifikasi admin tidak valid. Silakan login ulang.');
+  if (currentVersion !== 'legacy' && tokenVersion !== currentVersion) {
+    throw new Error('Sesi admin sudah dinonaktifkan. Silakan login ulang.');
+  }
   return username;
+}
+
+function adminChangePassword_(data) {
+  const token = String(data.token || '').trim();
+  const username = requireReviewAdmin_(token);
+  if (username !== PN_REVIEW_ADMIN_USER) throw new Error('Akun admin tidak valid.');
+
+  const currentPassword = String(data.currentPassword || '');
+  const newPassword = String(data.newPassword || '');
+  if (sha256Hex_(currentPassword) !== adminPasswordHash_()) {
+    throw new Error('Password saat ini tidak benar.');
+  }
+  if (newPassword.length < 8) throw new Error('Password baru minimal 8 karakter.');
+  if (newPassword.length > 128) throw new Error('Password baru terlalu panjang.');
+  if (newPassword === currentPassword) throw new Error('Password baru harus berbeda dari password saat ini.');
+
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty(PN_ADMIN_PASS_PROPERTY, sha256Hex_(newPassword));
+  props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, Utilities.getUuid().replace(/-/g,''));
+  CacheService.getScriptCache().remove('pn-review-admin:' + token);
+  return {ok:true,message:'Password admin berhasil diubah. Semua sesi lama dinonaktifkan.'};
 }
 
 function reviewAdminList_(data) {
