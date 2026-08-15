@@ -55,18 +55,10 @@ window.pnNormalizeDriveImage=normalizeDriveImage;
 })();
 
 (()=>{
-  if(!document.querySelector('script[data-pn-cms-password-mask]')){
-    const s=document.createElement('script');
-    s.src='js/content-password-mask-v1.js?v=2';
-    s.async=false;
-    s.dataset.pnCmsPasswordMask='1';
-    document.head.appendChild(s);
-  }
-  if(!document.querySelector('script[data-pn-news-image-manager]')){
-    const s=document.createElement('script');
-    s.src='js/news-image-manager-v1.js?v=1';
-    s.async=false;
-    s.dataset.pnNewsImageManager='1';
-    document.head.appendChild(s);
-  }
+  if(document.querySelector('script[data-pn-cms-password-mask]'))return;
+  const s=document.createElement('script');
+  s.src='js/content-password-mask-v1.js?v=3';
+  s.async=false;
+  s.dataset.pnCmsPasswordMask='1';
+  document.head.appendChild(s);
 })();
