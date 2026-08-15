@@ -9,7 +9,7 @@ const ITEMS=[
   {id:'dashAlumniActivity',icon:'🎓',label:'Aktivitas Alumni'},
   {id:'registrationShortcut',icon:'📝',label:'PENDAFTARAN CALON ANGGOTA',action:'registration'},
   {id:'studentBioShortcut',icon:'👤',label:'BIODATA ANGGOTA',action:'biodata'},
-  {id:'studentCbtShortcut',icon:'📝',label:'PORTAL CBT ONLINE',action:'cbt'}
+  {id:'studentCbtShortcut',icon:'📝',label:'CBT ONLINE',action:'cbt'}
 ];
 
 function installStyles(){
