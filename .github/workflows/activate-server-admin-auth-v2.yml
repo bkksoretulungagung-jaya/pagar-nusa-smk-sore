@@ -1,0 +1,46 @@
+name: Activate hardened server admin auth
+
+on:
+  push:
+    paths:
+      - '.github/workflows/activate-server-admin-auth-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install server-only admin auth loader
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'\n?<script src="js/admin-auth-v[0-9]+\.js\?v=\d+"></script>','',s)
+          s=re.sub(r'\n?<script src="js/admin-login-[^"]+"></script>','',s)
+          s=re.sub(r'\n?<script src="js/admin-password-[^"]+"></script>','',s)
+          s=re.sub(r'js/ui-v9\.js\?v=\d+','js/ui-v9.js?v=53',s,count=1)
+          loader='<script src="js/admin-auth-v5.js?v=2"></script>'
+          marker='<script src="js/admin-compact-v1.js?v=2"></script>'
+          if marker in s:
+              s=s.replace(marker,loader+'\n'+marker,1)
+          elif '</body>' in s:
+              s=s.replace('</body>',loader+'\n</body>',1)
+          else:
+              raise SystemExit('Tidak menemukan lokasi loader admin auth')
+          p.write_text(s,encoding='utf-8')
+          PY
+          grep -F '<script src="js/admin-auth-v5.js?v=2"></script>' index.html
+      - name: Commit activation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/activate-server-admin-auth-v2.yml
+          git add index.html
+          git commit -m "Activate hardened server-only admin authentication"
+          git push
