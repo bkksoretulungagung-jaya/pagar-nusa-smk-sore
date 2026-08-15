@@ -1,0 +1,34 @@
+name: Install admin compact v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'js/admin-compact-v1.js'
+      - 'tools/install_admin_compact_v1.py'
+      - '.github/workflows/install-admin-compact-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install admin compact
+        run: python tools/install_admin_compact_v1.py
+      - name: Commit installation
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Aktifkan mode ringkas otomatis panel admin"
+          git push
