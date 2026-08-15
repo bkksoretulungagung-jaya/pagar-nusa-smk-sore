@@ -9,6 +9,7 @@ const PN_REVIEW_ADMIN_USER = 'admin';
 const PN_REVIEW_ADMIN_PASS_HASH = '3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639';
 const PN_ADMIN_PASS_PROPERTY = 'PN_ADMIN_PASS_HASH_V1';
 const PN_ADMIN_AUTH_VERSION_PROPERTY = 'PN_ADMIN_AUTH_VERSION_V1';
+const PN_ADMIN_RECOVERY_USED_PROPERTY = 'PN_ADMIN_RECOVERY_USED_V1';
 const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
 const PN_BIODATA_LOG_SHEET_NAME = 'Log Perubahan Biodata';
 const PN_PORTAL_ACCOUNT_SHEET_NAME = 'Akun Portal Siswa';
@@ -49,8 +50,9 @@ function doGet(e) {
       content:true,
       contentVersion:'1',
       adminPassword:true,
-      adminPasswordVersion:'3',
-      adminPasswordConfigured:adminPasswordConfigured_()
+      adminPasswordVersion:'4',
+      adminPasswordConfigured:adminPasswordConfigured_(),
+      adminPasswordRecoveryAvailable:adminPasswordRecoveryAvailable_()
     });
   }
 
@@ -185,6 +187,13 @@ function doPost(e) {
       return iframeResult_(result, 'pn-reviews');
     }
 
+    if (action === 'adminPasswordRecover') {
+      result = adminPasswordRecover_(data);
+      result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
+      return iframeResult_(result, 'pn-content');
+    }
+
     if (action === 'adminChangePassword') {
       result = adminChangePassword_(data);
       result.rid = String(data.rid || '');
@@ -240,7 +249,7 @@ function doPost(e) {
     if (['reviewSubmit','reviewPublicList','reviewAdminLogin','reviewAdminList','reviewModerate'].includes(action)) {
       return iframeResult_(result, 'pn-reviews');
     }
-    if (['contentAdminLogin','contentAdminSave','contentAdminDelete','contentAdminSeed','contentUploadImage','adminChangePassword'].includes(action)) {
+    if (['contentAdminLogin','contentAdminSave','contentAdminDelete','contentAdminSeed','contentUploadImage','adminChangePassword','adminPasswordRecover'].includes(action)) {
       contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-content');
     }
@@ -654,6 +663,10 @@ function adminPasswordConfigured_() {
   return !!PropertiesService.getScriptProperties().getProperty(PN_ADMIN_PASS_PROPERTY);
 }
 
+function adminPasswordRecoveryAvailable_() {
+  return !PropertiesService.getScriptProperties().getProperty(PN_ADMIN_RECOVERY_USED_PROPERTY);
+}
+
 function adminAuthVersion_() {
   return PropertiesService.getScriptProperties().getProperty(PN_ADMIN_AUTH_VERSION_PROPERTY) || 'legacy';
 }
@@ -696,6 +709,34 @@ function requireReviewAdmin_(token) {
     throw new Error('Sesi admin sudah dinonaktifkan. Silakan login ulang.');
   }
   return username;
+}
+
+function adminPasswordRecover_(data) {
+  const username = String(data.username || '').trim();
+  const currentPassword = String(data.currentPassword || data.password || '');
+  const newPassword = String(data.newPassword || '');
+
+  if (username !== PN_REVIEW_ADMIN_USER) throw new Error('Akun admin tidak valid.');
+  if (!adminPasswordRecoveryAvailable_()) {
+    throw new Error('Jalur pemulihan password sudah pernah digunakan. Gunakan password server yang aktif.');
+  }
+  if (sha256Hex_(currentPassword) !== PN_REVIEW_ADMIN_PASS_HASH) {
+    throw new Error('Password admin lama tidak benar.');
+  }
+  if (newPassword.length < 8) throw new Error('Password baru minimal 8 karakter.');
+  if (newPassword.length > 128) throw new Error('Password baru terlalu panjang.');
+  if (newPassword === currentPassword) throw new Error('Password baru harus berbeda dari password saat ini.');
+
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty(PN_ADMIN_PASS_PROPERTY, sha256Hex_(newPassword));
+  props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, Utilities.getUuid().replace(/-/g,''));
+  props.setProperty(PN_ADMIN_RECOVERY_USED_PROPERTY, '1');
+  return {
+    ok:true,
+    configured:true,
+    recovered:true,
+    message:'Password admin berhasil dipulihkan dan diganti. Password lama tidak berlaku lagi.'
+  };
 }
 
 function adminChangePassword_(data) {
@@ -798,8 +839,9 @@ function contentPublicList_() {
     gallery:contentReadGallery_(sheets.gallery, false),
     version:'1',
     adminPassword:true,
-    adminPasswordVersion:'3',
-    adminPasswordConfigured:adminPasswordConfigured_()
+    adminPasswordVersion:'4',
+    adminPasswordConfigured:adminPasswordConfigured_(),
+    adminPasswordRecoveryAvailable:adminPasswordRecoveryAvailable_()
   };
 }
 
