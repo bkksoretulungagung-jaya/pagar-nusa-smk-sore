@@ -99,8 +99,11 @@ async function pnSubmitRegistration(ev){
   try{
     const last=JSON.parse(localStorage.getItem('pnLastRegistration')||'null');
     if(last && last.key===submitKey && Date.now()-Number(last.at||0)<120000){
+      document.getElementById('pnRegistrationForm')?.reset();
       msg.className='pnRegMsg ok';
-      msg.textContent='Data ini sudah dikirim. Tidak perlu menekan tombol kirim lagi.';
+      msg.textContent='Data ini sudah terkirim sebelumnya dan tidak dikirim ulang.';
+      try{pnCloseRegistration()}catch(_){}
+      setTimeout(()=>pnShowRegistrationThanks(v.name),120);
       return false;
     }
   }catch(_){}
