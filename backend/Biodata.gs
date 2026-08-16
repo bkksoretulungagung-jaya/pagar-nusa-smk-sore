@@ -31,7 +31,9 @@ function doGet(e) {
     ok:true,
     service:'Pagar Nusa Student Biodata API',
     storage:'Google Sheets',
-    spreadsheet:PN_BIODATA_SPREADSHEET_ID
+    spreadsheet:PN_BIODATA_SPREADSHEET_ID,
+    aspelRelations:true,
+    version:'7'
   });
 }
 
@@ -59,11 +61,13 @@ function doPost(e) {
 function getStudentBiodata_(data) {
   const auth = authorizePortalStudent_(data);
   const found = findBiodataRow_(auth.book, auth.memberId);
+  const biodata = biodataObject_(found.values);
 
   return {
     ok:true,
     message:'Biodata berhasil dimuat.',
-    biodata:biodataObject_(found.values),
+    biodata:biodata,
+    aspel:getAspelSupervision_(auth.book, auth.memberId, [biodata.name, auth.username]),
     account:{
       username:auth.username,
       memberId:auth.memberId,
@@ -106,11 +110,13 @@ function updateStudentBiodata_(data) {
     });
 
     if (!changes.length) {
+      const oldBio = biodataObject_(oldRaw);
       return {
         ok:true,
         unchanged:true,
         message:'Tidak ada perubahan biodata.',
-        biodata:biodataObject_(oldRaw)
+        biodata:oldBio,
+        aspel:getAspelSupervision_(auth.book, auth.memberId, [oldBio.name, auth.username])
       };
     }
 
@@ -133,11 +139,13 @@ function updateStudentBiodata_(data) {
 
     logSheet.getRange(logSheet.getLastRow()+1,1,logRows.length,8).setValues(logRows);
 
+    const nextBio = biodataObject_(next);
     return {
       ok:true,
       message:'Perubahan biodata berhasil disimpan.',
       changed:changes.length,
-      biodata:biodataObject_(next)
+      biodata:nextBio,
+      aspel:getAspelSupervision_(auth.book, auth.memberId, [nextBio.name, auth.username])
     };
   } finally {
     lock.releaseLock();
@@ -237,6 +245,65 @@ function findBiodataRow_(book, memberId) {
   }
 
   throw new Error('Biodata untuk ID Anggota tersebut belum ditemukan.');
+}
+
+function normalizeAspelName_(value) {
+  let s = String(value == null ? '' : value).trim().toUpperCase();
+  if (!s) return '';
+  try { s = s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); } catch (_) {}
+  return s.replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function getAspelSupervision_(book, memberId, possibleNames) {
+  const sheet = book.getSheetByName(PN_BIODATA_SHEET_NAME);
+  if (!sheet) return {isAspel:false,total:0,coordinatorCount:0,memberCount:0,roles:[],members:[]};
+
+  const aliases = new Set((possibleNames || []).map(normalizeAspelName_).filter(Boolean));
+  if (!aliases.size) return {isAspel:false,total:0,coordinatorCount:0,memberCount:0,roles:[],members:[]};
+
+  const last = sheet.getLastRow();
+  if (last < 2) return {isAspel:false,total:0,coordinatorCount:0,memberCount:0,roles:[],members:[]};
+
+  const rows = sheet.getRange(2,1,last-1,PN_BIODATA_HEADERS.length).getDisplayValues();
+  const members = [];
+  const roleSet = new Set();
+  let coordinatorCount = 0;
+  let memberCount = 0;
+
+  rows.forEach(r => {
+    const roles = [];
+    if (aliases.has(normalizeAspelName_(r[19]))) roles.push('Koordinator Aspel');
+    if (aliases.has(normalizeAspelName_(r[20]))) roles.push('Anggota Aspel 1');
+    if (aliases.has(normalizeAspelName_(r[21]))) roles.push('Anggota Aspel 2');
+    if (!roles.length || !String(r[1] || '').trim()) return;
+
+    roles.forEach(role => roleSet.add(role));
+    if (roles.includes('Koordinator Aspel')) coordinatorCount += 1;
+    if (roles.some(role => role !== 'Koordinator Aspel')) memberCount += 1;
+
+    members.push({
+      memberId:String(r[0] || ''),
+      name:String(r[1] || ''),
+      className:String(r[5] || ''),
+      program:String(r[6] || ''),
+      entryYear:String(r[12] || ''),
+      membershipStatus:String(r[14] || ''),
+      studentStatus:String(r[15] || ''),
+      role:roles.join(' / '),
+      coordinator:String(r[19] || ''),
+      member1:String(r[20] || ''),
+      member2:String(r[21] || '')
+    });
+  });
+
+  return {
+    isAspel:members.length > 0,
+    total:members.length,
+    coordinatorCount:coordinatorCount,
+    memberCount:memberCount,
+    roles:Array.from(roleSet),
+    members:members
+  };
 }
 
 function biodataObject_(values) {
