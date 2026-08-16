@@ -3,6 +3,11 @@
 
 const ENDPOINT='https://script.google.com/macros/s/AKfycbyJi_83lJ11JshOLCzIBRMX6fEi-y9UGR9eYULuqH1BivdxeqcgMB0l2ehWBIgaad8Oyw/exec';
 const TOKEN_KEY='pnReviewAdminToken';
+const AUTH_KEY='pnAdminAuth';
+function persistentGet(key){try{return localStorage.getItem(key)||sessionStorage.getItem(key)||''}catch(_){try{return sessionStorage.getItem(key)||''}catch(__){return''}}}
+function persistentSet(key,value){try{localStorage.setItem(key,String(value))}catch(_){};try{sessionStorage.setItem(key,String(value))}catch(_){}}
+function persistentRemove(key){try{localStorage.removeItem(key)}catch(_){};try{sessionStorage.removeItem(key)}catch(_){}}
+(function restorePersistentAdmin(){const a=persistentGet(AUTH_KEY),t=persistentGet(TOKEN_KEY);if(a==='1')persistentSet(AUTH_KEY,'1');if(t)persistentSet(TOKEN_KEY,t)})();
 let rows=[];
 let online=false;
 let connecting=false;
@@ -149,7 +154,7 @@ function render(){
 }
 
 async function loadRows({quiet=false}={}){
-  const token=sessionStorage.getItem(TOKEN_KEY)||'';
+  const token=persistentGet(TOKEN_KEY);
   if(!token){rows=[];online=false;render();setState('error','Sesi moderasi belum aktif. Klik HUBUNGKAN MODERASI.');return false;}
   if(!quiet)setState('loading','Memuat antrean ulasan dari database pusat...');
   try{
@@ -158,12 +163,17 @@ async function loadRows({quiet=false}={}){
     rows.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
     online=true;
     const pending=stats();render();
-    setState('online','✓ Database pusat terhubung • '+pending+' ulasan menunggu verifikasi.');
+    persistentSet(AUTH_KEY,'1');setState('online','✓ Database pusat terhubung permanen di perangkat ini • '+pending+' ulasan menunggu verifikasi.');
     updateConnectButton();
     return true;
   }catch(err){
     online=false;
-    setState('error','Sesi moderasi tidak valid atau server belum memakai backend v6. '+err.message);
+    const msg=String(err&&err.message||'');
+    if(/sesi admin sudah dinonaktifkan|sesi verifikasi admin tidak valid|sesi admin perangkat tidak ditemukan/i.test(msg)){
+      persistentRemove(TOKEN_KEY);persistentRemove(AUTH_KEY);
+      try{if(typeof window.showPublicDashboard==='function')window.showPublicDashboard()}catch(_){}
+    }
+    setState('error','Koneksi database belum aktif. '+msg);
     updateConnectButton();
     return false;
   }
@@ -173,8 +183,8 @@ async function connect(username,password){
   if(connecting)return false;
   connecting=true;
   const token=randomToken();
-  sessionStorage.setItem(TOKEN_KEY,token);
-  setState('loading','Mengesahkan sesi moderasi ke database pusat...');
+  persistentSet(TOKEN_KEY,token);
+  setState('loading','Mengesahkan akses admin perangkat ke database pusat...');
   try{
     await postHidden('reviewAdminLogin',{username,password,token},25000);
     for(const wait of [250,700,1600,3000]){
@@ -183,7 +193,7 @@ async function connect(username,password){
     }
     throw new Error('Token sesi belum dikenali server.');
   }catch(err){
-    sessionStorage.removeItem(TOKEN_KEY);
+    persistentRemove(TOKEN_KEY);
     rows=[];online=false;render();
     setState('error','Gagal menghubungkan moderasi. Pastikan Apps Script sudah memakai backend v6 lalu Deploy versi baru. '+err.message);
     return false;
@@ -194,7 +204,7 @@ async function connect(username,password){
 
 async function moderate(id,status,button){
   if(!id)return;
-  const token=sessionStorage.getItem(TOKEN_KEY)||'';
+  const token=persistentGet(TOKEN_KEY);
   if(!token){setState('error','Sesi moderasi belum aktif.');return;}
   let note='';
   if(status==='DITOLAK')note=prompt('Catatan penolakan (opsional):','')||'';
@@ -267,6 +277,15 @@ function takeoverPanel(){
   return true;
 }
 
+window.pnRevokeAdminSession=async function(tokenOverride){
+  const token=String(tokenOverride||persistentGet(TOKEN_KEY)||'');
+  if(!token)return;
+  try{await postHidden('adminSessionLogout',{token},8000)}catch(_){}
+  persistentRemove(TOKEN_KEY);
+};
+
+window.addEventListener('online',()=>{if(persistentGet(AUTH_KEY)==='1'&&persistentGet(TOKEN_KEY))loadRows({quiet:true})});
+
 function installFastLogin(){
   if(window.submitAdminLogin&&window.submitAdminLogin.__serverAuthV5)return;
   window.submitAdminLogin=async function(ev){
@@ -280,7 +299,7 @@ function installFastLogin(){
     try{
       const hash=await sha256Hex(password);
       if(username!==PN_ADMIN_USER||hash!==PN_ADMIN_PASS_HASH){if(err)err.textContent='Username atau password admin salah.';return false;}
-      sessionStorage.setItem('pnAdminAuth','1');
+      persistentSet(AUTH_KEY,'1');
       closeAdminLogin();enterAdmin(true);
       setTimeout(()=>{
         takeoverPanel();
@@ -298,8 +317,8 @@ function boot(){
   installFastLogin();
   setTimeout(()=>{
     if(!takeoverPanel())return;
-    if(sessionStorage.getItem('pnAdminAuth')==='1'){
-      if(sessionStorage.getItem(TOKEN_KEY))loadRows();
+    if(persistentGet(AUTH_KEY)==='1'){
+      if(persistentGet(TOKEN_KEY))loadRows();
       else setState('error','Sesi moderasi belum aktif. Klik HUBUNGKAN MODERASI.');
     }
   },300);

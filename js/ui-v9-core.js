@@ -102,7 +102,7 @@ async function submitAdminLogin(ev){
   const u=document.getElementById('adminUser')?.value.trim()||'',p=document.getElementById('adminPass')?.value||'',err=document.getElementById('loginError');
   const hash=await sha256Hex(p);
   if(u===PN_ADMIN_USER&&hash===PN_ADMIN_PASS_HASH){
-    sessionStorage.setItem('pnAdminAuth','1');closeAdminLogin();enterAdmin(true)
+    localStorage.setItem('pnAdminAuth','1');sessionStorage.setItem('pnAdminAuth','1');closeAdminLogin();enterAdmin(true)
   }else{if(err)err.textContent='Username atau password admin salah.'}
   return false
 }
@@ -124,10 +124,10 @@ function showPublicDashboard(){
   document.getElementById('topLoginBtn')?.classList.remove('hidden');
   toggleDatabasePanel(false);setAdminControls(false);refreshPublicDashboardV9();window.scrollTo({top:0,behavior:'smooth'})
 }
-function logoutAdmin(){sessionStorage.removeItem('pnAdminAuth');showPublicDashboard()}
+function logoutAdmin(){const token=localStorage.getItem('pnReviewAdminToken')||sessionStorage.getItem('pnReviewAdminToken')||'';try{if(token&&typeof window.pnRevokeAdminSession==='function')window.pnRevokeAdminSession(token)}catch(_){};['pnAdminAuth','pnReviewAdminToken'].forEach(k=>{try{localStorage.removeItem(k)}catch(_){};try{sessionStorage.removeItem(k)}catch(_){}});showPublicDashboard()}
 document.addEventListener('DOMContentLoaded',()=>{
   renderDashboardData(DASH_SNAPSHOT,false);
   setAdminControls(false);
-  if(sessionStorage.getItem('pnAdminAuth')==='1')enterAdmin(false);
+  const savedAdmin=(localStorage.getItem('pnAdminAuth')==='1'||sessionStorage.getItem('pnAdminAuth')==='1');if(savedAdmin){localStorage.setItem('pnAdminAuth','1');sessionStorage.setItem('pnAdminAuth','1');enterAdmin(false)}
   document.getElementById('loginModal')?.addEventListener('click',e=>{if(e.target?.id==='loginModal')closeAdminLogin()});
 });

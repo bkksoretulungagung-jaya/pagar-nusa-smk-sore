@@ -189,7 +189,9 @@ function panelHtml(){return `
 
 function setStatus(text,kind=''){const el=$('pnCmsStatus');if(!el)return;el.textContent=text;el.className='pnCmsStatus '+(kind==='ok'?'ok':kind==='err'?'err':'')}
 function setBusy(btn,busy,text){if(!btn)return;if(busy){btn.dataset.old=btn.textContent;btn.disabled=true;btn.textContent=text||'MEMPROSES...'}else{btn.disabled=false;btn.textContent=btn.dataset.old||btn.textContent}}
-function token(){return sessionStorage.getItem(TOKEN_KEY)||''}
+function token(){try{return localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||''}catch(_){return sessionStorage.getItem(TOKEN_KEY)||''}}
+function saveToken(value){try{localStorage.setItem(TOKEN_KEY,String(value))}catch(_){};try{sessionStorage.setItem(TOKEN_KEY,String(value))}catch(_){}}
+function clearToken(){try{localStorage.removeItem(TOKEN_KEY)}catch(_){};try{sessionStorage.removeItem(TOKEN_KEY)}catch(_){}}
 function today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta'}).format(new Date())}
 
 function askContentPassword(){
@@ -216,7 +218,7 @@ function askContentPassword(){
 async function connectContent(){
   const password=await askContentPassword();if(password===null)return false;
   const requested='cms_'+cryptoRandom(56);const btn=$('pnCmsConnect');setBusy(btn,true,'MENGHUBUNGKAN...');setStatus('Menghubungkan pengelola konten ke database pusat...');
-  try{const r=await postReliable('contentAdminLogin',{username:'admin',password,token:requested});if(!r.token)throw new Error('Token admin tidak diterima.');sessionStorage.setItem(TOKEN_KEY,r.token);setStatus('✓ Akses konten aktif. Perubahan akan langsung disimpan ke Google Sheet/Drive.','ok');await loadAdmin();return true}catch(err){setStatus(err.message||'Gagal menghubungkan akses konten.','err');return false}finally{setBusy(btn,false)}
+  try{const r=await postReliable('contentAdminLogin',{username:'admin',password,token:requested});if(!r.token)throw new Error('Token admin tidak diterima.');saveToken(r.token);setStatus('✓ Akses konten aktif terus di perangkat ini sampai logout atau password diubah.','ok');await loadAdmin();return true}catch(err){setStatus(err.message||'Gagal menghubungkan akses konten.','err');return false}finally{setBusy(btn,false)}
 }
 function cryptoRandom(n=48){const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';const a=new Uint8Array(n);if(window.crypto?.getRandomValues)window.crypto.getRandomValues(a);else for(let i=0;i<n;i++)a[i]=Math.floor(Math.random()*256);return Array.from(a,b=>chars[b%chars.length]).join('')}
 
@@ -243,7 +245,7 @@ async function loadAdmin(){
     adminContent=Array.isArray(r.content)?r.content.filter(x=>String(x?.id||'')!=='CFG-REGISTRATION'&&String(x?.type||'').toUpperCase()!=='PENGATURAN'):[];adminGallery=Array.isArray(r.gallery)?r.gallery:[];
     if(!adminContent.length&&!adminGallery.length){await maybeSeed();r=await jsonp('contentAdminList',{token:token()},18000);adminContent=Array.isArray(r.content)?r.content.filter(x=>String(x?.id||'')!=='CFG-REGISTRATION'&&String(x?.type||'').toUpperCase()!=='PENGATURAN'):[];adminGallery=r.gallery||[]}
     setStatus(`✓ Database konten online • ${adminContent.length} kabar/informasi • ${adminGallery.length} foto`,'ok');renderContentList();renderGalleryList();
-  }catch(err){if(/sesi|berakhir|login/i.test(err.message||''))sessionStorage.removeItem(TOKEN_KEY);setStatus(err.message||'Gagal memuat database konten.','err')}
+  }catch(err){const msg=String(err&&err.message||'');if(/sesi admin sudah dinonaktifkan|sesi verifikasi admin tidak valid|sesi admin perangkat tidak ditemukan/i.test(msg)){clearToken();try{localStorage.removeItem('pnAdminAuth');sessionStorage.removeItem('pnAdminAuth')}catch(_){}}setStatus(msg||'Gagal memuat database konten.','err')}
 }
 
 function resetContent(){editingContentId='';$('pnCmsType').value='BERITA';$('pnCmsContentStatus').value='PUBLIK';$('pnCmsTitle').value='';$('pnCmsSummary').value='';$('pnCmsBody').value='';$('pnCmsDate').value=today();$('pnCmsBadge').value='';$('pnCmsOrder').value=String(Math.max(1,adminContent.length+1));$('pnCmsLink').value='';$('pnCmsSaveContent').textContent='💾 SIMPAN & PUBLIKASIKAN'}
@@ -290,6 +292,6 @@ function installAdmin(){
   resetContent();resetGallery();if(token())loadAdmin();else setStatus('Login admin sudah tersedia. Klik HUBUNGKAN AKSES sekali untuk mengaktifkan update foto/kabar secara online.');
 }
 
-function boot(){loadPublic();installAdmin();setTimeout(installAdmin,500);setTimeout(installAdmin,1500)}
+function boot(){loadPublic();installAdmin();setTimeout(installAdmin,500);setTimeout(installAdmin,1500);window.addEventListener('online',()=>{if(token())loadAdmin()})}
 document.addEventListener('DOMContentLoaded',boot);
 })();

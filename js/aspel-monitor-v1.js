@@ -15,6 +15,7 @@ const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const norm=value=>String(value||'').trim().toLowerCase();
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const savedValue=key=>{try{return localStorage.getItem(key)||sessionStorage.getItem(key)||''}catch(_){return sessionStorage.getItem(key)||''}};
 
 function jsonp(action,payload={},timeoutMs=22000){
   return new Promise((resolve,reject)=>{
@@ -132,7 +133,7 @@ function restoreOtherAdminCards(){
 }
 
 function openMonitor(){
-  if(sessionStorage.getItem(AUTH_KEY)!=='1'){
+  if(savedValue(AUTH_KEY)!=='1'){
     if(typeof window.openAdminLogin==='function')window.openAdminLogin();
     return;
   }
@@ -223,8 +224,8 @@ async function loadMonitor(force){
   try{
     for(const wait of [0,500,1000,1800,3000]){
       if(wait)await sleep(wait);
-      if(sessionStorage.getItem(AUTH_KEY)!=='1')throw new Error('Sesi admin tidak aktif. Silakan login ulang.');
-      const token=sessionStorage.getItem(TOKEN_KEY)||'';
+      if(savedValue(AUTH_KEY)!=='1')throw new Error('Sesi admin tidak aktif. Silakan login ulang.');
+      const token=savedValue(TOKEN_KEY);
       if(!token){lastError=new Error('Sesi server admin sedang disiapkan.');continue}
       try{
         monitorData=await jsonp('aspelMonitorAdminList',{token},23000);
@@ -264,7 +265,7 @@ function installNavigationClose(){
 }
 
 function securityWatch(){
-  if(sessionStorage.getItem(AUTH_KEY)!=='1'){
+  if(savedValue(AUTH_KEY)!=='1'){
     closeMonitor(true);
   }else if(monitorOpen){
     suppressOtherAdminCards();
@@ -274,6 +275,7 @@ function securityWatch(){
 function boot(){
   ensureStyles();ensurePanel();installNavWatch();installNavigationClose();securityWatch();
   setInterval(()=>{installNavWatch();securityWatch()},900);
+  window.addEventListener('online',()=>{if(monitorOpen)loadMonitor(true)});
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);

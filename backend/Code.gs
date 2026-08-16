@@ -13,7 +13,8 @@ const PN_ADMIN_BOOTSTRAP_PROPERTY = 'PN_ADMIN_BOOTSTRAP_PASSWORD';
 const PN_ADMIN_AUTH_VERSION_PROPERTY = 'PN_ADMIN_AUTH_VERSION_V2';
 const PN_ADMIN_LOGIN_STATE_PROPERTY = 'PN_ADMIN_LOGIN_STATE_V2';
 const PN_ADMIN_AUDIT_SHEET_NAME = 'Log Keamanan Admin';
-const PN_ADMIN_SESSION_SECONDS = 1800;
+const PN_ADMIN_SESSION_CACHE_SECONDS = 21600;
+const PN_ADMIN_SESSION_PROPERTY_PREFIX = 'PN_ADMIN_SESSION_V1_';
 const PN_ADMIN_KDF_ROUNDS = 4096;
 const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
 const PN_BIODATA_LOG_SHEET_NAME = 'Log Perubahan Biodata';
@@ -58,6 +59,8 @@ function doGet(e) {
       aspelMonitorVersion:'1',
       adminPassword:true,
       adminPasswordVersion:'4',
+      adminPersistentSession:true,
+      adminPersistentSessionVersion:'1',
       adminPasswordConfigured:adminPasswordConfigured_(),
       adminPasswordRecoveryAvailable:adminPasswordRecoveryAvailable_()
     });
@@ -202,6 +205,13 @@ function doPost(e) {
 
     if (action === 'reviewModerate') {
       result = reviewModerate_(data);
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-reviews');
+    }
+
+
+    if (action === 'adminSessionLogout') {
+      result = adminSessionLogout_(data);
       result.rid = String(data.rid || '');
       return iframeResult_(result, 'pn-reviews');
     }
@@ -781,6 +791,7 @@ function initializeAdminSecurity_() {
   adminStoreCredential_(bootstrap);
   props.deleteProperty(PN_ADMIN_BOOTSTRAP_PROPERTY);
   props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, adminGenerateSecret_());
+  adminClearAllSessions_();
   props.deleteProperty(PN_ADMIN_LOGIN_STATE_PROPERTY);
   adminAudit_('SECURITY_INIT','OK','Credential V2 diaktifkan; bootstrap password sudah dihapus.');
   return 'Keamanan admin V2 aktif. Bootstrap password telah dihapus dari Script Properties.';
@@ -860,6 +871,42 @@ function adminAudit_(eventName, status, detail) {
   } catch (_) {}
 }
 
+function adminSessionPropertyKey_(token) {
+  return PN_ADMIN_SESSION_PROPERTY_PREFIX + sha256Hex_('pn-admin-session|' + String(token || ''));
+}
+
+function adminSessionCacheKey_(token) {
+  return 'pn-review-admin:' + String(token || '');
+}
+
+function adminStoreSession_(token, username) {
+  const authValue = JSON.stringify({
+    username:String(username || ''),
+    version:adminAuthVersion_(),
+    issuedAt:Date.now()
+  });
+  PropertiesService.getScriptProperties().setProperty(adminSessionPropertyKey_(token), authValue);
+  try {
+    CacheService.getScriptCache().put(adminSessionCacheKey_(token), authValue, PN_ADMIN_SESSION_CACHE_SECONDS);
+  } catch (_) {}
+  return authValue;
+}
+
+function adminDeleteSession_(token) {
+  token = String(token || '').trim();
+  if (!token) return;
+  try { CacheService.getScriptCache().remove(adminSessionCacheKey_(token)); } catch (_) {}
+  try { PropertiesService.getScriptProperties().deleteProperty(adminSessionPropertyKey_(token)); } catch (_) {}
+}
+
+function adminClearAllSessions_() {
+  const props = PropertiesService.getScriptProperties();
+  const all = props.getProperties();
+  Object.keys(all).forEach(function(key){
+    if (key.indexOf(PN_ADMIN_SESSION_PROPERTY_PREFIX) === 0) props.deleteProperty(key);
+  });
+}
+
 function reviewAdminLogin_(data) {
   const username = String(data.username || '').trim();
   const password = String(data.password || '');
@@ -885,15 +932,11 @@ function reviewAdminLogin_(data) {
   }
 
   adminClearLoginFailures_();
-  const token = adminGenerateSecret_();
-  const authValue = JSON.stringify({
-    username:username,
-    version:adminAuthVersion_(),
-    issuedAt:Date.now()
-  });
-  CacheService.getScriptCache().put('pn-review-admin:' + token, authValue, PN_ADMIN_SESSION_SECONDS);
-  adminAudit_('ADMIN_LOGIN','OK','Sesi admin baru dibuat selama 30 menit.');
-  return {ok:true,token:token,expiresIn:PN_ADMIN_SESSION_SECONDS,version:'8'};
+  const requestedToken = String(data.token || '').trim();
+  const token = /^[A-Fa-f0-9]{64}$/.test(requestedToken) ? requestedToken : adminGenerateSecret_();
+  adminStoreSession_(token, username);
+  adminAudit_('ADMIN_LOGIN','OK','Akses admin perangkat diaktifkan sampai logout atau password diubah.');
+  return {ok:true,token:token,persistent:true,expiresIn:0,version:'9'};
 }
 
 function requireReviewAdmin_(token) {
@@ -901,8 +944,13 @@ function requireReviewAdmin_(token) {
   if (!/^[A-Fa-f0-9]{64}$/.test(token)) {
     throw new Error('Sesi verifikasi admin tidak valid. Silakan login ulang.');
   }
-  const raw = CacheService.getScriptCache().get('pn-review-admin:' + token);
-  if (!raw) throw new Error('Sesi verifikasi admin sudah berakhir. Silakan login ulang.');
+
+  const cacheKey = adminSessionCacheKey_(token);
+  const propertyKey = adminSessionPropertyKey_(token);
+  let raw = '';
+  try { raw = CacheService.getScriptCache().get(cacheKey) || ''; } catch (_) {}
+  if (!raw) raw = PropertiesService.getScriptProperties().getProperty(propertyKey) || '';
+  if (!raw) throw new Error('Sesi admin perangkat tidak ditemukan. Hubungkan akses sekali lagi.');
 
   const currentVersion = adminAuthVersion_();
   let obj = null;
@@ -910,18 +958,25 @@ function requireReviewAdmin_(token) {
   const username = String(obj && obj.username || '');
   const tokenVersion = String(obj && obj.version || '');
   const issuedAt = Number(obj && obj.issuedAt || 0);
+
   if (username !== PN_REVIEW_ADMIN_USER || !issuedAt) {
+    adminDeleteSession_(token);
     throw new Error('Sesi verifikasi admin tidak valid. Silakan login ulang.');
   }
-  if (Date.now() - issuedAt > PN_ADMIN_SESSION_SECONDS * 1000) {
-    CacheService.getScriptCache().remove('pn-review-admin:' + token);
-    throw new Error('Sesi verifikasi admin sudah berakhir. Silakan login ulang.');
-  }
   if (tokenVersion !== currentVersion) {
-    CacheService.getScriptCache().remove('pn-review-admin:' + token);
-    throw new Error('Sesi admin sudah dinonaktifkan. Silakan login ulang.');
+    adminDeleteSession_(token);
+    throw new Error('Sesi admin sudah dinonaktifkan karena keamanan/password berubah. Silakan login ulang.');
   }
+
+  try { CacheService.getScriptCache().put(cacheKey, raw, PN_ADMIN_SESSION_CACHE_SECONDS); } catch (_) {}
   return username;
+}
+
+function adminSessionLogout_(data) {
+  const token = String(data && data.token || '').trim();
+  if (token) adminDeleteSession_(token);
+  adminAudit_('ADMIN_LOGOUT','OK','Akses admin perangkat dicabut oleh pengguna.');
+  return {ok:true,loggedOut:true,message:'Akses admin perangkat sudah diputus.'};
 }
 
 function adminPasswordRecover_(data) {
@@ -945,8 +1000,8 @@ function adminChangePassword_(data) {
   const props = PropertiesService.getScriptProperties();
   adminStoreCredential_(newPassword);
   props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, adminGenerateSecret_());
+  adminClearAllSessions_();
   adminClearLoginFailures_();
-  CacheService.getScriptCache().remove('pn-review-admin:' + token);
   adminAudit_('ADMIN_PASSWORD_CHANGE','OK','Password dirotasi; seluruh sesi lama dinonaktifkan.');
   return {ok:true,configured:true,message:'Password admin berhasil diubah. Semua sesi lama dinonaktifkan.'};
 }
