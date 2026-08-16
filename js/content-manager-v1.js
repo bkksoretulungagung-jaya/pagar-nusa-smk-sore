@@ -35,34 +35,25 @@ function jsonp(action,payload={},timeout=18000){
 
 async function postReliable(action,payload={},timeout=50000){
   const rid=makeRid();
-  const frame=document.createElement('iframe');
-  frame.name='pnCmsFrame_'+rid.replace(/\W/g,'');
-  frame.style.display='none';
-  frame.setAttribute('aria-hidden','true');
-  const form=document.createElement('form');
-  form.method='POST';form.action=ENDPOINT;form.target=frame.name;form.style.display='none';
-  Object.entries({action,rid,...payload}).forEach(([k,v])=>{
-    const input=document.createElement('input');input.type='hidden';input.name=k;input.value=String(v??'');form.appendChild(input);
+  return new Promise((resolve,reject)=>{
+    const frame=document.createElement('iframe');
+    frame.name='pnCmsFrame_'+rid.replace(/\W/g,'');
+    frame.style.display='none';frame.setAttribute('aria-hidden','true');
+    const form=document.createElement('form');
+    form.method='POST';form.action=ENDPOINT;form.target=frame.name;form.style.display='none';
+    Object.entries({action,rid,...payload}).forEach(([k,v])=>{const input=document.createElement('input');input.type='hidden';input.name=k;input.value=String(v??'');form.appendChild(input)});
+    let done=false;
+    const clean=()=>{if(done)return;done=true;clearTimeout(timer);window.removeEventListener('message',onMessage);setTimeout(()=>frame.remove(),100)};
+    const onMessage=e=>{
+      const d=e?.data;
+      if(!d||d.source!==SOURCE||String(d.rid||'')!==rid)return;
+      clean();
+      if(d.ok)resolve(d);else reject(new Error(d.message||'Perubahan konten ditolak server.'));
+    };
+    window.addEventListener('message',onMessage);
+    const timer=setTimeout(()=>{clean();reject(new Error('Server konten tidak merespons tepat waktu.'))},timeout);
+    document.body.append(frame,form);form.submit();form.remove();
   });
-  document.body.append(frame,form);
-  form.submit();
-  form.remove();
-  const started=Date.now();
-  let lastErr;
-  try{
-    while(Date.now()-started<timeout){
-      await sleep(700);
-      try{
-        const r=await jsonp('contentResult',{rid},7000);
-        if(r&&r.pending)continue;
-        if(r&&r.ok)return r;
-        if(r&&!r.pending)throw new Error(r.message||'Perubahan konten ditolak server.');
-      }catch(err){lastErr=err;}
-    }
-  }finally{
-    setTimeout(()=>frame.remove(),300);
-  }
-  throw lastErr||new Error('Server konten tidak merespons tepat waktu.');
 }
 
 function ensureStyles(){

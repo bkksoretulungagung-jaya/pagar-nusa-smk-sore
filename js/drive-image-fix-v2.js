@@ -57,7 +57,7 @@ window.pnNormalizeDriveImage=normalizeDriveImage;
 (()=>{
   if(document.querySelector('script[data-pn-cms-password-mask]'))return;
   const s=document.createElement('script');
-  s.src='js/content-password-mask-v1.js?v=3';
+  s.src='js/content-password-mask-v1.js?v=4';
   s.async=false;
   s.dataset.pnCmsPasswordMask='1';
   document.head.appendChild(s);
