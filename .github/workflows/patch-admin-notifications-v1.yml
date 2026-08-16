@@ -1,0 +1,41 @@
+name: Patch Admin Notifications V1
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/patch-admin-notifications-v1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch Pusat Notifikasi Admin
+        run: python3 tools/patch_admin_notifications_v1.py
+
+      - name: Verify patch
+        run: |
+          grep -q "adminNotificationCenterVersion:'1'" backend/Code.gs
+          grep -q "action === 'adminNotificationCenter'" backend/Code.gs
+          grep -q "function adminNotificationCenter_" backend/Code.gs
+          grep -q "PUSAT NOTIFIKASI ADMIN" js/admin-notifications-v1.js
+          grep -q "admin-notifications-v1.js?v=1" index.html
+
+      - name: Commit hasil patch
+        run: |
+          git config user.name "OpenAI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f .github/workflows/patch-admin-notifications-v1.yml
+          git rm -f tools/patch_admin_notifications_v1.py
+          git add backend/Code.gs js/admin-notifications-v1.js index.html
+          git commit -m "Tambahkan Pusat Notifikasi Admin V1"
+          git push origin HEAD:main
