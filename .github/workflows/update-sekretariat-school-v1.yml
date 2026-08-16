@@ -1,0 +1,40 @@
+name: Update sekretariat school label
+
+on:
+  push:
+    paths:
+      - '.github/workflows/update-sekretariat-school-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update sekretariat text
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = '''      <h3>SEKRETARIAT</h3>\n      <p class="siteContactLocation">\n        <span>Jln. Mastrip No. 100, Kabupaten Tulungagung, Jawa Timur 66235</span>\n      </p>'''
+          new = '''      <h3>SEKRETARIAT</h3>\n      <p class="siteContactLocation">\n        <span><strong>SMK Sore Tulungagung</strong><br>Jln. Mastrip No. 100, Kabupaten Tulungagung, Jawa Timur 66235</span>\n      </p>'''
+          if old not in s:
+              raise SystemExit('Blok sekretariat tidak ditemukan')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "Perbarui identitas sekretariat SMK Sore Tulungagung"
+            git push
+          fi
