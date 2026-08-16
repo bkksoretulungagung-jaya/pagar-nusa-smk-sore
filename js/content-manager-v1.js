@@ -192,8 +192,29 @@ function setBusy(btn,busy,text){if(!btn)return;if(busy){btn.dataset.old=btn.text
 function token(){return sessionStorage.getItem(TOKEN_KEY)||''}
 function today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta'}).format(new Date())}
 
+function askContentPassword(){
+  return new Promise(resolve=>{
+    document.getElementById('pnCmsPasswordDialog')?.remove();
+    const wrap=document.createElement('div');
+    wrap.id='pnCmsPasswordDialog';
+    wrap.style.cssText='position:fixed;inset:0;z-index:1000000;background:rgba(2,6,23,.7);display:flex;align-items:center;justify-content:center;padding:18px';
+    const card=document.createElement('div');
+    card.style.cssText='width:min(430px,100%);background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.32);padding:22px;color:#1e293b';
+    card.innerHTML='<div style="font-size:18px;font-weight:900;color:#14532d;margin-bottom:7px">Hubungkan Pengelola Konten</div><div style="font-size:12px;line-height:1.6;color:#64748b;margin-bottom:14px">Masukkan password pengelola konten.</div><label for="pnCmsPasswordInput" style="display:block;font-size:11px;font-weight:900;margin-bottom:6px">Password</label><input id="pnCmsPasswordInput" type="password" autocomplete="current-password" spellcheck="false" style="width:100%;box-sizing:border-box;border:1px solid #94a3b8;border-radius:10px;padding:12px 13px;font:inherit;font-size:15px;outline:none"><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px"><button id="pnCmsPasswordCancel" type="button" style="border:0;border-radius:9px;padding:10px 16px;background:#e2e8f0;color:#334155;font-weight:900;cursor:pointer">BATAL</button><button id="pnCmsPasswordSubmit" type="button" style="border:0;border-radius:9px;padding:10px 16px;background:#0f766e;color:#fff;font-weight:900;cursor:pointer">HUBUNGKAN</button></div>';
+    wrap.appendChild(card);document.body.appendChild(wrap);
+    const input=card.querySelector('#pnCmsPasswordInput');
+    let done=false;
+    const finish=v=>{if(done)return;done=true;wrap.remove();resolve(v)};
+    card.querySelector('#pnCmsPasswordCancel').onclick=()=>finish(null);
+    card.querySelector('#pnCmsPasswordSubmit').onclick=()=>finish(input.value);
+    input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();finish(input.value)}else if(e.key==='Escape'){e.preventDefault();finish(null)}});
+    wrap.addEventListener('click',e=>{if(e.target===wrap)finish(null)});
+    setTimeout(()=>input.focus(),30);
+  });
+}
+
 async function connectContent(){
-  const password=window.prompt('Masukkan password admin untuk mengaktifkan pengelola konten:','');if(password===null)return false;
+  const password=await askContentPassword();if(password===null)return false;
   const requested='cms_'+cryptoRandom(56);const btn=$('pnCmsConnect');setBusy(btn,true,'MENGHUBUNGKAN...');setStatus('Menghubungkan pengelola konten ke database pusat...');
   try{const r=await postReliable('contentAdminLogin',{username:'admin',password,token:requested});if(!r.token)throw new Error('Token admin tidak diterima.');sessionStorage.setItem(TOKEN_KEY,r.token);setStatus('✓ Akses konten aktif. Perubahan akan langsung disimpan ke Google Sheet/Drive.','ok');await loadAdmin();return true}catch(err){setStatus(err.message||'Gagal menghubungkan akses konten.','err');return false}finally{setBusy(btn,false)}
 }
