@@ -22,6 +22,24 @@ document.addEventListener('DOMContentLoaded',()=>{
   const adminPass=document.getElementById('adminPass');
   if(adminPass)adminPass.value='';
 
+  // Jangan tampilkan username admin secara otomatis saat modal login dibuka.
+  window.openAdminLogin=function(){
+    const modal=document.getElementById('loginModal');
+    modal?.classList.remove('hidden');
+    modal?.setAttribute('aria-hidden','false');
+    const u=document.getElementById('adminUser');
+    const p=document.getElementById('adminPass');
+    const e=document.getElementById('loginError');
+    if(e)e.textContent='';
+    if(u){
+      u.value='';
+      u.removeAttribute('value');
+      u.setAttribute('autocomplete','off');
+    }
+    if(p)p.value='';
+    setTimeout(()=>u?.focus(),60);
+  };
+
   if(navigator.storage?.persist){
     navigator.storage.persist().then(granted=>{
       document.documentElement.dataset.pnPersistentStorage=granted?'true':'false';
