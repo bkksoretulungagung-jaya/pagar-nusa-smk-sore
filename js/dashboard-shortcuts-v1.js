@@ -12,6 +12,13 @@ const ITEMS=[
   {id:'studentCbtShortcut',icon:'📝',label:'CBT ONLINE',action:'cbt'}
 ];
 
+function updatePublicLabels(){
+  const ticker=document.querySelector('.welcomeTickerTrack');
+  if(ticker)ticker.textContent='Selamat Datang di Wabset Resmi Pagar Nusa Rayon SMK SORE Tulungagung';
+  const aboutTitle=document.querySelector('.dashboardHeroHead h2');
+  if(aboutTitle)aboutTitle.textContent='Tentang Pagar Nusa';
+}
+
 function installStyles(){
   if(document.getElementById('pnDashboardShortcutStyle'))return;
   const style=document.createElement('style');
@@ -108,6 +115,7 @@ function openCbtFromShortcut(btn){
 }
 
 function install(){
+  updatePublicLabels();
   installStyles();
   if(document.getElementById('pnDashboardShortcuts'))return;
   const home=document.getElementById('publicHome');
@@ -120,10 +128,10 @@ function install(){
   const wrap=document.createElement('nav');
   wrap.id='pnDashboardShortcuts';
   wrap.className='pnDashShortcutWrap';
-  wrap.setAttribute('aria-label','Menu pintasan dashboard');
+  wrap.setAttribute('aria-label','Menu Pintasan');
   wrap.innerHTML=`
     <div class="pnDashShortcutHead">
-      <div class="pnDashShortcutTitle"><span>⚡</span><span>MENU PINTASAN DASHBOARD</span></div>
+      <div class="pnDashShortcutTitle"><span>MENU Pintasan</span></div>
       <div class="pnDashShortcutHint">Klik menu untuk langsung menuju ringkasan data</div>
     </div>
     <div class="pnDashShortcutBar">
