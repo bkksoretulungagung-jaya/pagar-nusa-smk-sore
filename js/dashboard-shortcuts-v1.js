@@ -108,7 +108,7 @@ function openRegistrationFromShortcut(btn){
 
 function openBiodataFromShortcut(btn){
   pulse(btn);
-  window.location.href='biodata.html?v=5';
+  window.location.href='biodata.html?v=7';
 }
 
 function openCbtFromShortcut(btn){
