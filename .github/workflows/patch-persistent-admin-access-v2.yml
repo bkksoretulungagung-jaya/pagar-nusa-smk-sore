@@ -1,0 +1,45 @@
+name: Patch Persistent Admin Access V2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/patch-persistent-admin-access-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Run patch
+        run: python3 tools/patch_persistent_admin_access.py
+
+      - name: Verify patch
+        run: |
+          grep -q "PN_ADMIN_SESSION_PROPERTY_PREFIX" backend/Code.gs
+          grep -q "persistent:true" backend/Code.gs
+          grep -q "adminSessionLogout" backend/Code.gs
+          grep -q "localStorage.setItem('pnAdminAuth','1')" js/ui-v9-core.js
+          grep -q "persistentGet" js/reviews-admin-session-v10.js
+          grep -q "Akses konten aktif terus" js/content-manager-v1.js
+          grep -q "savedValue" js/aspel-monitor-v1.js
+          grep -q "ui-v9.js?v=55" index.html
+
+      - name: Commit patch
+        run: |
+          git config user.name "OpenAI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f .github/workflows/patch-persistent-admin-access.yml || true
+          git rm -f .github/workflows/patch-persistent-admin-access-v2.yml || true
+          git rm -f tools/patch_persistent_admin_access.py || true
+          git add backend/Code.gs js/ui-v9-core.js js/ui-v9.js js/reviews-admin-session-v10.js js/content-manager-v1.js js/aspel-monitor-v1.js js/admin-compact-v1.js index.html
+          git commit -m "Aktifkan akses admin permanen sampai logout"
+          git push origin HEAD:main
