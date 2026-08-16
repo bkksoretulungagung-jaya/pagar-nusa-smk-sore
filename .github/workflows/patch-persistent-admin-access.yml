@@ -1,0 +1,390 @@
+name: Patch Persistent Admin Access
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/patch-persistent-admin-access.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch persistent admin access
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          def read(path):
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path, text):
+              Path(path).write_text(text, encoding='utf-8')
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f'PATTERN TIDAK DITEMUKAN: {label}')
+              return text.replace(old, new, 1)
+
+          # ==========================================================
+          # BACKEND: sesi admin persisten sampai logout/password berubah
+          # ==========================================================
+          path = 'backend/Code.gs'
+          s = read(path)
+
+          s = replace_once(
+              s,
+              "const PN_ADMIN_SESSION_SECONDS = 1800;",
+              "const PN_ADMIN_SESSION_CACHE_SECONDS = 21600;\nconst PN_ADMIN_SESSION_PROPERTY_PREFIX = 'PN_ADMIN_SESSION_V1_';",
+              'konstanta sesi admin'
+          )
+
+          health_old = "      adminPassword:true,\n      adminPasswordVersion:'4',"
+          health_new = "      adminPassword:true,\n      adminPasswordVersion:'4',\n      adminPersistentSession:true,\n      adminPersistentSessionVersion:'1',"
+          s = replace_once(s, health_old, health_new, 'health persistent session')
+
+          logout_route = """
+    if (action === 'adminSessionLogout') {
+      result = adminSessionLogout_(data);
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-reviews');
+    }
+
+"""
+          route_anchor = "    if (action === 'adminPasswordRecover') {"
+          s = replace_once(s, route_anchor, logout_route + route_anchor, 'route adminSessionLogout')
+
+          auth_pattern = re.compile(
+              r"function reviewAdminLogin_\(data\) \{.*?\n\}\n\nfunction requireReviewAdmin_\(token\) \{.*?\n\}\n\n",
+              re.S
+          )
+          auth_replacement = r"""function adminSessionPropertyKey_(token) {
+  return PN_ADMIN_SESSION_PROPERTY_PREFIX + sha256Hex_('pn-admin-session|' + String(token || ''));
+}
+
+function adminSessionCacheKey_(token) {
+  return 'pn-review-admin:' + String(token || '');
+}
+
+function adminStoreSession_(token, username) {
+  const authValue = JSON.stringify({
+    username:String(username || ''),
+    version:adminAuthVersion_(),
+    issuedAt:Date.now()
+  });
+  PropertiesService.getScriptProperties().setProperty(adminSessionPropertyKey_(token), authValue);
+  try {
+    CacheService.getScriptCache().put(adminSessionCacheKey_(token), authValue, PN_ADMIN_SESSION_CACHE_SECONDS);
+  } catch (_) {}
+  return authValue;
+}
+
+function adminDeleteSession_(token) {
+  token = String(token || '').trim();
+  if (!token) return;
+  try { CacheService.getScriptCache().remove(adminSessionCacheKey_(token)); } catch (_) {}
+  try { PropertiesService.getScriptProperties().deleteProperty(adminSessionPropertyKey_(token)); } catch (_) {}
+}
+
+function adminClearAllSessions_() {
+  const props = PropertiesService.getScriptProperties();
+  const all = props.getProperties();
+  Object.keys(all).forEach(function(key){
+    if (key.indexOf(PN_ADMIN_SESSION_PROPERTY_PREFIX) === 0) props.deleteProperty(key);
+  });
+}
+
+function reviewAdminLogin_(data) {
+  const username = String(data.username || '').trim();
+  const password = String(data.password || '');
+  const before = adminLoginState_();
+  let valid = false;
+
+  if (username === PN_REVIEW_ADMIN_USER) {
+    valid = adminVerifyPassword_(password);
+  }
+
+  if (!valid) {
+    if (Number(before.lockedUntil || 0) > Date.now()) {
+      throw new Error('Terlalu banyak percobaan login. Tunggu beberapa menit lalu coba lagi.');
+    }
+    const state = adminRecordLoginFailure_();
+    if ([1,5,8,12].includes(Number(state.count || 0))) {
+      adminAudit_('ADMIN_LOGIN','GAGAL','Percobaan gagal: ' + state.count);
+    }
+    if (Number(state.lockedUntil || 0) > Date.now()) {
+      throw new Error('Terlalu banyak percobaan login. Akses admin dikunci sementara.');
+    }
+    throw new Error('Login admin verifikasi tidak valid.');
+  }
+
+  adminClearLoginFailures_();
+  const requestedToken = String(data.token || '').trim();
+  const token = /^[A-Fa-f0-9]{64}$/.test(requestedToken) ? requestedToken : adminGenerateSecret_();
+  adminStoreSession_(token, username);
+  adminAudit_('ADMIN_LOGIN','OK','Akses admin perangkat diaktifkan sampai logout atau password diubah.');
+  return {ok:true,token:token,persistent:true,expiresIn:0,version:'9'};
+}
+
+function requireReviewAdmin_(token) {
+  token = String(token || '').trim();
+  if (!/^[A-Fa-f0-9]{64}$/.test(token)) {
+    throw new Error('Sesi verifikasi admin tidak valid. Silakan login ulang.');
+  }
+
+  const cacheKey = adminSessionCacheKey_(token);
+  const propertyKey = adminSessionPropertyKey_(token);
+  let raw = '';
+  try { raw = CacheService.getScriptCache().get(cacheKey) || ''; } catch (_) {}
+  if (!raw) raw = PropertiesService.getScriptProperties().getProperty(propertyKey) || '';
+  if (!raw) throw new Error('Sesi admin perangkat tidak ditemukan. Hubungkan akses sekali lagi.');
+
+  const currentVersion = adminAuthVersion_();
+  let obj = null;
+  try { obj = JSON.parse(raw); } catch (_) {}
+  const username = String(obj && obj.username || '');
+  const tokenVersion = String(obj && obj.version || '');
+  const issuedAt = Number(obj && obj.issuedAt || 0);
+
+  if (username !== PN_REVIEW_ADMIN_USER || !issuedAt) {
+    adminDeleteSession_(token);
+    throw new Error('Sesi verifikasi admin tidak valid. Silakan login ulang.');
+  }
+  if (tokenVersion !== currentVersion) {
+    adminDeleteSession_(token);
+    throw new Error('Sesi admin sudah dinonaktifkan karena keamanan/password berubah. Silakan login ulang.');
+  }
+
+  try { CacheService.getScriptCache().put(cacheKey, raw, PN_ADMIN_SESSION_CACHE_SECONDS); } catch (_) {}
+  return username;
+}
+
+function adminSessionLogout_(data) {
+  const token = String(data && data.token || '').trim();
+  if (token) adminDeleteSession_(token);
+  adminAudit_('ADMIN_LOGOUT','OK','Akses admin perangkat dicabut oleh pengguna.');
+  return {ok:true,loggedOut:true,message:'Akses admin perangkat sudah diputus.'};
+}
+
+"""
+          s, n = auth_pattern.subn(auth_replacement, s, count=1)
+          if n != 1:
+              raise SystemExit('PATTERN TIDAK DITEMUKAN: blok reviewAdminLogin_/requireReviewAdmin_')
+
+          s = replace_once(
+              s,
+              "  props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, adminGenerateSecret_());\n  props.deleteProperty(PN_ADMIN_LOGIN_STATE_PROPERTY);",
+              "  props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, adminGenerateSecret_());\n  adminClearAllSessions_();\n  props.deleteProperty(PN_ADMIN_LOGIN_STATE_PROPERTY);",
+              'clear sessions saat initialize security'
+          )
+
+          s = replace_once(
+              s,
+              "  props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, adminGenerateSecret_());\n  adminClearLoginFailures_();\n  CacheService.getScriptCache().remove('pn-review-admin:' + token);",
+              "  props.setProperty(PN_ADMIN_AUTH_VERSION_PROPERTY, adminGenerateSecret_());\n  adminClearAllSessions_();\n  adminClearLoginFailures_();",
+              'clear sessions saat password berubah'
+          )
+
+          write(path, s)
+
+          # ==========================================================
+          # UI CORE: status admin bertahan di localStorage sampai logout
+          # ==========================================================
+          path = 'js/ui-v9-core.js'
+          s = read(path)
+          s = replace_once(
+              s,
+              "    sessionStorage.setItem('pnAdminAuth','1');closeAdminLogin();enterAdmin(true)",
+              "    localStorage.setItem('pnAdminAuth','1');sessionStorage.setItem('pnAdminAuth','1');closeAdminLogin();enterAdmin(true)",
+              'ui core login persistent'
+          )
+          s = replace_once(
+              s,
+              "function logoutAdmin(){sessionStorage.removeItem('pnAdminAuth');showPublicDashboard()}",
+              "function logoutAdmin(){const token=localStorage.getItem('pnReviewAdminToken')||sessionStorage.getItem('pnReviewAdminToken')||'';try{if(token&&typeof window.pnRevokeAdminSession==='function')window.pnRevokeAdminSession(token)}catch(_){};['pnAdminAuth','pnReviewAdminToken'].forEach(k=>{try{localStorage.removeItem(k)}catch(_){};try{sessionStorage.removeItem(k)}catch(_){}});showPublicDashboard()}",
+              'ui core logout persistent'
+          )
+          s = replace_once(
+              s,
+              "  if(sessionStorage.getItem('pnAdminAuth')==='1')enterAdmin(false);",
+              "  const savedAdmin=(localStorage.getItem('pnAdminAuth')==='1'||sessionStorage.getItem('pnAdminAuth')==='1');if(savedAdmin){localStorage.setItem('pnAdminAuth','1');sessionStorage.setItem('pnAdminAuth','1');enterAdmin(false)}",
+              'ui core restore persistent'
+          )
+          write(path, s)
+
+          # ==========================================================
+          # REVIEW ADMIN: token disimpan permanen, restore otomatis
+          # ==========================================================
+          path = 'js/reviews-admin-session-v10.js'
+          s = read(path)
+          s = replace_once(
+              s,
+              "const TOKEN_KEY='pnReviewAdminToken';\nlet rows=[];",
+              "const TOKEN_KEY='pnReviewAdminToken';\nconst AUTH_KEY='pnAdminAuth';\nfunction persistentGet(key){try{return localStorage.getItem(key)||sessionStorage.getItem(key)||''}catch(_){try{return sessionStorage.getItem(key)||''}catch(__){return''}}}\nfunction persistentSet(key,value){try{localStorage.setItem(key,String(value))}catch(_){};try{sessionStorage.setItem(key,String(value))}catch(_){}}\nfunction persistentRemove(key){try{localStorage.removeItem(key)}catch(_){};try{sessionStorage.removeItem(key)}catch(_){}}\n(function restorePersistentAdmin(){const a=persistentGet(AUTH_KEY),t=persistentGet(TOKEN_KEY);if(a==='1')persistentSet(AUTH_KEY,'1');if(t)persistentSet(TOKEN_KEY,t)})();\nlet rows=[];",
+              'reviews persistent helpers'
+          )
+          s = s.replace("sessionStorage.getItem(TOKEN_KEY)||''", "persistentGet(TOKEN_KEY)")
+          s = s.replace("sessionStorage.setItem(TOKEN_KEY,token);", "persistentSet(TOKEN_KEY,token);")
+          s = s.replace("sessionStorage.removeItem(TOKEN_KEY);", "persistentRemove(TOKEN_KEY);")
+          s = s.replace("sessionStorage.setItem('pnAdminAuth','1');", "persistentSet(AUTH_KEY,'1');")
+          s = s.replace("sessionStorage.getItem('pnAdminAuth')==='1'", "persistentGet(AUTH_KEY)==='1'")
+          s = s.replace("sessionStorage.getItem(TOKEN_KEY)", "persistentGet(TOKEN_KEY)")
+
+          load_catch_old = """  }catch(err){
+    online=false;
+    setState('error','Sesi moderasi tidak valid atau server belum memakai backend v6. '+err.message);
+    updateConnectButton();
+    return false;
+  }
+}"""
+          load_catch_new = """  }catch(err){
+    online=false;
+    const msg=String(err&&err.message||'');
+    if(/sesi admin sudah dinonaktifkan|sesi verifikasi admin tidak valid|sesi admin perangkat tidak ditemukan/i.test(msg)){
+      persistentRemove(TOKEN_KEY);persistentRemove(AUTH_KEY);
+      try{if(typeof window.showPublicDashboard==='function')window.showPublicDashboard()}catch(_){}
+    }
+    setState('error','Koneksi database belum aktif. '+msg);
+    updateConnectButton();
+    return false;
+  }
+}"""
+          s = replace_once(s, load_catch_old, load_catch_new, 'reviews loadRows catch')
+
+          connect_old = """  const token=randomToken();
+  persistentSet(TOKEN_KEY,token);
+  setState('loading','Mengesahkan sesi moderasi ke database pusat...');
+  try{
+    await postHidden('reviewAdminLogin',{username,password,token},25000);"""
+          connect_new = """  const token=randomToken();
+  persistentSet(TOKEN_KEY,token);
+  setState('loading','Mengesahkan akses admin perangkat ke database pusat...');
+  try{
+    await postHidden('reviewAdminLogin',{username,password,token},25000);"""
+          s = replace_once(s, connect_old, connect_new, 'reviews connect wording')
+
+          s = replace_once(
+              s,
+              "    setState('online','✓ Database pusat terhubung • '+pending+' ulasan menunggu verifikasi.');",
+              "    persistentSet(AUTH_KEY,'1');setState('online','✓ Database pusat terhubung permanen di perangkat ini • '+pending+' ulasan menunggu verifikasi.');",
+              'reviews online status'
+          )
+
+          expose_anchor = "function installFastLogin(){"
+          expose_code = """window.pnRevokeAdminSession=async function(tokenOverride){
+  const token=String(tokenOverride||persistentGet(TOKEN_KEY)||'');
+  if(!token)return;
+  try{await postHidden('adminSessionLogout',{token},8000)}catch(_){}
+  persistentRemove(TOKEN_KEY);
+};
+
+window.addEventListener('online',()=>{if(persistentGet(AUTH_KEY)==='1'&&persistentGet(TOKEN_KEY))loadRows({quiet:true})});
+
+"""
+          s = replace_once(s, expose_anchor, expose_code + expose_anchor, 'reviews expose logout/reconnect')
+          write(path, s)
+
+          # ==========================================================
+          # CONTENT MANAGER: akses permanen dan reconnect otomatis
+          # ==========================================================
+          path = 'js/content-manager-v1.js'
+          s = read(path)
+          s = replace_once(
+              s,
+              "function token(){return sessionStorage.getItem(TOKEN_KEY)||''}",
+              "function token(){try{return localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||''}catch(_){return sessionStorage.getItem(TOKEN_KEY)||''}}\nfunction saveToken(value){try{localStorage.setItem(TOKEN_KEY,String(value))}catch(_){};try{sessionStorage.setItem(TOKEN_KEY,String(value))}catch(_){}}\nfunction clearToken(){try{localStorage.removeItem(TOKEN_KEY)}catch(_){};try{sessionStorage.removeItem(TOKEN_KEY)}catch(_){}}",
+              'content token helpers'
+          )
+          s = replace_once(
+              s,
+              "sessionStorage.setItem(TOKEN_KEY,r.token);setStatus('✓ Akses konten aktif. Perubahan akan langsung disimpan ke Google Sheet/Drive.','ok');",
+              "saveToken(r.token);setStatus('✓ Akses konten aktif terus di perangkat ini sampai logout atau password diubah.','ok');",
+              'content persistent save token'
+          )
+          s = replace_once(
+              s,
+              "  }catch(err){if(/sesi|berakhir|login/i.test(err.message||''))sessionStorage.removeItem(TOKEN_KEY);setStatus(err.message||'Gagal memuat database konten.','err')}\n}",
+              "  }catch(err){const msg=String(err&&err.message||'');if(/sesi admin sudah dinonaktifkan|sesi verifikasi admin tidak valid|sesi admin perangkat tidak ditemukan/i.test(msg)){clearToken();try{localStorage.removeItem('pnAdminAuth');sessionStorage.removeItem('pnAdminAuth')}catch(_){}}setStatus(msg||'Gagal memuat database konten.','err')}\n}",
+              'content preserve token on transient error'
+          )
+          s = replace_once(
+              s,
+              "function boot(){loadPublic();installAdmin();setTimeout(installAdmin,500);setTimeout(installAdmin,1500)}",
+              "function boot(){loadPublic();installAdmin();setTimeout(installAdmin,500);setTimeout(installAdmin,1500);window.addEventListener('online',()=>{if(token())loadAdmin()})}",
+              'content reconnect online'
+          )
+          write(path, s)
+
+          # ==========================================================
+          # ASPEL MONITOR: baca status/token persistent
+          # ==========================================================
+          path = 'js/aspel-monitor-v1.js'
+          s = read(path)
+          s = replace_once(
+              s,
+              "const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));",
+              "const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));\nconst savedValue=key=>{try{return localStorage.getItem(key)||sessionStorage.getItem(key)||''}catch(_){return sessionStorage.getItem(key)||''}};",
+              'aspel persistent helper'
+          )
+          s = s.replace("sessionStorage.getItem(AUTH_KEY)!=='1'", "savedValue(AUTH_KEY)!=='1'")
+          s = s.replace("sessionStorage.getItem(TOKEN_KEY)||''", "savedValue(TOKEN_KEY)")
+          s = replace_once(
+              s,
+              "function boot(){\n  ensureStyles();ensurePanel();installNavWatch();installNavigationClose();securityWatch();\n  setInterval(()=>{installNavWatch();securityWatch()},900);\n}",
+              "function boot(){\n  ensureStyles();ensurePanel();installNavWatch();installNavigationClose();securityWatch();\n  setInterval(()=>{installNavWatch();securityWatch()},900);\n  window.addEventListener('online',()=>{if(monitorOpen)loadMonitor(true)});\n}",
+              'aspel reconnect online'
+          )
+          write(path, s)
+
+          # ==========================================================
+          # CACHE BUST
+          # ==========================================================
+          path = 'js/ui-v9.js'
+          s = read(path)
+          s = s.replace('js/ui-v9-core.js?v=31', 'js/ui-v9-core.js?v=32')
+          write(path, s)
+
+          path = 'js/admin-compact-v1.js'
+          s = read(path)
+          s = s.replace("js/aspel-monitor-v1.js?v=1", "js/aspel-monitor-v1.js?v=2")
+          write(path, s)
+
+          path = 'index.html'
+          s = read(path)
+          s = s.replace('js/ui-v9.js?v=54', 'js/ui-v9.js?v=55')
+          s = s.replace('js/reviews-admin-session-v10.js?v=11', 'js/reviews-admin-session-v10.js?v=12')
+          s = s.replace('js/content-manager-v1.js?v=7', 'js/content-manager-v1.js?v=8')
+          s = s.replace('js/admin-compact-v1.js?v=2', 'js/admin-compact-v1.js?v=3')
+          write(path, s)
+
+      - name: Verify patch markers
+        shell: bash
+        run: |
+          grep -q "PN_ADMIN_SESSION_PROPERTY_PREFIX" backend/Code.gs
+          grep -q "persistent:true" backend/Code.gs
+          grep -q "adminSessionLogout" backend/Code.gs
+          grep -q "localStorage.setItem('pnAdminAuth','1')" js/ui-v9-core.js
+          grep -q "persistentGet" js/reviews-admin-session-v10.js
+          grep -q "Akses konten aktif terus" js/content-manager-v1.js
+          grep -q "savedValue" js/aspel-monitor-v1.js
+          grep -q "ui-v9.js?v=55" index.html
+
+      - name: Commit persistent access patch
+        shell: bash
+        run: |
+          git config user.name "OpenAI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-persistent-admin-access.yml
+          git add backend/Code.gs js/ui-v9-core.js js/ui-v9.js js/reviews-admin-session-v10.js js/content-manager-v1.js js/aspel-monitor-v1.js js/admin-compact-v1.js index.html
+          git commit -m "Aktifkan akses admin permanen sampai logout"
+          git push origin HEAD:main
