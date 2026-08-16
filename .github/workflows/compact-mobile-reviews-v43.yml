@@ -1,0 +1,75 @@
+name: Compact mobile reviews v43
+
+on:
+  push:
+    paths:
+      - '.github/workflows/compact-mobile-reviews-v43.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compact-mobile-reviews:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make mobile reviews compact and bust CSS cache
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Force browsers to request the latest stylesheet.
+          s = re.sub(r'ui-v9\.css\?v=\d+', 'ui-v9.css?v=43', s, count=1)
+
+          marker = '/* MOBILE REVIEWS COMPACT V43 */'
+          css = r'''
+/* MOBILE REVIEWS COMPACT V43 */
+@media(max-width:680px){
+  .reviewSection{margin:10px 6px 12px!important;padding:10px!important;border-radius:11px!important}
+  .reviewHead{margin-bottom:8px!important;gap:7px!important}
+  .reviewHead h2{font-size:15px!important;line-height:1.2!important}
+  .reviewHead p{margin-top:2px!important;font-size:9px!important;line-height:1.35!important}
+  .reviewOpenBtn{width:auto!important;padding:7px 10px!important;border-radius:8px!important;font-size:10px!important}
+  .reviewSummary{display:flex!important;grid-template-columns:none!important;gap:7px!important;margin-bottom:8px!important}
+  .reviewScoreCard{width:auto!important;flex:0 0 auto!important;padding:7px 9px!important;gap:8px!important;border-radius:8px!important}
+  .reviewScore{font-size:25px!important;letter-spacing:0!important}
+  .reviewStars{font-size:11px!important;letter-spacing:1px!important}
+  .reviewCount{margin-top:1px!important;font-size:8px!important}
+  .reviewBarsCard{display:none!important}
+  .reviewList{display:flex!important;grid-template-columns:none!important;gap:8px!important;overflow-x:auto!important;overflow-y:hidden!important;padding:0 1px 3px!important;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .reviewList::-webkit-scrollbar{display:none}
+  .reviewCard{flex:0 0 78%!important;scroll-snap-align:start;min-height:0!important;height:112px!important;max-height:112px!important;padding:9px 10px!important;border-radius:9px!important;box-sizing:border-box!important}
+  .reviewCardTop{margin-bottom:5px!important;gap:5px!important}
+  .reviewCardStars{font-size:10px!important;letter-spacing:0!important;white-space:nowrap}
+  .reviewCardDate{font-size:7px!important;white-space:nowrap}
+  .reviewCardText{margin:0!important;font-size:9px!important;line-height:1.35!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important;max-height:25px!important;text-align:left!important}
+  .reviewCardFoot{margin-top:auto!important;padding-top:5px!important}
+  .reviewCardName{font-size:8.5px!important;line-height:1.2!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .reviewVerified{margin-top:1px!important;font-size:7.5px!important;line-height:1.2!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .reviewEmpty{flex:0 0 100%!important;padding:10px!important;font-size:9px!important;line-height:1.35!important}
+}
+'''
+
+          if marker not in s:
+              needle = '</style>\n</head>'
+              if needle not in s:
+                  raise SystemExit('Could not find head style closing tag')
+              s = s.replace(needle, css + '\n</style>\n</head>', 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit compact mobile review layout
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Padatkan kotak ulasan di tampilan HP'
+          git push
