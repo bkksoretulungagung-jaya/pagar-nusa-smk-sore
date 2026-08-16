@@ -113,7 +113,7 @@ backend_pattern = re.compile(
     r"function emptyUktSlot_\(number\) \{.*?\n\}\n\nfunction getStudentUktHistory_\(book, memberId\) \{.*?\n\}\n\n(?=function formatUktDate_)",
     re.S,
 )
-backend, count = backend_pattern.subn(new_ukt_backend, backend, count=1)
+backend, count = backend_pattern.subn(lambda _m: new_ukt_backend, backend, count=1)
 if count != 1:
     raise SystemExit('Blok fungsi UKT backend tidak berhasil diganti.')
 
@@ -134,7 +134,7 @@ portal = portal.replace('bila ada ujian ulang pada UKT yang sama', 'bila ada uji
 
 new_default_slots = """function defaultUktSlots(){const stages=['UKT 1','UKT 2','UKT 3','UKT 4','UKT 5','ASPEL'];return stages.map((label,i)=>({number:i+1,ukt:label,label:label,taken:false,date:'',before:'',result:'',after:'',score:'',notes:'',examiner:''}))}\n"""
 default_pattern = re.compile(r"function defaultUktSlots\(\)\{.*?\}\n", re.S)
-portal, count = default_pattern.subn(new_default_slots, portal, count=1)
+portal, count = default_pattern.subn(lambda _m: new_default_slots, portal, count=1)
 if count != 1:
     raise SystemExit('defaultUktSlots tidak ditemukan pada portal.')
 
@@ -162,7 +162,7 @@ render_pattern = re.compile(
     r"function renderUkt\(data\)\{.*?\}(?=\nfunction renderAspel|\nasync function loadBio)",
     re.S,
 )
-portal, count = render_pattern.subn(new_render.rstrip(), portal, count=1)
+portal, count = render_pattern.subn(lambda _m: new_render.rstrip(), portal, count=1)
 if count != 1:
     raise SystemExit('renderUkt tidak ditemukan pada portal.')
 
