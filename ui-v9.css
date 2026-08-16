@@ -85,3 +85,29 @@ body{background:#eef4f0}
 
 /* FORCE REMOVE NOTIFICATION BELL */
 .siteDateTime::before,.siteDateTime::after{content:none!important;display:none!important}
+
+/* COMPACT REVIEWS MOBILE V43 */
+@media(max-width:680px){
+  .reviewSection{margin:10px 8px 14px!important;padding:11px!important;border-radius:12px!important}
+  .reviewHead{gap:8px!important;margin-bottom:9px!important}
+  .reviewHead h2{font-size:15px!important;line-height:1.2!important}
+  .reviewHead p{margin-top:3px!important;font-size:9px!important;line-height:1.35!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .reviewOpenBtn{width:auto!important;padding:7px 11px!important;border-radius:8px!important;font-size:10px!important;align-self:flex-start!important}
+  .reviewSummary{grid-template-columns:1fr!important;gap:7px!important;margin-bottom:8px!important}
+  .reviewScoreCard{padding:9px 11px!important;gap:10px!important;border-radius:9px!important}
+  .reviewScore{font-size:29px!important}
+  .reviewStars{font-size:12px!important;letter-spacing:1px!important}
+  .reviewCount{margin-top:2px!important;font-size:8px!important}
+  .reviewBarsCard{display:none!important}
+  .reviewList{gap:7px!important}
+  .reviewCard{min-height:0!important;padding:10px 11px!important;border-radius:9px!important}
+  .reviewCardTop{margin-bottom:6px!important}
+  .reviewCardStars{font-size:11px!important}
+  .reviewCardDate{font-size:8px!important}
+  .reviewCardText{font-size:9px!important;line-height:1.45!important;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .reviewCardFoot{margin-top:7px!important;padding-top:6px!important}
+  .reviewCardName{font-size:9px!important}
+  .reviewVerified{margin-top:2px!important;font-size:8px!important}
+  .reviewEmpty{padding:12px!important;font-size:9px!important;line-height:1.4!important}
+  .reviewFormWrap{margin-top:9px!important;padding:11px!important;border-radius:9px!important}
+}
