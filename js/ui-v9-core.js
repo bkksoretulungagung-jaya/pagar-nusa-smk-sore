@@ -91,7 +91,10 @@ async function sha256Hex(text){
 function openAdminLogin(){
   document.getElementById('loginModal')?.classList.remove('hidden');
   const u=document.getElementById('adminUser');const p=document.getElementById('adminPass');const e=document.getElementById('loginError');
-  if(e)e.textContent='';if(u)u.value='admin';if(p)p.value='';setTimeout(()=>p?.focus(),60)
+  if(e)e.textContent='';
+  if(u){u.value='';u.removeAttribute('value');u.setAttribute('autocomplete','off')}
+  if(p)p.value='';
+  setTimeout(()=>u?.focus(),60)
 }
 function closeAdminLogin(){document.getElementById('loginModal')?.classList.add('hidden')}
 async function submitAdminLogin(ev){
