@@ -52,4 +52,12 @@ const observer=new MutationObserver(records=>{
 });
 observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['src']});
 window.pnNormalizeDriveImage=normalizeDriveImage;
+
+if(!document.querySelector('script[data-pn-cms-mask-v2]')){
+  const script=document.createElement('script');
+  script.src='js/content-password-mask-v2.js?v=1';
+  script.async=false;
+  script.dataset.pnCmsMaskV2='1';
+  document.head.appendChild(script);
+}
 })();
