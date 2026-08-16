@@ -67,7 +67,7 @@ function esc(value){
     .replace(/&/g,'&amp;')
     .replace(/</g,'&lt;')
     .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
+    .replace(/\"/g,'&quot;')
     .replace(/'/g,'&#39;');
 }
 
@@ -101,7 +101,7 @@ function ensureAspelPanel(){
   card.className='aspelSupervisionCard hidden';
   card.innerHTML=`
     <div class="aspelSupervisionHead">
-      <h2>KELOMPOK ASPEL YANG SAYA DAMPINGI</h2>
+      <h2>KELOMPOK CALON ANGGOTA YANG SAYA DAMPINGI</h2>
       <p>Daftar ini terbentuk otomatis dari kolom Koordinator Aspel, Anggota Aspel 1, dan Anggota Aspel 2 pada database.</p>
     </div>
     <div class="aspelSupervisionBody">
