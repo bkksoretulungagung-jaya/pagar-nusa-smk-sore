@@ -68,6 +68,8 @@ function doGet(e) {
       backupAutomatic:true,
       backupAutomaticVersion:'1',
       backupRetentionDays:PN_BACKUP_RETENTION_DAYS,
+      adminNotificationCenter:true,
+      adminNotificationCenterVersion:'1',
       adminPasswordConfigured:adminPasswordConfigured_(),
       adminPasswordRecoveryAvailable:adminPasswordRecoveryAvailable_()
     });
@@ -131,6 +133,18 @@ function doGet(e) {
       result = aspelMonitorAdminList_(data);
     } catch (err) {
       result = {ok:false, coordinators:[], summary:{coordinatorCount:0,memberCount:0,candidateCount:0,unassignedCount:0,ignoredNonCandidateCount:0}, message:String(err && err.message || err)};
+    }
+    result.rid = String(data.rid || '');
+    if (data.callback) return jsonp_(result, data.callback);
+    return json_(result);
+  }
+
+  if (action === 'adminNotificationCenter') {
+    let result;
+    try {
+      result = adminNotificationCenter_(data);
+    } catch (err) {
+      result = {ok:false, attentionCount:0, items:[], stats:{}, message:String(err && err.message || err)};
     }
     result.rid = String(data.rid || '');
     if (data.callback) return jsonp_(result, data.callback);
@@ -1691,3 +1705,167 @@ function backupStatus() {
   };
 }
 
+
+
+/* ===== PUSAT NOTIFIKASI ADMIN V1 ===== */
+function adminNotificationCenter_(data) {
+  const admin = requireReviewAdmin_(data.token);
+  const items = [];
+  const stats = {
+    pendingReviews:0,
+    unassignedCandidates:0,
+    registrationsToday:0,
+    backupActive:false,
+    backupLastStatus:'',
+    backupLastAt:''
+  };
+
+  // Ulasan yang benar-benar menunggu tindakan admin.
+  try {
+    const reviewSheet = reviewSheet_();
+    const last = reviewSheet.getLastRow();
+    if (last >= 2) {
+      const statuses = reviewSheet.getRange(2,7,last-1,1).getDisplayValues();
+      stats.pendingReviews = statuses.reduce(function(total,row){
+        return total + (String(row[0] || '').trim().toUpperCase() === 'PENDING' ? 1 : 0);
+      }, 0);
+    }
+  } catch (err) {
+    items.push({
+      id:'reviews-read-error',
+      severity:'warning',
+      icon:'🟡',
+      title:'Status ulasan belum dapat diperiksa',
+      detail:String(err && err.message || err).slice(0,220),
+      target:'reviews'
+    });
+  }
+
+  if (stats.pendingReviews > 0) {
+    items.push({
+      id:'reviews-pending',
+      severity:'warning',
+      icon:'🟡',
+      title:stats.pendingReviews + ' ulasan menunggu pemeriksaan',
+      detail:'Buka moderasi ulasan untuk menerbitkan, menolak, atau menghapus ulasan.',
+      target:'reviews'
+    });
+  }
+
+  // Calon Anggota yang sudah punya Koordinator tetapi belum punya Anggota Koordinator.
+  try {
+    const aspel = aspelMonitorAdminList_(data);
+    stats.unassignedCandidates = Number(aspel && aspel.summary && aspel.summary.unassignedCount || 0);
+  } catch (err) {
+    items.push({
+      id:'aspel-read-error',
+      severity:'warning',
+      icon:'🟡',
+      title:'Status pendampingan Aspel belum dapat diperiksa',
+      detail:String(err && err.message || err).slice(0,220),
+      target:'aspel'
+    });
+  }
+
+  if (stats.unassignedCandidates > 0) {
+    items.push({
+      id:'aspel-unassigned',
+      severity:'warning',
+      icon:'🟠',
+      title:stats.unassignedCandidates + ' Calon Anggota belum memiliki Anggota Koordinator',
+      detail:'Data masuk kategori Belum Memiliki Anggota Koordinator pada Pemantauan Koordinator Aspel.',
+      target:'aspel'
+    });
+  }
+
+  // Pendaftaran hari ini hanya informasi, tidak menambah badge perhatian.
+  try {
+    const regSheet = SpreadsheetApp.openById(PN_REG_SPREADSHEET_ID).getSheetByName(PN_SHEET_NAME);
+    if (regSheet && regSheet.getLastRow() >= 2) {
+      const values = regSheet.getRange(2,12,regSheet.getLastRow()-1,1).getValues();
+      const today = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
+      stats.registrationsToday = values.reduce(function(total,row){
+        const value = row[0];
+        if (!(value instanceof Date) || isNaN(value.getTime())) return total;
+        return total + (Utilities.formatDate(value,'Asia/Jakarta','yyyy-MM-dd') === today ? 1 : 0);
+      }, 0);
+    }
+  } catch (_) {}
+
+  // Backup: cek trigger dan hasil backup terakhir.
+  try {
+    stats.backupActive = ScriptApp.getProjectTriggers().some(function(trigger){
+      return trigger.getHandlerFunction() === 'runDailyDatabaseBackup';
+    });
+  } catch (_) {
+    stats.backupActive = false;
+  }
+
+  try {
+    const book = SpreadsheetApp.openById(PN_REG_SPREADSHEET_ID);
+    const logSheet = book.getSheetByName(PN_BACKUP_LOG_SHEET_NAME);
+    if (logSheet && logSheet.getLastRow() >= 2) {
+      const start = Math.max(2, logSheet.getLastRow() - 49);
+      const rows = logSheet.getRange(start,1,logSheet.getLastRow()-start+1,3).getValues();
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const status = String(rows[i][1] || '').trim().toUpperCase();
+        if (status !== 'OK' && status !== 'GAGAL') continue;
+        stats.backupLastStatus = status;
+        const when = rows[i][0];
+        if (when instanceof Date && !isNaN(when.getTime())) stats.backupLastAt = when.toISOString();
+        break;
+      }
+    }
+  } catch (_) {}
+
+  if (!stats.backupActive) {
+    items.unshift({
+      id:'backup-trigger-off',
+      severity:'critical',
+      icon:'🔴',
+      title:'Backup otomatis belum aktif',
+      detail:'Trigger backup harian tidak ditemukan. Jalankan installDailyBackupTrigger dari Apps Script.',
+      target:'backup'
+    });
+  } else if (stats.backupLastStatus === 'GAGAL') {
+    items.unshift({
+      id:'backup-failed',
+      severity:'critical',
+      icon:'🔴',
+      title:'Backup database terakhir gagal',
+      detail:'Periksa Log Backup Otomatis pada Database Pendaftaran Permanen.',
+      target:'backup'
+    });
+  } else if (!stats.backupLastStatus) {
+    items.unshift({
+      id:'backup-no-success',
+      severity:'warning',
+      icon:'🟠',
+      title:'Backup belum memiliki catatan berhasil',
+      detail:'Jalankan runDailyDatabaseBackup satu kali untuk memastikan salinan database dapat dibuat.',
+      target:'backup'
+    });
+  } else if (stats.backupLastAt) {
+    const ageMs = Date.now() - new Date(stats.backupLastAt).getTime();
+    if (ageMs > 36 * 60 * 60 * 1000) {
+      items.unshift({
+        id:'backup-stale',
+        severity:'warning',
+        icon:'🟠',
+        title:'Backup terakhir sudah lebih dari 36 jam',
+        detail:'Periksa trigger backup harian dan Log Backup Otomatis.',
+        target:'backup'
+      });
+    }
+  }
+
+  return {
+    ok:true,
+    admin:admin,
+    attentionCount:items.length,
+    items:items,
+    stats:stats,
+    checkedAt:new Date().toISOString(),
+    version:'1'
+  };
+}
