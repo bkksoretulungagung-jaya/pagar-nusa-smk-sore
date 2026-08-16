@@ -1,0 +1,47 @@
+name: Export site backup once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/export-site-backup-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create clean website ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -qr pagar-nusa-smk-sore-template-lengkap.zip . \
+            -x '.git/*' \
+               '.github/workflows/export-site-backup-once.yml'
+          unzip -t pagar-nusa-smk-sore-template-lengkap.zip >/dev/null
+          ls -lh pagar-nusa-smk-sore-template-lengkap.zip
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pagar-nusa-smk-sore-template-lengkap
+          path: pagar-nusa-smk-sore-template-lengkap.zip
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Remove temporary workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/export-site-backup-once.yml
+          git commit -m 'Hapus workflow ekspor sementara'
+          git push
