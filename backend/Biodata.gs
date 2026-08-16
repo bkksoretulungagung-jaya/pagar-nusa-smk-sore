@@ -3,7 +3,8 @@ const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
 const PN_BIODATA_LOG_SHEET_NAME = 'Log Perubahan Biodata';
 const PN_PORTAL_ACCOUNT_SHEET_NAME = 'Akun Portal Siswa';
 const PN_UKT_SHEET_NAME = 'Riwayat UKT';
-const PN_UKT_MAX = 6;
+const PN_UKT_STAGES = ['UKT 1','UKT 2','UKT 3','UKT 4','UKT 5','ASPEL'];
+const PN_UKT_MAX = PN_UKT_STAGES.length;
 const PN_FIREBASE_API_KEY = 'AIzaSyCMWsvVJPem3_5Y-x8Zrjz90LodbNLkxUs';
 const PN_PROGRAMS = ['DPIB','TITL','TPM','TKR','TP','TSM','TEI','TKJ'];
 
@@ -37,7 +38,7 @@ function doGet(e) {
     aspelRelations:true,
     ukt:true,
     uktMax:PN_UKT_MAX,
-    version:'8'
+    version:'9'
   });
 }
 
@@ -314,22 +315,64 @@ function getAspelSupervision_(book, memberId, possibleNames) {
 }
 
 function emptyUktSlot_(number) {
-  return {number:number, ukt:'UKT ' + number, taken:false, date:'', before:'', result:'', after:'', score:'', notes:'', examiner:''};
+  const label = PN_UKT_STAGES[number - 1] || ('UKT ' + number);
+  return {
+    number:number,
+    ukt:label,
+    label:label,
+    taken:false,
+    date:'',
+    before:'',
+    result:'',
+    after:'',
+    score:'',
+    notes:'',
+    examiner:''
+  };
 }
 
 function getStudentUktHistory_(book, memberId) {
   const slots = Array.from({length:PN_UKT_MAX}, (_,i) => emptyUktSlot_(i+1));
   const sheet = book.getSheetByName(PN_UKT_SHEET_NAME);
-  if (!sheet || sheet.getLastRow() < 2) return {max:PN_UKT_MAX, completed:0, passed:0, latestPassed:0, slots:slots};
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return {
+      max:PN_UKT_MAX,
+      stages:PN_UKT_STAGES.slice(),
+      completed:0,
+      passed:0,
+      latestPassed:0,
+      slots:slots
+    };
+  }
 
   const rows = sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues();
   const target = String(memberId || '').trim().toLowerCase();
+
   rows.forEach(r => {
     if (String(r[0] || '').trim().toLowerCase() !== target) return;
-    const match = String(r[2] || '').match(/(\d+)/);
-    const number = match ? Number(match[1]) : 0;
+
+    const stageText = String(r[2] == null ? '' : r[2]).trim().toUpperCase();
+    let number = 0;
+
+    // Tahap keenam sekarang ASPEL. Format lama UKT-6 tetap dibaca sebagai
+    // ASPEL agar data lama tidak hilang saat masa migrasi database.
+    if (
+      stageText === 'ASPEL' ||
+      stageText === 'ASISTEN PELATIH' ||
+      /^UKT[\s-]*6$/.test(stageText)
+    ) {
+      number = 6;
+    } else {
+      const match = stageText.match(/^(?:UKT[\s-]*)?([1-5])$/);
+      number = match ? Number(match[1]) : 0;
+    }
+
     if (!number || number < 1 || number > PN_UKT_MAX) return;
-    const slot = slots[number-1];
+
+    const slot = slots[number - 1];
+    slot.ukt = PN_UKT_STAGES[number - 1];
+    slot.label = slot.ukt;
     slot.taken = true;
     slot.date = formatUktDate_(r[3]);
     slot.before = String(r[4] == null ? '' : r[4]);
@@ -343,8 +386,18 @@ function getStudentUktHistory_(book, memberId) {
   const completed = slots.filter(s => s.taken).length;
   const passed = slots.filter(s => s.result === 'LULUS').length;
   let latestPassed = 0;
-  slots.forEach(s => { if (s.result === 'LULUS') latestPassed = Math.max(latestPassed, s.number); });
-  return {max:PN_UKT_MAX, completed:completed, passed:passed, latestPassed:latestPassed, slots:slots};
+  slots.forEach(s => {
+    if (s.result === 'LULUS') latestPassed = Math.max(latestPassed, s.number);
+  });
+
+  return {
+    max:PN_UKT_MAX,
+    stages:PN_UKT_STAGES.slice(),
+    completed:completed,
+    passed:passed,
+    latestPassed:latestPassed,
+    slots:slots
+  };
 }
 
 function formatUktDate_(value) {
