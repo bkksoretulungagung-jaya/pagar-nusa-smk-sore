@@ -8,7 +8,7 @@
   document.head.appendChild(link);
 })();
 
-document.write('<script src="js/ui-v9-core.js?v=30"><\/script>');
+document.write('<script src="js/ui-v9-core.js?v=31"><\/script>');
 document.write('<script src="js/registration-v2.js?v=4"><\/script>');
 document.write('<script src="js/registration-transport-v1.js?v=5"><\/script>');
 
