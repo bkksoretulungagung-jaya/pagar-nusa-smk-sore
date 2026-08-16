@@ -121,21 +121,20 @@ function renderAspel(info){
     return;
   }
 
-  const roles=Array.isArray(info.roles)?info.roles:[];
   const summary=card.querySelector('#aspelSummary');
   const list=card.querySelector('#aspelMemberList');
   summary.innerHTML=`
-    <strong>${members.length} anggota terhubung dengan tugas Aspel Anda</strong>
-    <span class="aspelRoleList">${roles.map(r=>`<span class="aspelRolePill">${esc(r)}</span>`).join('')}</span>`;
+    <strong>${members.length} calon anggota terhubung dengan tugas Aspel Anda</strong>
+    <span class="aspelRoleList"><span class="aspelRolePill">${members.length} Calon Anggota</span></span>`;
 
-  list.innerHTML=members.map(m=>{
+  list.innerHTML=members.map((m,index)=>{
     const classProgram=[m.className,m.program].filter(Boolean).join(' · ');
     const meta=[m.memberId,classProgram,m.entryYear?`Masuk ${m.entryYear}`:''].filter(Boolean).join(' · ');
     const pendamping=[m.member1,m.member2].filter(Boolean).join(' / ')||'-';
     return `<div class="aspelMemberCard">
       <div class="aspelMemberTop">
         <div><div class="aspelMemberName">${esc(m.name)}</div><div class="aspelMemberMeta">${esc(meta)}</div></div>
-        <span class="aspelMemberRole">${esc(m.role)}</span>
+        <span class="aspelMemberRole">Calon Anggota ${index+1}</span>
       </div>
       <div class="aspelTeam"><b>Koordinator:</b> ${esc(m.coordinator||'-')}<br><b>Anggota Aspel:</b> ${esc(pendamping)}</div>
     </div>`;
