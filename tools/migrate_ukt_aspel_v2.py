@@ -132,41 +132,42 @@ portal = portal.replace('versi 8', 'versi 9')
 portal = portal.replace('version 8', 'version 9')
 portal = portal.replace('bila ada ujian ulang pada UKT yang sama', 'bila ada ujian ulang pada tahap yang sama')
 
-new_default_slots = """function defaultUktSlots(){const stages=['UKT 1','UKT 2','UKT 3','UKT 4','UKT 5','ASPEL'];return stages.map((label,i)=>({number:i+1,ukt:label,label:label,taken:false,date:'',before:'',result:'',after:'',score:'',notes:'',examiner:''}))}\n"""
-default_pattern = re.compile(r"function defaultUktSlots\(\)\{.*?\}\n", re.S)
-portal, count = default_pattern.subn(lambda _m: new_default_slots, portal, count=1)
+new_slots = """function pnUktSlots(){const stages=['UKT 1','UKT 2','UKT 3','UKT 4','UKT 5','ASPEL'];return stages.map((label,i)=>({number:i+1,ukt:label,label:label,taken:false,date:'',before:'',result:'',after:'',score:'',notes:'',examiner:''}))}\n"""
+slots_pattern = re.compile(r"function pnUktSlots\(\)\{.*?\}\n", re.S)
+portal, count = slots_pattern.subn(lambda _m: new_slots, portal, count=1)
 if count != 1:
-    raise SystemExit('defaultUktSlots tidak ditemukan pada portal.')
+    raise SystemExit('pnUktSlots tidak ditemukan pada portal.')
 
 new_render = r'''function renderUkt(data){
-  const slots=Array.isArray(data?.slots)&&data.slots.length?data.slots:defaultUktSlots();
-  const total=6;
-  const passed=Number(data?.passed||slots.filter(x=>String(x.result||'').toUpperCase()==='LULUS').length);
-  const completed=Number(data?.completed||slots.filter(x=>x.taken).length);
-  $('uktSummary').innerHTML=`<span>${completed?`${completed} tahap UKT/ASPEL sudah memiliki catatan hasil`:'Belum ada hasil UKT/ASPEL yang tercatat untuk ID Anggota ini'}</span><span class="uktProgress">${passed} / ${total} TAHAP LULUS</span>`;
-  $('uktGrid').innerHTML=slots.slice(0,total).map((x,i)=>{
+  const summary=$('uktSummary'),grid=$('uktGrid');
+  if(!summary||!grid)return;
+  const fallbackSlots=pnUktSlots();
+  const slots=Array.isArray(data?.slots)&&data.slots.length?data.slots:fallbackSlots;
+  const completed=Number(data?.completed??slots.filter(x=>x.taken).length);
+  const passed=Number(data?.passed??slots.filter(x=>String(x.result||'').toUpperCase()==='LULUS').length);
+  summary.innerHTML=`<span>${completed?`${completed} tahap UKT/ASPEL sudah memiliki catatan hasil`:'Belum ada hasil UKT/ASPEL yang tercatat untuk ID Anggota ini'}</span><span class="uktProgress">${passed} / 6 TAHAP LULUS</span>`;
+  grid.innerHTML=fallbackSlots.map((fallback,i)=>{
+    const x=slots[i]||fallback;
     const n=Number(x.number||i+1);
-    const stage=String(x.ukt||x.label||(n===6?'ASPEL':`UKT ${n}`));
-    const result=String(x.result||'').toUpperCase();
+    const stage=String(x.ukt||x.label||fallback.ukt||(n===6?'ASPEL':`UKT ${n}`));
+    const result=String(x.result||'').trim().toUpperCase();
     const taken=!!x.taken||!!result||!!x.date;
-    const cls=result==='LULUS'?'pass':(result==='TIDAK LULUS'?'fail':'pending');
-    const statusLabel=result||'BELUM MENGIKUTI';
     if(!taken){
-      return `<div class="uktItem pending"><div class="uktTop"><h3 class="uktTitle">${esc(stage)}</h3><span class="uktBadge pending">BELUM MENGIKUTI</span></div><div class="uktEmpty"><div><strong>Belum ada hasil ${esc(stage)}</strong>Data akan muncul otomatis setelah admin mengisi sheet Riwayat UKT.</div></div></div>`;
+      return `<div class="uktItem pending"><div class="uktTop"><h3 class="uktTitle">${pnUktEsc(stage)}</h3><span class="uktBadge pending">BELUM MENGIKUTI</span></div><div class="uktEmpty"><div><strong>Belum ada hasil ${pnUktEsc(stage)}</strong>Data akan muncul otomatis setelah admin mengisi sheet Riwayat UKT.</div></div></div>`;
     }
-    return `<div class="uktItem"><div class="uktTop"><div><h3 class="uktTitle">${esc(stage)}</h3><div class="uktDate">${esc(fmtDateID(x.date))}</div></div><span class="uktBadge ${cls}">${esc(statusLabel)}</span></div><div class="uktDetails"><div class="uktDetail"><b>Tingkat Sebelum</b>${esc(x.before||'-')}</div><div class="uktDetail"><b>Tingkat/Sabuk Setelah</b>${esc(x.after||'-')}</div><div class="uktDetail"><b>Nilai</b>${esc(x.score||'-')}</div><div class="uktDetail"><b>Penguji</b>${esc(x.examiner||'-')}</div><div class="uktDetail full"><b>Keterangan</b>${esc(x.notes||'-')}</div></div></div>`;
+    const cls=result==='LULUS'?'pass':(result==='TIDAK LULUS'?'fail':'pending');
+    return `<div class="uktItem"><div class="uktTop"><div><h3 class="uktTitle">${pnUktEsc(stage)}</h3><div class="uktDate">${pnUktEsc(pnUktDate(x.date))}</div></div><span class="uktBadge ${cls}">${pnUktEsc(result||'TERCATAT')}</span></div><div class="uktDetails"><div class="uktDetail"><b>Tingkat Sebelum</b>${pnUktEsc(x.before||'-')}</div><div class="uktDetail"><b>Tingkat/Sabuk Setelah</b>${pnUktEsc(x.after||'-')}</div><div class="uktDetail"><b>Nilai</b>${pnUktEsc(x.score||'-')}</div><div class="uktDetail"><b>Penguji</b>${pnUktEsc(x.examiner||'-')}</div><div class="uktDetail full"><b>Keterangan</b>${pnUktEsc(x.notes||'-')}</div></div></div>`;
   }).join('');
 }
 '''
 render_pattern = re.compile(
-    r"function renderUkt\(data\)\{.*?\}(?=\nfunction renderAspel|\nasync function loadBio)",
+    r"function renderUkt\(data\)\{.*?\}(?=\nasync function loadBio)",
     re.S,
 )
 portal, count = render_pattern.subn(lambda _m: new_render.rstrip(), portal, count=1)
 if count != 1:
     raise SystemExit('renderUkt tidak ditemukan pada portal.')
 
-# Pastikan teks status login juga menggunakan nomenklatur baru.
 portal = portal.replace('Portal Biodata aktif · UKT 1–5 + ASPEL · versi 8.', 'Portal Biodata aktif · UKT 1–5 + ASPEL · versi 9.')
 
 if 'ASPEL' not in portal:
