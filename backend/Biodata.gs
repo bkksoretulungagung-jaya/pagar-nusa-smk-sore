@@ -8,7 +8,7 @@ const PN_PROGRAMS = ['DPIB','TITL','TPM','TKR','TP','TSM','TEI','TKJ'];
 const PN_BIODATA_HEADERS = [
   'ID Anggota','Nama Lengkap','L/P','Tempat Lahir','Tanggal Lahir','Kelas','Program Keahlian','Alamat','No. HP Siswa',
   'Nama Orang Tua/Wali','No. HP Wali','Tahun Pengesahan','Tahun Masuk','Tingkat/Sabuk','Status Keanggotaan','Status Siswa',
-  'Nomor Sertifikat','Catatan','Tanggal Pengesahan'
+  'Nomor Sertifikat','Catatan','Tanggal Pengesahan','Koordinator Aspel','Anggota Aspel 1','Anggota Aspel 2'
 ];
 
 // Hanya kolom berikut yang boleh diedit siswa.
@@ -260,7 +260,10 @@ function biodataObject_(values) {
     studentStatus:d[15],
     certificateNumber:d[16],
     notes:d[17],
-    approvalDate:d[18]
+    approvalDate:d[18],
+    aspelCoordinator:d[19],
+    aspelMember1:d[20],
+    aspelMember2:d[21]
   };
 }
 
