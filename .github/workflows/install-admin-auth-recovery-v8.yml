@@ -1,0 +1,33 @@
+name: Install admin auth recovery v8
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/install_admin_auth_recovery_v8.py'
+      - '.github/workflows/install-admin-auth-recovery-v8.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install recovery login
+        run: python tools/install_admin_auth_recovery_v8.py
+      - name: Syntax check
+        run: node --check js/admin-auth-recovery-v8.js
+      - name: Commit installed files
+        run: |
+          if git diff --quiet -- js/admin-auth-recovery-v8.js index.html; then
+            echo 'No changes needed'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add js/admin-auth-recovery-v8.js index.html
+          git commit -m 'Pasang pemulihan login admin v8'
+          git push
