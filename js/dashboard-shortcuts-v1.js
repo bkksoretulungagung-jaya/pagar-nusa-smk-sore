@@ -17,6 +17,8 @@ function updatePublicLabels(){
   if(ticker)ticker.textContent='SELAMAT DATANG DI WEBSITE RESMI PAGAR NUSA RAYON SMK SORE TULUNGAGUNG';
   const aboutTitle=document.querySelector('.dashboardHeroHead h2');
   if(aboutTitle)aboutTitle.textContent='TENTANG PAGAR NUSA';
+  const headerText=document.querySelector('.topText p');
+  if(headerText)headerText.textContent='Website resmi Pagar Nusa Rayon SMK SORE Tulungagung hadir sebagai pusat informasi dan dokumentasi digital yang menyajikan profil anggota, data organisasi, kegiatan, prestasi, berita terbaru, galeri, pendaftaran anggota, serta berbagai informasi penting lainnya. Melalui website ini, diharapkan seluruh anggota, alumni, siswa, dan masyarakat dapat mengenal lebih dekat perjalanan, kegiatan, serta perkembangan Pagar Nusa Rayon SMK SORE Tulungagung.';
 }
 
 function installStyles(){
