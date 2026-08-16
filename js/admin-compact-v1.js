@@ -263,3 +263,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   setInterval(()=>{watch();startObserver()},1200);
 });
 })();
+
+/* Load pemantauan Koordinator Aspel khusus area admin. */
+(()=>{
+  if(document.querySelector('script[data-pn-aspel-monitor]'))return;
+  const script=document.createElement('script');
+  script.src='js/aspel-monitor-v1.js?v=1';
+  script.async=false;
+  script.dataset.pnAspelMonitor='1';
+  document.head.appendChild(script);
+})();
