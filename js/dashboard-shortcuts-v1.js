@@ -14,9 +14,9 @@ const ITEMS=[
 
 function updatePublicLabels(){
   const ticker=document.querySelector('.welcomeTickerTrack');
-  if(ticker)ticker.textContent='Selamat Datang di Wabset Resmi Pagar Nusa Rayon SMK SORE Tulungagung';
+  if(ticker)ticker.textContent='SELAMAT DATANG DI WEBSITE RESMI PAGAR NUSA RAYON SMK SORE TULUNGAGUNG';
   const aboutTitle=document.querySelector('.dashboardHeroHead h2');
-  if(aboutTitle)aboutTitle.textContent='Tentang Pagar Nusa';
+  if(aboutTitle)aboutTitle.textContent='TENTANG PAGAR NUSA';
 }
 
 function installStyles(){
@@ -128,10 +128,10 @@ function install(){
   const wrap=document.createElement('nav');
   wrap.id='pnDashboardShortcuts';
   wrap.className='pnDashShortcutWrap';
-  wrap.setAttribute('aria-label','Menu Pintasan');
+  wrap.setAttribute('aria-label','MENU PINTASAN');
   wrap.innerHTML=`
     <div class="pnDashShortcutHead">
-      <div class="pnDashShortcutTitle"><span>MENU Pintasan</span></div>
+      <div class="pnDashShortcutTitle"><span>MENU PINTASAN</span></div>
       <div class="pnDashShortcutHint">Klik menu untuk langsung menuju ringkasan data</div>
     </div>
     <div class="pnDashShortcutBar">
