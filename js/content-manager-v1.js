@@ -33,36 +33,59 @@ function jsonp(action,payload={},timeout=18000){
   });
 }
 
-async function postReliable(action,payload={},timeout=50000){
+async function postReliable(action,payload={},timeout=30000){
   const rid=makeRid();
-  const frame=document.createElement('iframe');
-  frame.name='pnCmsFrame_'+rid.replace(/\W/g,'');
-  frame.style.display='none';
-  frame.setAttribute('aria-hidden','true');
-  const form=document.createElement('form');
-  form.method='POST';form.action=ENDPOINT;form.target=frame.name;form.style.display='none';
-  Object.entries({action,rid,...payload}).forEach(([k,v])=>{
-    const input=document.createElement('input');input.type='hidden';input.name=k;input.value=String(v??'');form.appendChild(input);
-  });
-  document.body.append(frame,form);
-  form.submit();
-  form.remove();
-  const started=Date.now();
-  let lastErr;
-  try{
-    while(Date.now()-started<timeout){
-      await sleep(700);
+  return new Promise((resolve,reject)=>{
+    const frame=document.createElement('iframe');
+    frame.name='pnCmsFrame_'+rid.replace(/\W/g,'');
+    frame.style.display='none';
+    frame.setAttribute('aria-hidden','true');
+    const form=document.createElement('form');
+    form.method='POST';form.action=ENDPOINT;form.target=frame.name;form.style.display='none';
+    Object.entries({action,rid,...payload}).forEach(([k,v])=>{
+      const input=document.createElement('input');input.type='hidden';input.name=k;input.value=String(v??'');form.appendChild(input);
+    });
+
+    let done=false;
+    let pollTimer=0;
+    let hardTimer=0;
+
+    const cleanup=()=>{
+      if(pollTimer)clearTimeout(pollTimer);
+      if(hardTimer)clearTimeout(hardTimer);
+      window.removeEventListener('message',onMessage);
+      setTimeout(()=>frame.remove(),120);
+    };
+    const succeed=data=>{if(done)return;done=true;cleanup();resolve(data)};
+    const fail=err=>{if(done)return;done=true;cleanup();reject(err instanceof Error?err:new Error(String(err||'Koneksi server konten gagal.')))};
+
+    const onMessage=e=>{
+      const d=e&&e.data;
+      if(!d||d.source!==SOURCE||String(d.rid||'')!==rid)return;
+      if(d.ok)succeed(d);
+      else fail(new Error(d.message||'Perubahan konten ditolak server.'));
+    };
+    window.addEventListener('message',onMessage);
+
+    const poll=async()=>{
+      if(done)return;
       try{
-        const r=await jsonp('contentResult',{rid},7000);
-        if(r&&r.pending)continue;
-        if(r&&r.ok)return r;
-        if(r&&!r.pending)throw new Error(r.message||'Perubahan konten ditolak server.');
-      }catch(err){lastErr=err;}
-    }
-  }finally{
-    setTimeout(()=>frame.remove(),300);
-  }
-  throw lastErr||new Error('Server konten tidak merespons tepat waktu.');
+        const r=await jsonp('contentResult',{rid},6500);
+        if(done)return;
+        if(r&&r.pending){pollTimer=setTimeout(poll,700);return}
+        if(r&&r.ok){succeed(r);return}
+        if(r&&!r.pending){fail(new Error(r.message||'Perubahan konten ditolak server.'));return}
+      }catch(_){
+        if(!done)pollTimer=setTimeout(poll,900);
+      }
+    };
+
+    hardTimer=setTimeout(()=>fail(new Error('Server konten tidak merespons tepat waktu. Silakan coba lagi.')),timeout);
+    document.body.append(frame,form);
+    form.submit();
+    form.remove();
+    pollTimer=setTimeout(poll,1200);
+  });
 }
 
 function ensureStyles(){
