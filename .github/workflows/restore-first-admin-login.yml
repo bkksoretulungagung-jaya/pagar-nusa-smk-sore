@@ -1,0 +1,66 @@
+name: Restore first admin login
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/restore-first-admin-login.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore first admin login behavior only
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Ambil mekanisme login admin pertama (14 Agustus 2026),
+          # tetapi pasang ke core saat ini agar konten/tampilan terbaru tetap dipertahankan.
+          git show fff7cb9f8c3aba8a12904f10568af6ad05c56e62:js/ui-v9.js > js/ui-v9-core.js
+
+          python - <<'PY'
+          from pathlib import Path
+
+          wrapper = Path('js/ui-v9.js')
+          s = wrapper.read_text(encoding='utf-8')
+          old = 'js/ui-v9-core.js?v=29'
+          if old not in s:
+              raise SystemExit('Loader ui-v9-core v29 tidak ditemukan')
+          s = s.replace(old, 'js/ui-v9-core.js?v=30', 1)
+          wrapper.write_text(s, encoding='utf-8')
+
+          index = Path('index.html')
+          s = index.read_text(encoding='utf-8')
+          # Hapus autentikasi server v5 supaya tidak menimpa fungsi login lokal pertama.
+          s = s.replace('<script src="js/admin-auth-v5.js?v=2"></script>\n', '')
+          # Paksa browser mengambil loader baru, bukan cache sebelumnya.
+          s = s.replace('js/ui-v9.js?v=53', 'js/ui-v9.js?v=54')
+          index.write_text(s, encoding='utf-8')
+          PY
+
+          # Workflow ini hanya sekali pakai.
+          rm -f .github/workflows/restore-first-admin-login.yml
+
+          node --check js/ui-v9-core.js
+          node --check js/ui-v9.js
+          grep -q "PN_ADMIN_PASS_HASH='3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639'" js/ui-v9-core.js
+          grep -q "async function submitAdminLogin" js/ui-v9-core.js
+          if grep -q 'admin-auth-v5.js' index.html; then
+            echo 'admin-auth-v5 masih termuat di index.html' >&2
+            exit 1
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add js/ui-v9-core.js js/ui-v9.js index.html .github/workflows/restore-first-admin-login.yml
+          git commit -m 'Pulihkan login admin ke versi pertama'
+          git push
