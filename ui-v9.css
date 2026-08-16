@@ -82,3 +82,6 @@ body{background:#eef4f0}
   .dashboardDetails{grid-template-columns:1fr;padding:0 10px 12px}.dashPanel.wide{grid-column:span 1}
   .adminTopbar{align-items:flex-start;flex-direction:column}.adminTopActions{width:100%}.adminTopActions button{flex:1}
 }
+
+/* FORCE REMOVE NOTIFICATION BELL */
+.siteDateTime::before,.siteDateTime::after{content:none!important;display:none!important}
