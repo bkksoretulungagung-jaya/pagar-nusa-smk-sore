@@ -1,0 +1,44 @@
+name: Migrasi UKT 6 ke ASPEL
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'tools/migrate_ukt_aspel_v2.py'
+      - '.github/workflows/migrate-ukt-aspel-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ubah seluruh program UKT 6 menjadi ASPEL
+        run: python tools/migrate_ukt_aspel_v2.py
+
+      - name: Validasi hasil
+        run: |
+          grep -q "PN_UKT_STAGES = \['UKT 1','UKT 2','UKT 3','UKT 4','UKT 5','ASPEL'\]" backend/Biodata.gs
+          grep -q "ASPEL" biodata.html
+          ! grep -q "UKT 1 sampai UKT 6" biodata.html
+          ! grep -q "UKT 1–6" biodata.html
+          git diff --check
+
+      - name: Commit hasil migrasi
+        run: |
+          if git diff --quiet; then
+            echo "Tidak ada perubahan yang perlu dikomit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A backend/Biodata.gs biodata.html tools/sync_ukt_portal_v1.py .github/workflows/sync-ukt-portal-v1.yml
+          git commit -m "Ganti UKT 6 dengan ASPEL"
+          git push
