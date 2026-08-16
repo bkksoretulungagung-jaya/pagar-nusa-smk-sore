@@ -54,6 +54,8 @@ function doGet(e) {
       reviewVersion:'7',
       content:true,
       contentVersion:'1',
+      aspelMonitor:true,
+      aspelMonitorVersion:'1',
       adminPassword:true,
       adminPasswordVersion:'4',
       adminPasswordConfigured:adminPasswordConfigured_(),
@@ -107,6 +109,18 @@ function doGet(e) {
       result = contentAdminList_(data);
     } catch (err) {
       result = {ok:false, content:[], gallery:[], message:String(err && err.message || err)};
+    }
+    result.rid = String(data.rid || '');
+    if (data.callback) return jsonp_(result, data.callback);
+    return json_(result);
+  }
+
+  if (action === 'aspelMonitorAdminList') {
+    let result;
+    try {
+      result = aspelMonitorAdminList_(data);
+    } catch (err) {
+      result = {ok:false, coordinators:[], summary:{coordinatorCount:0,memberCount:0,candidateCount:0,unassignedCount:0,ignoredNonCandidateCount:0}, message:String(err && err.message || err)};
     }
     result.rid = String(data.rid || '');
     if (data.callback) return jsonp_(result, data.callback);
@@ -1229,6 +1243,186 @@ function contentResult_(data) {
   if (!raw) return {ok:false,pending:true,rid:rid};
   cache.remove('pn-content-result:'+rid);
   try { return JSON.parse(raw); } catch (_) { return {ok:false,message:'Hasil proses tidak valid.',rid:rid}; }
+}
+
+/* =========================================================
+   ADMIN ASPEL MONITOR V1
+   Koordinator -> Anggota Koordinator -> Calon Anggota
+========================================================= */
+function aspelMonitorNormalize_(value) {
+  let s = String(value == null ? '' : value).trim().toUpperCase();
+  if (!s) return '';
+  try { s = s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); } catch (_) {}
+  return s.replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function aspelMonitorPersonFromRow_(row) {
+  return {
+    memberId:String(row[0] || ''),
+    name:String(row[1] || ''),
+    className:String(row[5] || ''),
+    program:String(row[6] || ''),
+    entryYear:String(row[12] || ''),
+    belt:String(row[13] || ''),
+    membershipStatus:String(row[14] || ''),
+    studentStatus:String(row[15] || '')
+  };
+}
+
+function aspelMonitorProfileOrName_(profiles, name) {
+  const key = aspelMonitorNormalize_(name);
+  const found = key && profiles[key];
+  if (found) return Object.assign({}, found);
+  return {
+    memberId:'',
+    name:String(name || '').trim(),
+    className:'',
+    program:'',
+    entryYear:'',
+    belt:'',
+    membershipStatus:'',
+    studentStatus:''
+  };
+}
+
+function aspelMonitorAdminList_(data) {
+  const admin = requireReviewAdmin_(data.token);
+  const book = SpreadsheetApp.openById(PN_BIODATA_SPREADSHEET_ID);
+  const sheet = book.getSheetByName(PN_BIODATA_SHEET_NAME);
+  if (!sheet) throw new Error('Sheet Data Biodata Siswa Anggota tidak ditemukan.');
+
+  const last = sheet.getLastRow();
+  const emptySummary = {coordinatorCount:0,memberCount:0,candidateCount:0,unassignedCount:0,ignoredNonCandidateCount:0};
+  if (last < 2) {
+    return {
+      ok:true,
+      admin:admin,
+      source:PN_BIODATA_SHEET_NAME,
+      hierarchy:'Koordinator -> Anggota Koordinator -> Calon Anggota yang Didampingi',
+      summary:emptySummary,
+      coordinators:[],
+      version:'1'
+    };
+  }
+
+  const rows = sheet.getRange(2,1,last-1,PN_BIODATA_HEADERS.length).getDisplayValues();
+  const profiles = {};
+  rows.forEach(function(row){
+    const key = aspelMonitorNormalize_(row[1]);
+    if (key && !profiles[key]) profiles[key] = aspelMonitorPersonFromRow_(row);
+  });
+
+  const groups = {};
+  const uniqueMembers = {};
+  const uniqueCandidates = {};
+  let unassignedCount = 0;
+  let ignoredNonCandidateCount = 0;
+
+  rows.forEach(function(row){
+    const candidateName = String(row[1] || '').trim();
+    const coordinatorName = String(row[19] || '').trim();
+    if (!candidateName || !coordinatorName) return;
+
+    const membershipStatus = aspelMonitorNormalize_(row[14]);
+    if (membershipStatus !== 'CALON ANGGOTA') {
+      ignoredNonCandidateCount += 1;
+      return;
+    }
+
+    const coordinatorKey = aspelMonitorNormalize_(coordinatorName);
+    if (!coordinatorKey) return;
+    if (!groups[coordinatorKey]) {
+      const coordinator = aspelMonitorProfileOrName_(profiles, coordinatorName);
+      groups[coordinatorKey] = {
+        coordinator:coordinator,
+        members:{},
+        unassignedCandidates:[],
+        candidateKeys:{}
+      };
+    }
+
+    const group = groups[coordinatorKey];
+    const candidate = aspelMonitorPersonFromRow_(row);
+    candidate.coordinator = coordinatorName;
+    candidate.member1 = String(row[20] || '').trim();
+    candidate.member2 = String(row[21] || '').trim();
+
+    const candidateKey = String(candidate.memberId || '').trim()
+      ? 'ID:' + String(candidate.memberId || '').trim().toUpperCase()
+      : 'NM:' + aspelMonitorNormalize_(candidate.name);
+    if (candidateKey) {
+      group.candidateKeys[candidateKey] = true;
+      uniqueCandidates[candidateKey] = true;
+    }
+
+    const memberNames = [];
+    [row[20],row[21]].forEach(function(value){
+      const name = String(value || '').trim();
+      const key = aspelMonitorNormalize_(name);
+      if (!name || !key) return;
+      if (!memberNames.some(function(x){ return x.key === key; })) memberNames.push({name:name,key:key});
+    });
+
+    if (!memberNames.length) {
+      if (!group.unassignedCandidates.some(function(x){
+        const xKey = String(x.memberId || '').trim() ? 'ID:' + String(x.memberId || '').trim().toUpperCase() : 'NM:' + aspelMonitorNormalize_(x.name);
+        return xKey === candidateKey;
+      })) {
+        group.unassignedCandidates.push(candidate);
+        unassignedCount += 1;
+      }
+      return;
+    }
+
+    memberNames.forEach(function(item){
+      if (!group.members[item.key]) {
+        group.members[item.key] = {
+          person:aspelMonitorProfileOrName_(profiles,item.name),
+          candidates:[],
+          candidateKeys:{}
+        };
+      }
+      uniqueMembers[item.key] = true;
+      const member = group.members[item.key];
+      if (!member.candidateKeys[candidateKey]) {
+        member.candidateKeys[candidateKey] = true;
+        member.candidates.push(Object.assign({},candidate));
+      }
+    });
+  });
+
+  const coordinators = Object.keys(groups).map(function(key){
+    const group = groups[key];
+    const members = Object.keys(group.members).map(function(memberKey){
+      const item = group.members[memberKey];
+      item.candidates.sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'id'); });
+      return Object.assign({},item.person,{candidateCount:item.candidates.length,candidates:item.candidates});
+    }).sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'id'); });
+
+    group.unassignedCandidates.sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'id'); });
+    const coordinator = Object.assign({},group.coordinator);
+    coordinator.memberCount = members.length;
+    coordinator.candidateCount = Object.keys(group.candidateKeys).length;
+    coordinator.members = members;
+    coordinator.unassignedCandidates = group.unassignedCandidates;
+    return coordinator;
+  }).sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'id'); });
+
+  return {
+    ok:true,
+    admin:admin,
+    source:PN_BIODATA_SHEET_NAME,
+    hierarchy:'Koordinator -> Anggota Koordinator -> Calon Anggota yang Didampingi',
+    summary:{
+      coordinatorCount:coordinators.length,
+      memberCount:Object.keys(uniqueMembers).length,
+      candidateCount:Object.keys(uniqueCandidates).length,
+      unassignedCount:unassignedCount,
+      ignoredNonCandidateCount:ignoredNonCandidateCount
+    },
+    coordinators:coordinators,
+    version:'1'
+  };
 }
 
 function sha256Hex_(text) {
