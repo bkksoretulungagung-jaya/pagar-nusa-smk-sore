@@ -170,8 +170,10 @@ async function loadRows({quiet=false}={}){
     online=false;
     const msg=String(err&&err.message||'');
     if(/sesi admin sudah dinonaktifkan|sesi verifikasi admin tidak valid|sesi admin perangkat tidak ditemukan/i.test(msg)){
-      persistentRemove(TOKEN_KEY);persistentRemove(AUTH_KEY);
-      try{if(typeof window.showPublicDashboard==='function')window.showPublicDashboard()}catch(_){}
+      // Sesi server boleh putus, tetapi jangan pernah mengeluarkan admin dari area database otomatis.
+      // AUTH_KEY tetap dipertahankan; admin hanya keluar melalui tombol LOGOUT.
+      persistentRemove(TOKEN_KEY);
+      persistentSet(AUTH_KEY,'1');
     }
     setState('error','Koneksi database belum aktif. '+msg);
     updateConnectButton();
