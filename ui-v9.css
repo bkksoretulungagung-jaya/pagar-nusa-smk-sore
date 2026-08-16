@@ -82,8 +82,3 @@ body{background:#eef4f0}
   .dashboardDetails{grid-template-columns:1fr;padding:0 10px 12px}.dashPanel.wide{grid-column:span 1}
   .adminTopbar{align-items:flex-start;flex-direction:column}.adminTopActions{width:100%}.adminTopActions button{flex:1}
 }
-
-/* NOTIFICATION INDICATOR V42 */
-.siteDateTime::before{content:"🔔";position:absolute;top:3px;right:calc(100% + 18px);width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:1px solid rgba(255,255,255,.34);border-radius:11px;background:rgba(255,255,255,.14);color:#fff;font-size:19px;line-height:1;box-shadow:0 4px 12px rgba(0,0,0,.12);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
-.siteDateTime::after{content:"";position:absolute;top:0;right:calc(100% + 15px);width:10px;height:10px;box-sizing:border-box;border:2px solid #14532d;border-radius:50%;background:#dc2626;box-shadow:0 2px 6px rgba(127,29,29,.35)}
-@media(max-width:680px){.siteDateTime::before{top:0;right:calc(100% + 14px);width:34px;height:34px;border-radius:10px;font-size:18px}.siteDateTime::after{top:-3px;right:calc(100% + 11px)}}
