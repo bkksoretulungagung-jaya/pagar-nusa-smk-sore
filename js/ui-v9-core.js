@@ -1,4 +1,5 @@
 const PN_ADMIN_USER='admin';
+const PN_ADMIN_PASS_HASH='3b396371ec891e73db1ecb5f70d341c4fe6cc6f52fdea96d55dc3fe786d3a639';
 const DASH_SNAPSHOT={
   total:123,aktif:23,alumni:38,prestasi:10,male:112,female:11,hadir:0,pengurus:23,keluar:0,
   status:[['Calon Anggota',50],['Anggota Aktif',23],['Nonaktif',12],['Alumni',38]],
@@ -90,36 +91,16 @@ async function sha256Hex(text){
 function openAdminLogin(){
   document.getElementById('loginModal')?.classList.remove('hidden');
   const u=document.getElementById('adminUser');const p=document.getElementById('adminPass');const e=document.getElementById('loginError');
-  if(e)e.textContent='';
-  if(u){u.value='';u.setAttribute('autocomplete','off')}
-  if(p){p.value='';p.setAttribute('autocomplete','current-password')}
-  setTimeout(()=>u?.focus(),60)
+  if(e)e.textContent='';if(u)u.value='admin';if(p)p.value='';setTimeout(()=>p?.focus(),60)
 }
 function closeAdminLogin(){document.getElementById('loginModal')?.classList.add('hidden')}
 async function submitAdminLogin(ev){
   if(ev)ev.preventDefault();
-  const u=document.getElementById('adminUser')?.value.trim()||'';
-  const p=document.getElementById('adminPass')?.value||'';
-  const err=document.getElementById('loginError');
-  const submit=document.querySelector('#loginModal .loginSubmit');
-  if(err)err.textContent='';
-  if(!u||!p){if(err)err.textContent='Username dan password admin wajib diisi.';return false}
-  if(submit){submit.disabled=true;submit.textContent='MEMERIKSA...'}
-  try{
-    if(typeof window.pnAdminServerLoginV5==='function'){
-      const r=await window.pnAdminServerLoginV5(u,p);
-      if(!r||!r.ok)throw new Error('Login admin gagal.');
-      sessionStorage.setItem('pnAdminAuth','1');
-      closeAdminLogin();
-      enterAdmin(true);
-      return false;
-    }
-    throw new Error('Autentikasi admin server belum tersedia. Muat ulang halaman lalu coba lagi.');
-  }catch(e){
-    if(err)err.textContent='Login server gagal: '+String(e?.message||e||'Tidak diketahui');
-  }finally{
-    if(submit){submit.disabled=false;submit.textContent='MASUK'}
-  }
+  const u=document.getElementById('adminUser')?.value.trim()||'',p=document.getElementById('adminPass')?.value||'',err=document.getElementById('loginError');
+  const hash=await sha256Hex(p);
+  if(u===PN_ADMIN_USER&&hash===PN_ADMIN_PASS_HASH){
+    sessionStorage.setItem('pnAdminAuth','1');closeAdminLogin();enterAdmin(true)
+  }else{if(err)err.textContent='Username atau password admin salah.'}
   return false
 }
 function setAdminControls(show){
@@ -140,12 +121,10 @@ function showPublicDashboard(){
   document.getElementById('topLoginBtn')?.classList.remove('hidden');
   toggleDatabasePanel(false);setAdminControls(false);refreshPublicDashboardV9();window.scrollTo({top:0,behavior:'smooth'})
 }
-function logoutAdmin(){sessionStorage.removeItem('pnAdminAuth');sessionStorage.removeItem('pnReviewAdminToken');sessionStorage.removeItem('pnAdminAuthModeV5');showPublicDashboard()}
+function logoutAdmin(){sessionStorage.removeItem('pnAdminAuth');showPublicDashboard()}
 document.addEventListener('DOMContentLoaded',()=>{
   renderDashboardData(DASH_SNAPSHOT,false);
   setAdminControls(false);
-  const u=document.getElementById('adminUser');if(u){u.value='';u.setAttribute('autocomplete','off')}
-  const p=document.getElementById('adminPass');if(p)p.value='';
-  if(sessionStorage.getItem('pnAdminAuth')==='1'&&sessionStorage.getItem('pnReviewAdminToken'))setTimeout(()=>window.pnAdminResumeV5?.(),80);
+  if(sessionStorage.getItem('pnAdminAuth')==='1')enterAdmin(false);
   document.getElementById('loginModal')?.addEventListener('click',e=>{if(e.target?.id==='loginModal')closeAdminLogin()});
 });
