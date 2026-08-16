@@ -2,6 +2,8 @@ const PN_BIODATA_SPREADSHEET_ID = '1t_PLScKuFhFYOSqAAkeVw4rQDzC2mE7iqFyiwYrvV7w'
 const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
 const PN_BIODATA_LOG_SHEET_NAME = 'Log Perubahan Biodata';
 const PN_PORTAL_ACCOUNT_SHEET_NAME = 'Akun Portal Siswa';
+const PN_UKT_SHEET_NAME = 'Riwayat UKT';
+const PN_UKT_MAX = 6;
 const PN_FIREBASE_API_KEY = 'AIzaSyCMWsvVJPem3_5Y-x8Zrjz90LodbNLkxUs';
 const PN_PROGRAMS = ['DPIB','TITL','TPM','TKR','TP','TSM','TEI','TKJ'];
 
@@ -33,7 +35,9 @@ function doGet(e) {
     storage:'Google Sheets',
     spreadsheet:PN_BIODATA_SPREADSHEET_ID,
     aspelRelations:true,
-    version:'7'
+    ukt:true,
+    uktMax:PN_UKT_MAX,
+    version:'8'
   });
 }
 
@@ -68,6 +72,7 @@ function getStudentBiodata_(data) {
     message:'Biodata berhasil dimuat.',
     biodata:biodata,
     aspel:getAspelSupervision_(auth.book, auth.memberId, [biodata.name, auth.username]),
+    ukt:getStudentUktHistory_(auth.book, auth.memberId),
     account:{
       username:auth.username,
       memberId:auth.memberId,
@@ -116,7 +121,8 @@ function updateStudentBiodata_(data) {
         unchanged:true,
         message:'Tidak ada perubahan biodata.',
         biodata:oldBio,
-        aspel:getAspelSupervision_(auth.book, auth.memberId, [oldBio.name, auth.username])
+        aspel:getAspelSupervision_(auth.book, auth.memberId, [oldBio.name, auth.username]),
+        ukt:getStudentUktHistory_(auth.book, auth.memberId)
       };
     }
 
@@ -145,7 +151,8 @@ function updateStudentBiodata_(data) {
       message:'Perubahan biodata berhasil disimpan.',
       changed:changes.length,
       biodata:nextBio,
-      aspel:getAspelSupervision_(auth.book, auth.memberId, [nextBio.name, auth.username])
+      aspel:getAspelSupervision_(auth.book, auth.memberId, [nextBio.name, auth.username]),
+      ukt:getStudentUktHistory_(auth.book, auth.memberId)
     };
   } finally {
     lock.releaseLock();
@@ -304,6 +311,51 @@ function getAspelSupervision_(book, memberId, possibleNames) {
     roles:Array.from(roleSet),
     members:members
   };
+}
+
+function emptyUktSlot_(number) {
+  return {number:number, ukt:'UKT ' + number, taken:false, date:'', before:'', result:'', after:'', score:'', notes:'', examiner:''};
+}
+
+function getStudentUktHistory_(book, memberId) {
+  const slots = Array.from({length:PN_UKT_MAX}, (_,i) => emptyUktSlot_(i+1));
+  const sheet = book.getSheetByName(PN_UKT_SHEET_NAME);
+  if (!sheet || sheet.getLastRow() < 2) return {max:PN_UKT_MAX, completed:0, passed:0, latestPassed:0, slots:slots};
+
+  const rows = sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues();
+  const target = String(memberId || '').trim().toLowerCase();
+  rows.forEach(r => {
+    if (String(r[0] || '').trim().toLowerCase() !== target) return;
+    const match = String(r[2] || '').match(/(\d+)/);
+    const number = match ? Number(match[1]) : 0;
+    if (!number || number < 1 || number > PN_UKT_MAX) return;
+    const slot = slots[number-1];
+    slot.taken = true;
+    slot.date = formatUktDate_(r[3]);
+    slot.before = String(r[4] == null ? '' : r[4]);
+    slot.result = String(r[5] == null ? '' : r[5]).trim().toUpperCase();
+    slot.after = String(r[6] == null ? '' : r[6]);
+    slot.score = String(r[7] == null ? '' : r[7]);
+    slot.notes = String(r[8] == null ? '' : r[8]);
+    slot.examiner = String(r[9] == null ? '' : r[9]);
+  });
+
+  const completed = slots.filter(s => s.taken).length;
+  const passed = slots.filter(s => s.result === 'LULUS').length;
+  let latestPassed = 0;
+  slots.forEach(s => { if (s.result === 'LULUS') latestPassed = Math.max(latestPassed, s.number); });
+  return {max:PN_UKT_MAX, completed:completed, passed:passed, latestPassed:latestPassed, slots:slots};
+}
+
+function formatUktDate_(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) return Utilities.formatDate(value, 'Asia/Jakarta', 'yyyy-MM-dd');
+  const s = String(value == null ? '' : value).trim();
+  if (!s) return '';
+  let m = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(s);
+  if (m) return m[3] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[1]).padStart(2,'0');
+  m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+  if (m) return m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
+  return s;
 }
 
 function biodataObject_(values) {
