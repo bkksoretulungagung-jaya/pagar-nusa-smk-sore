@@ -245,7 +245,7 @@ async function loadAdmin(){
     adminContent=Array.isArray(r.content)?r.content.filter(x=>String(x?.id||'')!=='CFG-REGISTRATION'&&String(x?.type||'').toUpperCase()!=='PENGATURAN'):[];adminGallery=Array.isArray(r.gallery)?r.gallery:[];
     if(!adminContent.length&&!adminGallery.length){await maybeSeed();r=await jsonp('contentAdminList',{token:token()},18000);adminContent=Array.isArray(r.content)?r.content.filter(x=>String(x?.id||'')!=='CFG-REGISTRATION'&&String(x?.type||'').toUpperCase()!=='PENGATURAN'):[];adminGallery=r.gallery||[]}
     setStatus(`✓ Database konten online • ${adminContent.length} kabar/informasi • ${adminGallery.length} foto`,'ok');renderContentList();renderGalleryList();
-  }catch(err){const msg=String(err&&err.message||'');if(/sesi admin sudah dinonaktifkan|sesi verifikasi admin tidak valid|sesi admin perangkat tidak ditemukan/i.test(msg)){clearToken();try{localStorage.removeItem('pnAdminAuth');sessionStorage.removeItem('pnAdminAuth')}catch(_){}}setStatus(msg||'Gagal memuat database konten.','err')}
+  }catch(err){const msg=String(err&&err.message||'');if(/sesi admin sudah dinonaktifkan|sesi verifikasi admin tidak valid|sesi admin perangkat tidak ditemukan/i.test(msg)){clearToken();try{localStorage.setItem('pnAdminAuth','1');sessionStorage.setItem('pnAdminAuth','1')}catch(_){}}setStatus(msg||'Gagal memuat database konten.','err')}
 }
 
 function resetContent(){editingContentId='';$('pnCmsType').value='BERITA';$('pnCmsContentStatus').value='PUBLIK';$('pnCmsTitle').value='';$('pnCmsSummary').value='';$('pnCmsBody').value='';$('pnCmsDate').value=today();$('pnCmsBadge').value='';$('pnCmsOrder').value=String(Math.max(1,adminContent.length+1));$('pnCmsLink').value='';$('pnCmsSaveContent').textContent='💾 SIMPAN & PUBLIKASIKAN'}

@@ -118,13 +118,19 @@ function enterAdmin(openDb=false){
   const dbReady=typeof zipEntries!=='undefined'&&!!zipEntries;
   if(openDb&&!dbReady)setTimeout(()=>toggleDatabasePanel(true),180)
 }
-function showPublicDashboard(){
+function showPublicDashboard(force=false){
+  let authActive=false;
+  try{authActive=localStorage.getItem('pnAdminAuth')==='1'||sessionStorage.getItem('pnAdminAuth')==='1'}catch(_){}
+  const adminVisible=!document.getElementById('adminApp')?.classList.contains('hidden');
+  // Jangan izinkan proses sinkronisasi/token mengeluarkan admin otomatis.
+  // Hanya logout eksplisit yang boleh menutup area admin saat sesi masih aktif.
+  if(force!==true&&authActive&&adminVisible)return false;
   document.getElementById('adminApp')?.classList.add('hidden');
   document.getElementById('publicHome')?.classList.remove('hidden');
   document.getElementById('topLoginBtn')?.classList.remove('hidden');
-  toggleDatabasePanel(false);setAdminControls(false);refreshPublicDashboardV9();window.scrollTo({top:0,behavior:'smooth'})
+  toggleDatabasePanel(false);setAdminControls(false);refreshPublicDashboardV9();window.scrollTo({top:0,behavior:'smooth'});return true
 }
-function logoutAdmin(){const token=localStorage.getItem('pnReviewAdminToken')||sessionStorage.getItem('pnReviewAdminToken')||'';try{if(token&&typeof window.pnRevokeAdminSession==='function')window.pnRevokeAdminSession(token)}catch(_){};['pnAdminAuth','pnReviewAdminToken'].forEach(k=>{try{localStorage.removeItem(k)}catch(_){};try{sessionStorage.removeItem(k)}catch(_){}});showPublicDashboard()}
+function logoutAdmin(){const token=localStorage.getItem('pnReviewAdminToken')||sessionStorage.getItem('pnReviewAdminToken')||'';try{if(token&&typeof window.pnRevokeAdminSession==='function')window.pnRevokeAdminSession(token)}catch(_){};['pnAdminAuth','pnReviewAdminToken'].forEach(k=>{try{localStorage.removeItem(k)}catch(_){};try{sessionStorage.removeItem(k)}catch(_){}});showPublicDashboard(true)}
 document.addEventListener('DOMContentLoaded',()=>{
   renderDashboardData(DASH_SNAPSHOT,false);
   setAdminControls(false);
