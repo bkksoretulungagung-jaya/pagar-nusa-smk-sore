@@ -1,0 +1,39 @@
+name: Fix Admin Auto Logout V1
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/fix-admin-autologout-v1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch admin auto logout
+        run: python3 tools/fix_admin_autologout_v1.py
+
+      - name: Verify patch
+        run: |
+          grep -q "admin hanya keluar melalui tombol LOGOUT" js/reviews-admin-session-v10.js
+          grep -q "reviews-admin-session-v10.js?v=13" index.html
+          ! grep -q "persistentRemove(TOKEN_KEY);persistentRemove(AUTH_KEY);" js/reviews-admin-session-v10.js
+
+      - name: Commit hasil patch
+        run: |
+          git config user.name "OpenAI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f .github/workflows/fix-admin-autologout-v1.yml
+          git rm -f tools/fix_admin_autologout_v1.py
+          git add js/reviews-admin-session-v10.js index.html
+          git commit -m "Cegah admin keluar otomatis ke dashboard"
+          git push origin HEAD:main
