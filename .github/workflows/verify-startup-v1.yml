@@ -1,0 +1,37 @@
+name: Verify startup V1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-startup-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: |
+          node --check js/content-manager-v1.js
+          node --check js/registration-toggle-v1.js
+          node --check js/cbt-toggle-v1.js
+          node --check js/database-cloud-v1.js
+          node --check js/reviews-public-refresh-v3.js
+          node --check js/reviews-admin-session-v10.js
+          node --check js/admin-notifications-v1.js
+      - name: Check startup loaders
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text(encoding='utf-8')
+          assert s.count('js/dashboard-shortcuts-v1.js') == 1, 'dashboard shortcut loaded more than once'
+          assert s.count('js/drive-image-fix-v2.js') == 1, 'drive image fixer loaded more than once'
+          assert 'js/content-manager-v1.js?v=11' in s
+          assert 'js/database-cloud-v1.js?v=8' in s
+          print('startup loader checks passed')
+          PY
