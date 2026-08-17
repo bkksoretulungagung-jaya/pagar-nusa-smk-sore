@@ -19,6 +19,11 @@ let pnCloudSaveTimer=0;
 let pnCloudSaveQueued=false;
 let pnCloudGeneration=0;
 
+function pnDatabasePanelOpen(){
+  const drawer=document.getElementById('dbDrawer');
+  return !!(drawer&&drawer.classList.contains('open'));
+}
+
 function pnDbToken(){
   try{return localStorage.getItem(PN_DB_TOKEN_KEY)||sessionStorage.getItem(PN_DB_TOKEN_KEY)||''}
   catch(_){try{return sessionStorage.getItem(PN_DB_TOKEN_KEY)||''}catch(__){return''}}
@@ -565,6 +570,7 @@ window.afterMutation=async function(msg){
 };
 
 function pnMaybeLoadCloud(){
+  if(!pnDatabasePanelOpen())return;
   const token=pnDbToken();
   if(!token||pnCloudBusy||pnCloudSaveBusy)return;
 
@@ -585,8 +591,11 @@ function pnMaybeLoadCloud(){
 
 setTimeout(()=>pnRenderLastSync('idle'),120);
 setTimeout(()=>pnEnsureHistoryUi(),180);
-setTimeout(pnMaybeLoadCloud,4000);
-setInterval(pnMaybeLoadCloud,15000);
+window.addEventListener('pn:database-panel-open',()=>{
+  pnCloudCheckedToken='';
+  setTimeout(pnMaybeLoadCloud,80);
+});
+setInterval(()=>{if(pnDatabasePanelOpen())pnMaybeLoadCloud()},60000);
 window.addEventListener('online',()=>{
   pnCloudCheckedToken='';
   pnMaybeLoadCloud();

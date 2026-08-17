@@ -116,7 +116,8 @@ function enterAdmin(openDb=false){
   setAdminControls(true);
   window.scrollTo({top:0,behavior:'smooth'});
   const dbReady=typeof zipEntries!=='undefined'&&!!zipEntries;
-  if(openDb&&!dbReady)setTimeout(()=>toggleDatabasePanel(true),180)
+  if(openDb&&!dbReady)setTimeout(()=>toggleDatabasePanel(true),180);
+  window.dispatchEvent(new CustomEvent('pn:admin-open',{detail:{openDb:!!openDb}}));
 }
 function showPublicDashboard(force=false){
   let authActive=false;

@@ -120,7 +120,7 @@ function boot(){
   clearInterval(pollTimer);pollTimer=setInterval(()=>{if(document.visibilityState==='visible'&&isAdmin()&&navigator.onLine!==false)load(false)},60000);
 }
 
-document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,6000));
+document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,12000));
 window.addEventListener('online',()=>setTimeout(()=>load(true),500));
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')load(false)});
 window.addEventListener('pn:reviews-changed',()=>setTimeout(()=>load(true),500));

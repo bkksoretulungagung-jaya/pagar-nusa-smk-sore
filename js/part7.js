@@ -6,7 +6,21 @@ function finalName(){const m=originalName.match(/^(.*?)(\.(?:xlsm|xlsx))$/i);ret
 async function downloadFinal(){if(!zipEntries){alert('Pilih database terlebih dahulu.');return}try{const out=buildCurrentWorkbook(),ext=/\.xlsx$/i.test(originalName),blob=new Blob([out],{type:ext?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/vnd.ms-excel.sheet.macroEnabled.12'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=finalName();document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);dirty=false;await cacheDatabase(out,originalName,fileHandle,autosaveMode);setStatus('File final berhasil dibuat: <b>'+esc(finalName())+'</b>. Database kerja tetap diingat browser.','ok')}catch(e){console.error(e);setStatus('Gagal membuat file final: <b>'+esc(e.message)+'</b>','err')}}
 
 $('drop').addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy'});$('drop').addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)loadSelectedFile(f)});window.addEventListener('beforeunload',e=>{if(dirty&&!autosaveMode){e.preventDefault();e.returnValue=''}});
-function toggleDatabasePanel(force){const drawer=document.getElementById('dbDrawer'),backdrop=document.getElementById('dbBackdrop');if(!drawer||!backdrop)return;const open=typeof force==='boolean'?force:!drawer.classList.contains('open');drawer.classList.toggle('open',open);backdrop.classList.toggle('open',open);drawer.setAttribute('aria-hidden',open?'false':'true')}
+let pnLastDatabaseRestoreStarted=false;
+function pnStartLastDatabaseRestore(){
+  if(pnLastDatabaseRestoreStarted||zipEntries)return;
+  pnLastDatabaseRestoreStarted=true;
+  let hasCloudToken=false;
+  try{hasCloudToken=!!(localStorage.getItem('pnReviewAdminToken')||sessionStorage.getItem('pnReviewAdminToken'))}catch(_){}
+  const run=()=>{
+    if(zipEntries)return;
+    Promise.resolve(restoreLastDatabase()).catch(err=>console.warn('Pemulihan database lokal ditunda:',err));
+  };
+  if(hasCloudToken){setTimeout(run,8000);return}
+  if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:700});
+  else setTimeout(run,80);
+}
+function toggleDatabasePanel(force){const drawer=document.getElementById('dbDrawer'),backdrop=document.getElementById('dbBackdrop');if(!drawer||!backdrop)return;const open=typeof force==='boolean'?force:!drawer.classList.contains('open');drawer.classList.toggle('open',open);backdrop.classList.toggle('open',open);drawer.setAttribute('aria-hidden',open?'false':'true');if(open){window.dispatchEvent(new CustomEvent('pn:database-panel-open'));pnStartLastDatabaseRestore()}}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleDatabasePanel(false)});
 
 const galleryImages=['assets/galeri-6.svg.jpeg?v=21','assets/galeri-3.svg.jpeg?v=21','assets/galeri-4.svg.jpeg?v=21','assets/galeri-1.svg.jpeg?v=21','assets/galeri-2.svg.jpeg?v=21'];
@@ -18,4 +32,4 @@ function galleryBackdropClose(e){if(e.target&&e.target.id==='galleryLightbox')cl
 document.addEventListener('keydown',e=>{if(!$('galleryLightbox')?.classList.contains('open'))return;if(e.key==='Escape')closeGallery();else if(e.key==='ArrowLeft')stepGallery(-1);else if(e.key==='ArrowRight')stepGallery(1)});
 
 renderNav();
-restoreLastDatabase();
+// Database besar tidak lagi diparse otomatis saat halaman dibuka; lihat toggleDatabasePanel().

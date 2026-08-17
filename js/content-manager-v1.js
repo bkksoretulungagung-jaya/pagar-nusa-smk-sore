@@ -309,16 +309,27 @@ function installAdmin(){
   ensureStyles();if($('pnContentAdminPanel'))return;const main=document.querySelector('#adminApp main');if(!main)return;main.insertAdjacentHTML('afterbegin',panelHtml());
   $('pnCmsConnect').onclick=connectContent;$('pnCmsReload').onclick=loadAdmin;$('pnCmsTabContent').onclick=()=>switchTab('content');$('pnCmsTabGallery').onclick=()=>switchTab('gallery');$('pnCmsSaveContent').onclick=saveContent;$('pnCmsNewContent').onclick=resetContent;$('pnCmsSaveGallery').onclick=saveGallery;$('pnCmsNewGallery').onclick=resetGallery;
   $('pnCmsImageFile').addEventListener('change',async e=>{const f=e.target.files?.[0],p=$('pnCmsImagePreview');if(!f){p.classList.add('pnCmsHidden');return}try{const d=await readAsDataURL(f);p.src=d;p.classList.remove('pnCmsHidden')}catch(_){}});
-  resetContent();resetGallery();if(token())loadAdmin();else setStatus('Login admin sudah tersedia. Klik HUBUNGKAN AKSES sekali untuk mengaktifkan update foto/kabar secara online.');
+  resetContent();resetGallery();setStatus(token()?'Akses admin tersimpan. Data online dimuat setelah area admin siap.':'Login admin sudah tersedia. Klik HUBUNGKAN AKSES sekali untuk mengaktifkan update foto/kabar secara online.');
 }
 
 function boot(){
   // Prioritaskan area admin saat sesi aktif; konten publik tetap punya fallback statis.
   installAdmin();
-  if(token())setTimeout(loadPublic,3200);else loadPublic();
+  if(token())setTimeout(loadPublic,10000);else loadPublic();
   setTimeout(installAdmin,500);
   setTimeout(installAdmin,1500);
   window.addEventListener('online',()=>{if(token())loadAdmin();else loadPublic()});
 }
+let pnCmsAdminOpenTimer=0;
+window.addEventListener('pn:admin-open',()=>{
+  clearTimeout(pnCmsAdminOpenTimer);
+  pnCmsAdminOpenTimer=setTimeout(()=>{
+    installAdmin();
+    if(!token())return;
+    const age=Date.now()-Number(window.__pnCmsAdminLoadedAt||0);
+    if(age<45000)return;
+    void loadAdmin();
+  },4200);
+});
 document.addEventListener('DOMContentLoaded',boot);
 })();

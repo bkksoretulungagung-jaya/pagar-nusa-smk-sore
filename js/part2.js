@@ -4,7 +4,45 @@ function displayCell(sheet,addr,type='text'){const v=cellText(docs[sheet],cellMa
 
 function u16(d,o){return d.getUint16(o,true)} function u32(d,o){return d.getUint32(o,true)}
 async function inflateRaw(data){if(!('DecompressionStream'in window))throw new Error('Database terkompresi. Gunakan Database_Pagar_Nusa_BROWSER.xlsm dari paket aplikasi.');const ds=new DecompressionStream('deflate-raw'),stream=new Blob([data]).stream().pipeThrough(ds);return new Uint8Array(await new Response(stream).arrayBuffer())}
-async function readZip(arrayBuffer){const bytes=new Uint8Array(arrayBuffer),dv=new DataView(arrayBuffer);let eocd=-1;for(let i=bytes.length-22;i>=Math.max(0,bytes.length-66000);i--){if(u32(dv,i)===0x06054b50){eocd=i;break}}if(eocd<0)throw new Error('File bukan XLSM/XLSX yang valid.');const total=u16(dv,eocd+10),cdOff=u32(dv,eocd+16);let p=cdOff,entries=[];for(let k=0;k<total;k++){if(u32(dv,p)!==0x02014b50)throw new Error('Central directory ZIP rusak.');const method=u16(dv,p+10),crc=u32(dv,p+16),cs=u32(dv,p+20),us=u32(dv,p+24),nl=u16(dv,p+28),el=u16(dv,p+30),cl=u16(dv,p+32),lo=u32(dv,p+42);const name=new TextDecoder().decode(bytes.slice(p+46,p+46+nl));if(u32(dv,lo)!==0x04034b50)throw new Error('Local header ZIP rusak.');const lnl=u16(dv,lo+26),lel=u16(dv,lo+28),ds=lo+30+lnl+lel;const raw=new Uint8Array(bytes.slice(ds,ds+cs));let data;if(method===0)data=raw;else if(method===8)data=await inflateRaw(raw);else throw new Error('Metode kompresi ZIP tidak didukung: '+method);if(us&&data.length!==us)console.warn('Ukuran entry berbeda',name,data.length,us);entries.push({name,data,crc});p+=46+nl+el+cl}return entries}
+async function readZip(arrayBuffer){
+  const bytes=new Uint8Array(arrayBuffer),dv=new DataView(arrayBuffer);
+  let eocd=-1;
+  for(let i=bytes.length-22;i>=Math.max(0,bytes.length-66000);i--){if(u32(dv,i)===0x06054b50){eocd=i;break}}
+  if(eocd<0)throw new Error('File bukan XLSM/XLSX yang valid.');
+  const total=u16(dv,eocd+10),cdOff=u32(dv,eocd+16);
+  let p=cdOff;
+  const metas=[];
+  for(let k=0;k<total;k++){
+    if(u32(dv,p)!==0x02014b50)throw new Error('Central directory ZIP rusak.');
+    const method=u16(dv,p+10),crc=u32(dv,p+16),cs=u32(dv,p+20),us=u32(dv,p+24),nl=u16(dv,p+28),el=u16(dv,p+30),cl=u16(dv,p+32),lo=u32(dv,p+42);
+    const name=new TextDecoder().decode(bytes.slice(p+46,p+46+nl));
+    if(u32(dv,lo)!==0x04034b50)throw new Error('Local header ZIP rusak.');
+    const lnl=u16(dv,lo+26),lel=u16(dv,lo+28),ds=lo+30+lnl+lel;
+    const raw=new Uint8Array(bytes.slice(ds,ds+cs));
+    metas.push({name,raw,method,us,crc});
+    p+=46+nl+el+cl;
+  }
+
+  const entries=new Array(metas.length);
+  let next=0;
+  async function worker(){
+    while(true){
+      const i=next++;
+      if(i>=metas.length)return;
+      const e=metas[i];
+      let data;
+      if(e.method===0)data=e.raw;
+      else if(e.method===8)data=await inflateRaw(e.raw);
+      else throw new Error('Metode kompresi ZIP tidak didukung: '+e.method);
+      if(e.us&&data.length!==e.us)console.warn('Ukuran entry berbeda',e.name,data.length,e.us);
+      entries[i]={name:e.name,data,crc:e.crc};
+      if((i&7)===0)await new Promise(resolve=>setTimeout(resolve,0));
+    }
+  }
+  const cpu=Math.max(2,Math.min(4,Number(navigator.hardwareConcurrency||4)));
+  await Promise.all(Array.from({length:Math.min(cpu,metas.length)},()=>worker()));
+  return entries;
+}
 let crcTable=null;function crc32(bytes){if(!crcTable){crcTable=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);crcTable[n]=c>>>0}}let c=0xffffffff;for(const b of bytes)c=crcTable[(c^b)&255]^(c>>>8);return(c^0xffffffff)>>>0}
 function w16(a,o,v){a[o]=v&255;a[o+1]=(v>>>8)&255}function w32(a,o,v){a[o]=v&255;a[o+1]=(v>>>8)&255;a[o+2]=(v>>>16)&255;a[o+3]=(v>>>24)&255}
 function concat(parts,total){const out=new Uint8Array(total);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out}
