@@ -25,7 +25,7 @@ const PN_EXCEL_FILE_PROPERTY = 'PN_EXCEL_MASTER_FILE_ID_V1';
 const PN_EXCEL_FOLDER_NAME = 'Pagar Nusa - Database Excel Utama';
 const PN_EXCEL_MAX_BYTES = 20 * 1024 * 1024;
 const PN_EXCEL_MAX_BASE64_CHARS = 28 * 1024 * 1024;
-const PN_EXCEL_CHUNK_BYTES = 1024 * 1024;
+const PN_EXCEL_CHUNK_BYTES = 512 * 1024;
 const PN_EXCEL_BACKUP_PREFIX = 'PN_EXCEL_BACKUP_';
 const PN_EXCEL_BACKUP_KEEP = 5;
 const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
@@ -173,6 +173,18 @@ function doGet(e) {
     return json_(result);
   }
 
+  if (action === 'databaseChunk') {
+    let result;
+    try {
+      result = excelDatabaseChunkByTicket_(data);
+    } catch (err) {
+      result = {ok:false, message:String(err && err.message || err)};
+    }
+    result.rid = String(data.rid || '');
+    if (data.callback) return jsonp_(result, data.callback);
+    return json_(result);
+  }
+
   if (action === 'register') {
     let result;
     try {
@@ -200,6 +212,7 @@ function doPost(e) {
     if (action === 'databaseManifest') {
       result = excelDatabaseManifest_(data);
       result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-database');
     }
 
@@ -218,6 +231,7 @@ function doPost(e) {
     if (action === 'databaseSave') {
       result = excelDatabaseSave_(data);
       result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-database');
     }
 
@@ -328,6 +342,7 @@ function doPost(e) {
       message:String(err && err.message || err)
     };
     if (['databaseManifest','databaseChunk','databaseGet','databaseSave'].includes(action)) {
+      if (['databaseManifest','databaseSave'].includes(action)) contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-database');
     }
     if (action === 'biodataGet' || action === 'biodataUpdate') {
@@ -1603,46 +1618,62 @@ function excelDatabaseMeta_(file) {
   };
 }
 
+function excelDatabaseTicketKey_(ticket) {
+  return 'pn-excel-download:' + String(ticket || '');
+}
+
+function excelDatabaseCreateTicket_(file) {
+  const ticket = adminGenerateSecret_();
+  CacheService.getScriptCache().put(excelDatabaseTicketKey_(ticket), file.getId(), 180);
+  return ticket;
+}
+
 function excelDatabaseManifest_(data) {
   requireReviewAdmin_(data.token);
   const file = excelDatabaseCurrentFile_();
-  if (!file) return {ok:true, exists:false, version:'3'};
+  if (!file) return {ok:true, exists:false, version:'5'};
   const meta = excelDatabaseMeta_(file);
   if (meta.size > PN_EXCEL_MAX_BYTES) throw new Error('Database Excel pusat melebihi batas 20 MB.');
   meta.ok = true;
-  meta.version = '3';
+  meta.version = '5';
   meta.chunkBytes = PN_EXCEL_CHUNK_BYTES;
   meta.chunkCount = Math.ceil(meta.size / PN_EXCEL_CHUNK_BYTES);
+  meta.ticket = excelDatabaseCreateTicket_(file);
   return meta;
+}
+
+function excelDatabaseChunkForFile_(file, index) {
+  if (!file || file.isTrashed()) return {ok:true, exists:false, version:'5'};
+  index = Math.floor(Number(index));
+  if (!Number.isFinite(index) || index < 0) throw new Error('Index potongan database tidak valid.');
+  const bytes = file.getBlob().getBytes();
+  if (bytes.length > PN_EXCEL_MAX_BYTES) throw new Error('Database Excel pusat melebihi batas 20 MB.');
+  const chunkCount = Math.ceil(bytes.length / PN_EXCEL_CHUNK_BYTES);
+  if (index >= chunkCount) throw new Error('Index potongan database di luar batas.');
+  const start = index * PN_EXCEL_CHUNK_BYTES;
+  const end = Math.min(start + PN_EXCEL_CHUNK_BYTES, bytes.length);
+  const part = bytes.slice(start, end);
+  return {
+    ok:true, exists:true, version:'5', index:index, chunkCount:chunkCount,
+    size:bytes.length, name:file.getName(),
+    updatedAt:Utilities.formatDate(file.getLastUpdated(), 'Asia/Jakarta', "yyyy-MM-dd'T'HH:mm:ss"),
+    base64:Utilities.base64Encode(part)
+  };
+}
+
+function excelDatabaseChunkByTicket_(data) {
+  const ticket = String(data.ticket || '').trim();
+  if (!/^[A-Fa-f0-9]{64}$/.test(ticket)) throw new Error('Ticket download database tidak valid.');
+  const fileId = CacheService.getScriptCache().get(excelDatabaseTicketKey_(ticket)) || '';
+  if (!fileId) throw new Error('Ticket download database sudah kedaluwarsa. Muat ulang database.');
+  const file = DriveApp.getFileById(fileId);
+  return excelDatabaseChunkForFile_(file, data.index);
 }
 
 function excelDatabaseChunk_(data) {
   requireReviewAdmin_(data.token);
   const file = excelDatabaseCurrentFile_();
-  if (!file) return {ok:true, exists:false, version:'3'};
-
-  const index = Math.floor(Number(data.index));
-  if (!Number.isFinite(index) || index < 0) throw new Error('Index potongan database tidak valid.');
-
-  const bytes = file.getBlob().getBytes();
-  if (bytes.length > PN_EXCEL_MAX_BYTES) throw new Error('Database Excel pusat melebihi batas 20 MB.');
-  const chunkCount = Math.ceil(bytes.length / PN_EXCEL_CHUNK_BYTES);
-  if (index >= chunkCount) throw new Error('Index potongan database di luar batas.');
-
-  const start = index * PN_EXCEL_CHUNK_BYTES;
-  const end = Math.min(start + PN_EXCEL_CHUNK_BYTES, bytes.length);
-  const part = bytes.slice(start, end);
-  return {
-    ok:true,
-    exists:true,
-    version:'3',
-    index:index,
-    chunkCount:chunkCount,
-    size:bytes.length,
-    name:file.getName(),
-    updatedAt:Utilities.formatDate(file.getLastUpdated(), 'Asia/Jakarta', "yyyy-MM-dd'T'HH:mm:ss"),
-    base64:Utilities.base64Encode(part)
-  };
+  return excelDatabaseChunkForFile_(file, data.index);
 }
 
 function excelDatabaseGet_(data) {

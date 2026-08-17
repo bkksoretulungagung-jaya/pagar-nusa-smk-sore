@@ -46,6 +46,22 @@ function pnBase64ToArrayBuffer(value){
   for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
   return bytes.buffer;
 }
+function pnDatabaseJsonp(action,payload={},timeoutMs=20000){
+  return new Promise((resolve,reject)=>{
+    const cb='pnDbJsonp_'+Date.now()+'_'+Math.random().toString(36).slice(2).replace(/\W/g,'');
+    const script=document.createElement('script');
+    let done=false;
+    const cleanup=()=>{clearTimeout(timer);try{delete window[cb]}catch(_){};script.remove()};
+    window[cb]=data=>{if(done)return;done=true;cleanup();if(data&&data.ok)resolve(data);else{const err=new Error(data?.message||'Database pusat menolak permintaan.');err.data=data||{};reject(err)}};
+    const q=new URLSearchParams({action,callback:cb,_ts:String(Date.now())});
+    Object.entries(payload).forEach(([k,v])=>q.set(k,String(v??'')));
+    script.src=PN_DB_ENDPOINT+'?'+q.toString();script.async=true;
+    script.onerror=()=>{if(done)return;done=true;cleanup();reject(new Error('Koneksi database pusat gagal.'))};
+    const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Database pusat terlalu lama merespons.'))},timeoutMs);
+    document.head.appendChild(script);
+  });
+}
+
 function pnDatabasePost(action,payload={},timeoutMs=90000){
   return new Promise((resolve,reject)=>{
     const rid='pndb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
@@ -69,8 +85,10 @@ function pnDatabasePost(action,payload={},timeoutMs=90000){
     });
 
     let done=false;
+    let pollTimer=0;
     const cleanup=()=>{
       clearTimeout(timer);
+      if(pollTimer)clearTimeout(pollTimer);
       window.removeEventListener('message',onMessage);
       form.remove();
       setTimeout(()=>frame.remove(),150);
@@ -92,9 +110,19 @@ function pnDatabasePost(action,payload={},timeoutMs=90000){
 
     window.addEventListener('message',onMessage);
     const timer=setTimeout(()=>finish(false,{message:'Database pusat terlalu lama merespons.'}),timeoutMs);
+    const poll=async()=>{
+      if(done)return;
+      try{
+        const r=await pnDatabaseJsonp('contentResult',{rid},7000);
+        if(done)return;
+        if(r&&r.pending){pollTimer=setTimeout(poll,700);return}
+        finish(!!(r&&r.ok),r);
+      }catch(_){if(!done)pollTimer=setTimeout(poll,900)}
+    };
     document.body.appendChild(frame);
     document.body.appendChild(form);
     form.submit();
+    if(action==='databaseManifest'||action==='databaseSave')pollTimer=setTimeout(poll,900);
   });
 }
 function pnCloudStatus(label='DATABASE CLOUD'){
@@ -119,6 +147,7 @@ async function pnDownloadCloudWorkbook(token,quiet){
   }
 
   if(!manifest.exists)return {exists:false};
+  if(!/^[A-Fa-f0-9]{64}$/.test(String(manifest.ticket||'')))throw new Error('Ticket database cloud tidak tersedia.');
   const count=Number(manifest.chunkCount||0);
   const size=Number(manifest.size||0);
   if(!Number.isInteger(count)||count<1||count>64||!Number.isFinite(size)||size<1)throw new Error('Metadata database cloud tidak valid.');
@@ -135,7 +164,7 @@ async function pnDownloadCloudWorkbook(token,quiet){
     while(true){
       const index=next++;
       if(index>=count)return;
-      const r=await pnDatabasePost('databaseChunk',{token,index},45000);
+      const r=await pnDatabaseJsonp('databaseChunk',{ticket:manifest.ticket,index},45000);
       if(!r.exists||Number(r.index)!==index||!r.base64)throw new Error('Potongan database cloud '+(index+1)+' tidak valid.');
       chunks[index]=new Uint8Array(pnBase64ToArrayBuffer(r.base64));
       done++;
