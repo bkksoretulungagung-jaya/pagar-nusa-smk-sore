@@ -1,0 +1,175 @@
+name: Performance V2
+
+on:
+  push:
+    paths:
+      - '.github/workflows/performance-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply performance V2
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if new in text:
+                  print(path, 'already patched')
+                  return
+              if old not in text:
+                  raise SystemExit(f'Expected block not found in {path}: {old[:120]!r}')
+              text = text.replace(old, new, 1)
+              p.write_text(text, encoding='utf-8')
+              print(path, 'patched')
+
+          # 1) Jangan parse workbook besar saat halaman baru dibuka. Pulihkan hanya saat panel DATABASE dibuka.
+          replace_once(
+              'js/part7.js',
+              "function toggleDatabasePanel(force){const drawer=document.getElementById('dbDrawer'),backdrop=document.getElementById('dbBackdrop');if(!drawer||!backdrop)return;const open=typeof force==='boolean'?force:!drawer.classList.contains('open');drawer.classList.toggle('open',open);backdrop.classList.toggle('open',open);drawer.setAttribute('aria-hidden',open?'false':'true')}",
+              "let pnLastDatabaseRestoreStarted=false;\nfunction pnStartLastDatabaseRestore(){\n  if(pnLastDatabaseRestoreStarted||zipEntries)return;\n  pnLastDatabaseRestoreStarted=true;\n  let hasCloudToken=false;\n  try{hasCloudToken=!!(localStorage.getItem('pnReviewAdminToken')||sessionStorage.getItem('pnReviewAdminToken'))}catch(_){}\n  const run=()=>{\n    if(zipEntries)return;\n    Promise.resolve(restoreLastDatabase()).catch(err=>console.warn('Pemulihan database lokal ditunda:',err));\n  };\n  // Jika cloud aktif, beri cloud kesempatan memuat master lebih dulu agar workbook tidak diparse dua kali.\n  if(hasCloudToken){setTimeout(run,8000);return}\n  if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:700});\n  else setTimeout(run,80);\n}\nfunction toggleDatabasePanel(force){const drawer=document.getElementById('dbDrawer'),backdrop=document.getElementById('dbBackdrop');if(!drawer||!backdrop)return;const open=typeof force==='boolean'?force:!drawer.classList.contains('open');drawer.classList.toggle('open',open);backdrop.classList.toggle('open',open);drawer.setAttribute('aria-hidden',open?'false':'true');if(open){window.dispatchEvent(new CustomEvent('pn:database-panel-open'));pnStartLastDatabaseRestore()}}"
+          )
+          replace_once('js/part7.js', "renderNav();\nrestoreLastDatabase();", "renderNav();\n// Database besar tidak lagi diparse otomatis saat halaman dibuka; lihat toggleDatabasePanel().")
+
+          # 2) ZIP workbook: dekompresi beberapa entry secara paralel dan beri kesempatan UI menggambar.
+          p = Path('js/part2.js')
+          text = p.read_text(encoding='utf-8')
+          start = text.find('async function readZip(arrayBuffer){')
+          end = text.find('\nlet crcTable=null;', start)
+          if start < 0 or end < 0:
+              raise SystemExit('readZip block tidak ditemukan')
+          if 'const metas=[];' not in text[start:end]:
+              new_readzip = r'''async function readZip(arrayBuffer){
+  const bytes=new Uint8Array(arrayBuffer),dv=new DataView(arrayBuffer);
+  let eocd=-1;
+  for(let i=bytes.length-22;i>=Math.max(0,bytes.length-66000);i--){if(u32(dv,i)===0x06054b50){eocd=i;break}}
+  if(eocd<0)throw new Error('File bukan XLSM/XLSX yang valid.');
+  const total=u16(dv,eocd+10),cdOff=u32(dv,eocd+16);
+  let p=cdOff;
+  const metas=[];
+  for(let k=0;k<total;k++){
+    if(u32(dv,p)!==0x02014b50)throw new Error('Central directory ZIP rusak.');
+    const method=u16(dv,p+10),crc=u32(dv,p+16),cs=u32(dv,p+20),us=u32(dv,p+24),nl=u16(dv,p+28),el=u16(dv,p+30),cl=u16(dv,p+32),lo=u32(dv,p+42);
+    const name=new TextDecoder().decode(bytes.slice(p+46,p+46+nl));
+    if(u32(dv,lo)!==0x04034b50)throw new Error('Local header ZIP rusak.');
+    const lnl=u16(dv,lo+26),lel=u16(dv,lo+28),ds=lo+30+lnl+lel;
+    const raw=new Uint8Array(bytes.slice(ds,ds+cs));
+    metas.push({name,raw,method,us,crc});
+    p+=46+nl+el+cl;
+  }
+
+  const entries=new Array(metas.length);
+  let next=0;
+  async function worker(){
+    while(true){
+      const i=next++;
+      if(i>=metas.length)return;
+      const e=metas[i];
+      let data;
+      if(e.method===0)data=e.raw;
+      else if(e.method===8)data=await inflateRaw(e.raw);
+      else throw new Error('Metode kompresi ZIP tidak didukung: '+e.method);
+      if(e.us&&data.length!==e.us)console.warn('Ukuran entry berbeda',e.name,data.length,e.us);
+      entries[i]={name:e.name,data,crc:e.crc};
+      if((i&7)===0)await new Promise(resolve=>setTimeout(resolve,0));
+    }
+  }
+  const cpu=Math.max(2,Math.min(4,Number(navigator.hardwareConcurrency||4)));
+  await Promise.all(Array.from({length:Math.min(cpu,metas.length)},()=>worker()));
+  return entries;
+}'''
+              text = text[:start] + new_readzip + text[end:]
+              p.write_text(text, encoding='utf-8')
+              print('js/part2.js patched')
+
+          # 3) Cloud hanya bekerja ketika panel DATABASE benar-benar dibuka.
+          replace_once(
+              'js/database-cloud-v1.js',
+              "let pnCloudGeneration=0;",
+              "let pnCloudGeneration=0;\n\nfunction pnDatabasePanelOpen(){\n  const drawer=document.getElementById('dbDrawer');\n  return !!(drawer&&drawer.classList.contains('open'));\n}"
+          )
+          replace_once(
+              'js/database-cloud-v1.js',
+              "function pnMaybeLoadCloud(){\n  const token=pnDbToken();",
+              "function pnMaybeLoadCloud(){\n  if(!pnDatabasePanelOpen())return;\n  const token=pnDbToken();"
+          )
+          replace_once(
+              'js/database-cloud-v1.js',
+              "setTimeout(pnMaybeLoadCloud,4000);\nsetInterval(pnMaybeLoadCloud,15000);\nwindow.addEventListener('online',()=>{\n  pnCloudCheckedToken='';\n  pnMaybeLoadCloud();\n});",
+              "window.addEventListener('pn:database-panel-open',()=>{\n  pnCloudCheckedToken='';\n  setTimeout(pnMaybeLoadCloud,80);\n});\nsetInterval(()=>{if(pnDatabasePanelOpen())pnMaybeLoadCloud()},60000);\nwindow.addEventListener('online',()=>{\n  pnCloudCheckedToken='';\n  pnMaybeLoadCloud();\n});"
+          )
+
+          # 4) Beri sinyal saat area admin benar-benar dibuka.
+          replace_once(
+              'js/ui-v9-core.js',
+              "  if(openDb&&!dbReady)setTimeout(()=>toggleDatabasePanel(true),180)\n}",
+              "  if(openDb&&!dbReady)setTimeout(()=>toggleDatabasePanel(true),180);\n  window.dispatchEvent(new CustomEvent('pn:admin-open',{detail:{openDb:!!openDb}}));\n}"
+          )
+
+          # 5) CMS jangan langsung menembak Apps Script pada setiap refresh sesi admin.
+          replace_once(
+              'js/content-manager-v1.js',
+              "  resetContent();resetGallery();if(token())loadAdmin();else setStatus('Login admin sudah tersedia. Klik HUBUNGKAN AKSES sekali untuk mengaktifkan update foto/kabar secara online.');",
+              "  resetContent();resetGallery();setStatus(token()?'Akses admin tersimpan. Data online dimuat setelah area admin siap.':'Login admin sudah tersedia. Klik HUBUNGKAN AKSES sekali untuk mengaktifkan update foto/kabar secara online.');"
+          )
+          replace_once(
+              'js/content-manager-v1.js',
+              "document.addEventListener('DOMContentLoaded',boot);",
+              "let pnCmsAdminOpenTimer=0;\nwindow.addEventListener('pn:admin-open',()=>{\n  clearTimeout(pnCmsAdminOpenTimer);\n  pnCmsAdminOpenTimer=setTimeout(()=>{\n    installAdmin();\n    if(!token())return;\n    const age=Date.now()-Number(window.__pnCmsAdminLoadedAt||0);\n    if(age<45000)return;\n    void loadAdmin();\n  },4200);\n});\ndocument.addEventListener('DOMContentLoaded',boot);"
+          )
+          replace_once('js/content-manager-v1.js', "if(token())setTimeout(loadPublic,3200);else loadPublic();", "if(token())setTimeout(loadPublic,10000);else loadPublic();")
+
+          # 6) Moderasi dan notifikasi tidak lagi berebut request pada detik awal.
+          replace_once('js/reviews-admin-session-v10.js', "  },2800);", "  },9000);")
+          replace_once('js/admin-notifications-v1.js', "document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,6000));", "document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,12000));")
+
+          # 7) Cache busting agar browser langsung mengambil versi baru.
+          replace_once('js/ui-v9.js', 'js/ui-v9-core.js?v=33', 'js/ui-v9-core.js?v=34')
+          replacements = {
+              'js/part2.js?v=17':'js/part2.js?v=18',
+              'js/part7.js?v=28':'js/part7.js?v=29',
+              'js/database-cloud-v1.js?v=8':'js/database-cloud-v1.js?v=9',
+              'js/ui-v9.js?v=56':'js/ui-v9.js?v=57',
+              'js/reviews-admin-session-v10.js?v=15':'js/reviews-admin-session-v10.js?v=16',
+              'js/content-manager-v1.js?v=11':'js/content-manager-v1.js?v=12',
+              'js/admin-notifications-v1.js?v=2':'js/admin-notifications-v1.js?v=3',
+          }
+          idx=Path('index.html')
+          s=idx.read_text(encoding='utf-8')
+          for old,new in replacements.items():
+              if new not in s:
+                  if old not in s: raise SystemExit(f'index marker missing: {old}')
+                  s=s.replace(old,new,1)
+          idx.write_text(s,encoding='utf-8')
+
+      - name: Syntax check
+        run: |
+          node --check js/part2.js
+          node --check js/part7.js
+          node --check js/database-cloud-v1.js
+          node --check js/ui-v9-core.js
+          node --check js/content-manager-v1.js
+          node --check js/reviews-admin-session-v10.js
+          node --check js/admin-notifications-v1.js
+
+      - name: Commit optimized files
+        run: |
+          if git diff --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html js/part2.js js/part7.js js/database-cloud-v1.js js/ui-v9.js js/ui-v9-core.js js/content-manager-v1.js js/reviews-admin-session-v10.js js/admin-notifications-v1.js
+          git commit -m "Percepat pembukaan admin dan database"
+          git push origin HEAD:main
