@@ -236,11 +236,26 @@ function pnInitializeCloudFromCurrent(rawBytes=null,rawName=''){
     return Promise.resolve(false);
   }
 
-  pnSetPending('initial');
-  pnCloudStatus('UPLOAD CLOUD...');
-
   pnInitialUploadPromise=(async()=>{
     try{
+      // Selalu cek master cloud terlebih dahulu. Ini membersihkan status upload lama
+      // dan mencegah workbook besar dikirim ulang jika master sudah ada di Drive.
+      try{
+        const existing=await pnDatabasePost('databaseManifest',{token},15000);
+        if(existing&&existing.exists){
+          pnSetPending('');
+          setStatus('Database utama sudah tersedia di <b>SERVER CLOUD</b>. Memuat master cloud tanpa upload ulang...','ok');
+          const loaded=await pnRestoreCloudDatabase({quiet:false});
+          if(loaded)return true;
+          throw new Error('Master cloud ditemukan tetapi belum berhasil dimuat.');
+        }
+      }catch(checkErr){
+        if(String(checkErr?.message||'').includes('Master cloud ditemukan'))throw checkErr;
+        console.warn('Pemeriksaan master cloud belum selesai:',checkErr);
+      }
+
+      pnSetPending('initial');
+      pnCloudStatus('UPLOAD CLOUD...');
       setStatus('Mengunggah database utama ke server untuk pertama kali. <b>Aplikasi tetap dapat digunakan selama proses berjalan.</b>');
       const out=pnInitialUploadBytes(rawBytes);
       const name=rawName||originalName;
