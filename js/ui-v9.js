@@ -4,7 +4,7 @@
   const link=document.createElement('link');
   link.id='pnMobileCss';
   link.rel='stylesheet';
-  link.href='mobile-v24.css?v=24';
+  link.href='mobile-v24.css?v=25';
   document.head.appendChild(link);
 })();
 
@@ -109,4 +109,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v43: Biodata moved to top shortcut, bottom admin hidden.
+// Build marker v44: Mobile v25 justify ekstrakurikuler.
