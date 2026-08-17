@@ -1,0 +1,67 @@
+name: Data Hasil Always Open
+
+on:
+  push:
+    paths:
+      - '.github/workflows/data-results-always-open.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Keep Data Hasil always open
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('js/admin-compact-v1.js')
+          s = p.read_text(encoding='utf-8')
+
+          old = """    if(!title||!body)return;\n    card.classList.add('pnAdminAutoCard');"""
+          new = """    if(!title||!body)return;\n    // DATA / HASIL khusus selalu terbuka dan tidak memakai tombol BUKA/TUTUP.\n    if(card.id==='dataResultsCard'){\n      card.classList.remove('pnAdminAutoCard','pnAdminCardClosed');\n      delete card.dataset.pnAdminCompactInit;\n      title.querySelector('.pnAdminCardToggle')?.remove();\n      return;\n    }\n    card.classList.add('pnAdminAutoCard');"""
+          if new not in s:
+              if old not in s:
+                  raise SystemExit('Blok installTopCards tidak ditemukan')
+              s = s.replace(old, new, 1)
+
+          old2 = """function openResultsCard(){\n  const card=$('dataResultsCard');\n  if(card)setCardOpen(card,true,true);\n}"""
+          new2 = """function openResultsCard(){\n  const card=$('dataResultsCard');\n  if(!card)return;\n  card.classList.remove('pnAdminAutoCard','pnAdminCardClosed');\n  delete card.dataset.pnAdminCompactInit;\n  card.querySelector(':scope>.cardTitle .pnAdminCardToggle')?.remove();\n}"""
+          if new2 not in s:
+              if old2 not in s:
+                  raise SystemExit('Blok openResultsCard tidak ditemukan')
+              s = s.replace(old2, new2, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+          idx = Path('index.html')
+          html = idx.read_text(encoding='utf-8')
+          oldv = 'js/admin-compact-v1.js?v=3'
+          newv = 'js/admin-compact-v1.js?v=4'
+          if newv not in html:
+              if oldv not in html:
+                  raise SystemExit('Marker admin-compact tidak ditemukan')
+              html = html.replace(oldv, newv, 1)
+          idx.write_text(html, encoding='utf-8')
+          PY
+
+      - name: Syntax check
+        run: node --check js/admin-compact-v1.js
+
+      - name: Commit change
+        run: |
+          if git diff --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html js/admin-compact-v1.js
+          git commit -m "Buat Data Hasil selalu terbuka"
+          git push origin HEAD:main
