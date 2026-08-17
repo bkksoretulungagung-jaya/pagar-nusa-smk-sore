@@ -1,0 +1,24 @@
+name: Install last sync indicator V6
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/install-last-sync-v6-temp.yml'
+permissions:
+  contents: write
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch files
+        run: python tools/install-last-sync-v6.py
+      - name: Clean installer files
+        run: rm -f tools/install-last-sync-v6.py .github/workflows/install-last-sync-v6-temp.yml
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/database-cloud-v1.js index.html tools/install-last-sync-v6.py .github/workflows/install-last-sync-v6-temp.yml
+          git commit -m "Tambah indikator sinkronisasi terakhir database cloud"
+          git push
