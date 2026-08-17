@@ -25,6 +25,7 @@ const PN_EXCEL_FILE_PROPERTY = 'PN_EXCEL_MASTER_FILE_ID_V1';
 const PN_EXCEL_FOLDER_NAME = 'Pagar Nusa - Database Excel Utama';
 const PN_EXCEL_MAX_BYTES = 20 * 1024 * 1024;
 const PN_EXCEL_MAX_BASE64_CHARS = 28 * 1024 * 1024;
+const PN_EXCEL_CHUNK_BYTES = 1024 * 1024;
 const PN_EXCEL_BACKUP_PREFIX = 'PN_EXCEL_BACKUP_';
 const PN_EXCEL_BACKUP_KEEP = 5;
 const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
@@ -196,6 +197,18 @@ function doPost(e) {
       return json_(saveRegistration_(data));
     }
 
+    if (action === 'databaseManifest') {
+      result = excelDatabaseManifest_(data);
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-database');
+    }
+
+    if (action === 'databaseChunk') {
+      result = excelDatabaseChunk_(data);
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-database');
+    }
+
     if (action === 'databaseGet') {
       result = excelDatabaseGet_(data);
       result.rid = String(data.rid || '');
@@ -314,7 +327,7 @@ function doPost(e) {
       rid:String(data.rid || ''),
       message:String(err && err.message || err)
     };
-    if (['databaseGet','databaseSave'].includes(action)) {
+    if (['databaseManifest','databaseChunk','databaseGet','databaseSave'].includes(action)) {
       return iframeResult_(result, 'pn-database');
     }
     if (action === 'biodataGet' || action === 'biodataUpdate') {
@@ -1577,13 +1590,58 @@ function excelDatabaseMime_(name) {
 function excelDatabaseMeta_(file) {
   if (!file) return {exists:false};
   const blob = file.getBlob();
+  let size = 0;
+  try { size = Number(file.getSize()) || 0; } catch (_) {}
+  if (!size) size = blob.getBytes().length;
   return {
     exists:true,
     fileId:file.getId(),
     name:file.getName(),
     mimeType:blob.getContentType() || excelDatabaseMime_(file.getName()),
-    size:blob.getBytes().length,
+    size:size,
     updatedAt:Utilities.formatDate(file.getLastUpdated(), 'Asia/Jakarta', "yyyy-MM-dd'T'HH:mm:ss")
+  };
+}
+
+function excelDatabaseManifest_(data) {
+  requireReviewAdmin_(data.token);
+  const file = excelDatabaseCurrentFile_();
+  if (!file) return {ok:true, exists:false, version:'3'};
+  const meta = excelDatabaseMeta_(file);
+  if (meta.size > PN_EXCEL_MAX_BYTES) throw new Error('Database Excel pusat melebihi batas 20 MB.');
+  meta.ok = true;
+  meta.version = '3';
+  meta.chunkBytes = PN_EXCEL_CHUNK_BYTES;
+  meta.chunkCount = Math.ceil(meta.size / PN_EXCEL_CHUNK_BYTES);
+  return meta;
+}
+
+function excelDatabaseChunk_(data) {
+  requireReviewAdmin_(data.token);
+  const file = excelDatabaseCurrentFile_();
+  if (!file) return {ok:true, exists:false, version:'3'};
+
+  const index = Math.floor(Number(data.index));
+  if (!Number.isFinite(index) || index < 0) throw new Error('Index potongan database tidak valid.');
+
+  const bytes = file.getBlob().getBytes();
+  if (bytes.length > PN_EXCEL_MAX_BYTES) throw new Error('Database Excel pusat melebihi batas 20 MB.');
+  const chunkCount = Math.ceil(bytes.length / PN_EXCEL_CHUNK_BYTES);
+  if (index >= chunkCount) throw new Error('Index potongan database di luar batas.');
+
+  const start = index * PN_EXCEL_CHUNK_BYTES;
+  const end = Math.min(start + PN_EXCEL_CHUNK_BYTES, bytes.length);
+  const part = bytes.slice(start, end);
+  return {
+    ok:true,
+    exists:true,
+    version:'3',
+    index:index,
+    chunkCount:chunkCount,
+    size:bytes.length,
+    name:file.getName(),
+    updatedAt:Utilities.formatDate(file.getLastUpdated(), 'Asia/Jakarta', "yyyy-MM-dd'T'HH:mm:ss"),
+    base64:Utilities.base64Encode(part)
   };
 }
 
