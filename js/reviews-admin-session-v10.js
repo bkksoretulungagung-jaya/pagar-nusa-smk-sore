@@ -323,7 +323,7 @@ function boot(){
       if(persistentGet(TOKEN_KEY))loadRows();
       else setState('error','Sesi moderasi belum aktif. Klik HUBUNGKAN MODERASI.');
     }
-  },300);
+  },2800);
 }
 
 document.addEventListener('DOMContentLoaded',boot);

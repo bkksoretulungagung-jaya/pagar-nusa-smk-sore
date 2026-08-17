@@ -33,7 +33,7 @@ function jsonp(action,payload={},timeout=18000){
   });
 }
 
-async function postReliable(action,payload={},timeout=30000){
+async function postReliable(action,payload={},timeout=45000){
   const rid=makeRid();
   return new Promise((resolve,reject)=>{
     const frame=document.createElement('iframe');
@@ -157,7 +157,15 @@ function applyPublicGallery(items){
 }
 
 async function loadPublic(){
-  try{const r=await jsonp('contentPublicList',{},16000);if(!r||!r.ok)return;applyPublicNews(r.content||[]);applyPublicGallery(r.gallery||[])}catch(_){/* static content remains as fallback */}
+  try{
+    const r=await jsonp('contentPublicList',{},18000);
+    if(!r||!r.ok)return;
+    window.__pnCmsPublicData=r;
+    window.__pnCmsPublicLoadedAt=Date.now();
+    window.dispatchEvent(new CustomEvent('pn:cms-public-data',{detail:r}));
+    applyPublicNews(r.content||[]);
+    applyPublicGallery(r.gallery||[]);
+  }catch(_){/* static content remains as fallback */}
 }
 
 function panelHtml(){return `
@@ -253,6 +261,9 @@ async function loadAdmin(){
     if(!r.ok)throw new Error(r.message||'Sesi admin konten tidak valid.');
     adminContent=Array.isArray(r.content)?r.content.filter(x=>String(x?.id||'')!=='CFG-REGISTRATION'&&String(x?.type||'').toUpperCase()!=='PENGATURAN'):[];adminGallery=Array.isArray(r.gallery)?r.gallery:[];
     if(!adminContent.length&&!adminGallery.length){await maybeSeed();r=await jsonp('contentAdminList',{token:token()},18000);adminContent=Array.isArray(r.content)?r.content.filter(x=>String(x?.id||'')!=='CFG-REGISTRATION'&&String(x?.type||'').toUpperCase()!=='PENGATURAN'):[];adminGallery=r.gallery||[]}
+    window.__pnCmsAdminData=r;
+    window.__pnCmsAdminLoadedAt=Date.now();
+    window.dispatchEvent(new CustomEvent('pn:cms-admin-data',{detail:r}));
     setStatus(`✓ Database konten online • ${adminContent.length} kabar/informasi • ${adminGallery.length} foto`,'ok');renderContentList();renderGalleryList();
   }catch(err){const msg=String(err&&err.message||'');if(/sesi admin sudah dinonaktifkan|sesi verifikasi admin tidak valid|sesi admin perangkat tidak ditemukan/i.test(msg)){clearToken();try{localStorage.setItem('pnAdminAuth','1');sessionStorage.setItem('pnAdminAuth','1')}catch(_){}}setStatus(msg||'Gagal memuat database konten.','err')}
 }
@@ -301,6 +312,13 @@ function installAdmin(){
   resetContent();resetGallery();if(token())loadAdmin();else setStatus('Login admin sudah tersedia. Klik HUBUNGKAN AKSES sekali untuk mengaktifkan update foto/kabar secara online.');
 }
 
-function boot(){loadPublic();installAdmin();setTimeout(installAdmin,500);setTimeout(installAdmin,1500);window.addEventListener('online',()=>{if(token())loadAdmin()})}
+function boot(){
+  // Prioritaskan area admin saat sesi aktif; konten publik tetap punya fallback statis.
+  installAdmin();
+  if(token())setTimeout(loadPublic,3200);else loadPublic();
+  setTimeout(installAdmin,500);
+  setTimeout(installAdmin,1500);
+  window.addEventListener('online',()=>{if(token())loadAdmin();else loadPublic()});
+}
 document.addEventListener('DOMContentLoaded',boot);
 })();

@@ -120,10 +120,10 @@ function boot(){
   clearInterval(pollTimer);pollTimer=setInterval(()=>{if(document.visibilityState==='visible'&&isAdmin()&&navigator.onLine!==false)load(false)},60000);
 }
 
-document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,400));
+document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,6000));
 window.addEventListener('online',()=>setTimeout(()=>load(true),500));
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')load(false)});
 window.addEventListener('pn:reviews-changed',()=>setTimeout(()=>load(true),500));
 window.pnRefreshAdminNotifications=()=>load(true);
-setInterval(()=>{const root=ensureRoot();if(root){root.classList.toggle('hidden',!isAdmin());if(isAdmin()&&!lastData)load(false)}},1500);
+setInterval(()=>{const root=ensureRoot();if(root){root.classList.toggle('hidden',!isAdmin());if(isAdmin()&&!lastData)load(false)}},5000);
 })();

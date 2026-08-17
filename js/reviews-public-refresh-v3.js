@@ -142,8 +142,8 @@ function wrapPublicDashboard(){
 
 document.addEventListener('DOMContentLoaded',()=>{
   ensureState();wrapPublicDashboard();render([]);
-  setTimeout(refresh,120);
-  setTimeout(()=>{if(!loading)refresh()},2500);
+  setTimeout(refresh,4800);
+  setTimeout(()=>{if(!loading)refresh()},9500);
 });
 window.addEventListener('pn:reviews-changed',()=>setTimeout(refresh,80));
 window.addEventListener('pn:review-public-refresh',()=>setTimeout(refresh,80));

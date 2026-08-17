@@ -10,6 +10,15 @@ let loadingAdmin=false;
 
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function sharedCmsData(key,timeout=6500){
+  const started=Date.now();
+  while(Date.now()-started<timeout){
+    const value=window[key];
+    if(value&&value.ok)return value;
+    await sleep(140);
+  }
+  return null;
+}
 const makeRid=()=>`cbttoggle-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 function jsonp(action,payload={},timeout=16000){
@@ -83,6 +92,8 @@ function applyState(state){
 }
 
 async function loadPublicState(){
+  const shared=await sharedCmsData('__pnCmsPublicData');
+  if(shared){applyState(stateFromItems(shared.content));return}
   try{
     const r=await jsonp('contentPublicList',{},15000);
     if(r&&r.ok)applyState(stateFromItems(r.content));
@@ -90,7 +101,7 @@ async function loadPublicState(){
   }catch(_){applyState('ON')}
 }
 
-function token(){return sessionStorage.getItem(TOKEN_KEY)||''}
+function token(){try{return localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||''}catch(_){return sessionStorage.getItem(TOKEN_KEY)||''}}
 
 function switchHtml(){return `
   <div id="pnCbtAdminSwitch" class="pnCbtSwitchBox">
@@ -129,7 +140,8 @@ async function loadAdminState(){
   if(loadingAdmin)return;const t=token();if(!t){renderSwitchState();return}
   loadingAdmin=true;
   try{
-    const r=await jsonp('contentAdminList',{token:t},16000);
+    const shared=await sharedCmsData('__pnCmsAdminData');
+    const r=shared||await jsonp('contentAdminList',{token:t},16000);
     if(!r?.ok)throw new Error(r?.message||'Sesi admin tidak valid.');
     applyState(stateFromItems(r.content));
   }catch(err){renderSwitchState(err.message||'Gagal membaca status Portal CBT.')}finally{loadingAdmin=false}
@@ -155,5 +167,7 @@ function watchAdmin(){
 ensureStyles();
 document.documentElement.setAttribute('data-pn-cbt','pending');
 document.addEventListener('DOMContentLoaded',()=>{loadPublicState();watchAdmin();setInterval(watchAdmin,1800);setInterval(loadPublicState,60000)});
+window.addEventListener('pn:cms-public-data',e=>{if(e.detail?.ok)applyState(stateFromItems(e.detail.content))});
+window.addEventListener('pn:cms-admin-data',e=>{if(e.detail?.ok&&token())applyState(stateFromItems(e.detail.content))});
 document.addEventListener('click',e=>{const id=e.target?.id;if(id==='pnCmsConnect'||id==='pnCmsReload')setTimeout(()=>{watchAdmin();loadAdminState()},1300)});
 })();

@@ -7,7 +7,7 @@ const PN_DB_SOURCE='pn-database';
 const PN_DB_PENDING_KEY='pnExcelCloudPendingV2';
 const PN_DB_LAST_SYNC_KEY='pnExcelCloudLastSyncV1';
 const PN_DB_SYNC_DELAY=900;
-const PN_DB_DOWNLOAD_CONCURRENCY=3;
+const PN_DB_DOWNLOAD_CONCURRENCY=2;
 
 let pnCloudBusy=false;
 let pnCloudLoaded=false;
@@ -585,8 +585,8 @@ function pnMaybeLoadCloud(){
 
 setTimeout(()=>pnRenderLastSync('idle'),120);
 setTimeout(()=>pnEnsureHistoryUi(),180);
-setTimeout(pnMaybeLoadCloud,700);
-setInterval(pnMaybeLoadCloud,2500);
+setTimeout(pnMaybeLoadCloud,4000);
+setInterval(pnMaybeLoadCloud,15000);
 window.addEventListener('online',()=>{
   pnCloudCheckedToken='';
   pnMaybeLoadCloud();
