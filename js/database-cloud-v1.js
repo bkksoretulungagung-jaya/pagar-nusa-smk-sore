@@ -6,6 +6,7 @@ const PN_DB_TOKEN_KEY='pnReviewAdminToken';
 const PN_DB_SOURCE='pn-database';
 const PN_DB_PENDING_KEY='pnExcelCloudPendingV2';
 const PN_DB_SYNC_DELAY=900;
+const PN_DB_DOWNLOAD_CONCURRENCY=3;
 
 let pnCloudBusy=false;
 let pnCloudLoaded=false;
@@ -104,6 +105,62 @@ function pnCloudStatus(label='DATABASE CLOUD'){
   }
 }
 
+async function pnDownloadCloudWorkbook(token,quiet){
+  let manifest;
+  try{
+    manifest=await pnDatabasePost('databaseManifest',{token},30000);
+  }catch(err){
+    const msg=String(err?.message||'');
+    if(!/Action tidak dikenal|tidak dikenal/i.test(msg))throw err;
+    const legacy=await pnDatabasePost('databaseGet',{token},90000);
+    if(!legacy.exists)return {exists:false};
+    if(!legacy.base64)throw new Error('Isi database pusat tidak tersedia.');
+    return {exists:true,name:legacy.name,size:legacy.size,updatedAt:legacy.updatedAt,bytes:pnBase64ToArrayBuffer(legacy.base64)};
+  }
+
+  if(!manifest.exists)return {exists:false};
+  const count=Number(manifest.chunkCount||0);
+  const size=Number(manifest.size||0);
+  if(!Number.isInteger(count)||count<1||count>64||!Number.isFinite(size)||size<1)throw new Error('Metadata database cloud tidak valid.');
+
+  const chunks=new Array(count);
+  let next=0,done=0;
+  const updateProgress=()=>{
+    pnCloudStatus('MUAT CLOUD '+done+'/'+count);
+    if(!quiet)setStatus('Mengunduh database cloud bertahap: <b>'+done+' / '+count+'</b> bagian...');
+  };
+  updateProgress();
+
+  async function worker(){
+    while(true){
+      const index=next++;
+      if(index>=count)return;
+      const r=await pnDatabasePost('databaseChunk',{token,index},45000);
+      if(!r.exists||Number(r.index)!==index||!r.base64)throw new Error('Potongan database cloud '+(index+1)+' tidak valid.');
+      chunks[index]=new Uint8Array(pnBase64ToArrayBuffer(r.base64));
+      done++;
+      updateProgress();
+    }
+  }
+
+  const workers=[];
+  const concurrency=Math.min(PN_DB_DOWNLOAD_CONCURRENCY,count);
+  for(let i=0;i<concurrency;i++)workers.push(worker());
+  await Promise.all(workers);
+
+  const out=new Uint8Array(size);
+  let offset=0;
+  for(const part of chunks){
+    if(!part)throw new Error('Database cloud belum lengkap.');
+    if(offset+part.length>out.length)throw new Error('Ukuran database cloud tidak sesuai metadata.');
+    out.set(part,offset);
+    offset+=part.length;
+  }
+  if(offset!==size)throw new Error('Database cloud tidak lengkap ('+offset+' dari '+size+' byte).');
+
+  return {exists:true,name:manifest.name,size,updatedAt:manifest.updatedAt,bytes:out.buffer};
+}
+
 async function pnRestoreCloudDatabase(options={}){
   const quiet=!!options.quiet;
   const token=pnDbToken();
@@ -113,15 +170,14 @@ async function pnRestoreCloudDatabase(options={}){
   pnCloudCheckedToken=token;
   try{
     if(!quiet)setStatus('Menghubungkan database Excel utama dari server...');
-    const result=await pnDatabasePost('databaseGet',{token},90000);
+    const result=await pnDownloadCloudWorkbook(token,quiet);
     if(!result.exists){
       pnCloudLoaded=false;
       if(!quiet)setStatus('Database Excel pusat belum tersedia. Upload database sekali dari perangkat utama.');
       return false;
     }
-    if(!result.base64)throw new Error('Isi database pusat tidak tersedia.');
 
-    const bytes=pnBase64ToArrayBuffer(result.base64);
+    const bytes=result.bytes;
     fileHandle=null;
     autosaveMode=false;
     await prepareWorkbook(bytes,result.name||'Database_Pagar_Nusa_BROWSER.xlsm');
@@ -133,10 +189,11 @@ async function pnRestoreCloudDatabase(options={}){
     dirtySheets.clear();
     pnSetPending('');
     pnCloudStatus();
-    setStatus('Database utama dimuat dari <b>SERVER CLOUD</b>. Data yang sama dapat digunakan dari perangkat lain setelah login admin.','ok');
+    setStatus('✓ Database utama dimuat dari <b>SERVER CLOUD</b>. Data yang sama siap digunakan dari perangkat ini.','ok');
     return true;
   }catch(err){
     console.warn('Database cloud belum dapat dimuat:',err);
+    pnCloudStatus('CLOUD GAGAL');
     if(!quiet)setStatus('Database cloud belum dapat dimuat: <b>'+esc(err.message)+'</b>. Salinan browser tetap dapat digunakan.','err');
     return false;
   }finally{
@@ -202,6 +259,17 @@ function pnInitializeCloudFromCurrent(rawBytes=null,rawName=''){
         await pnRestoreCloudDatabase({quiet:false});
         return true;
       }
+      try{
+        const check=await pnDatabasePost('databaseManifest',{token},30000);
+        if(check&&check.exists){
+          pnCloudLoaded=true;
+          pnCloudLoadedToken=token;
+          pnSetPending('');
+          pnCloudStatus();
+          setStatus('✓ Database utama sudah tersimpan di <b>SERVER CLOUD</b>. Konfirmasi upload diterima setelah pemeriksaan server.','ok');
+          return true;
+        }
+      }catch(_){}
       console.error(err);
       pnCloudStatus('CLOUD TERTUNDA');
       setStatus('Upload database pusat belum selesai: <b>'+esc(err.message)+'</b>. Data lokal tetap aman dan akan dicoba lagi otomatis.','err');
