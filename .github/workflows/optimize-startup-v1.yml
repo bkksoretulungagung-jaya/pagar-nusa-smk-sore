@@ -1,0 +1,42 @@
+name: Optimize startup V1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/optimize_startup_v1.py'
+      - '.github/workflows/optimize-startup-v1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply startup optimization
+        run: python tools/optimize_startup_v1.py
+
+      - name: Commit optimized files
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html \
+            js/content-manager-v1.js \
+            js/registration-toggle-v1.js \
+            js/cbt-toggle-v1.js \
+            js/database-cloud-v1.js \
+            js/reviews-public-refresh-v3.js \
+            js/reviews-admin-session-v10.js \
+            js/admin-notifications-v1.js
+          git commit -m "Optimalkan akses admin dan kurangi request awal"
+          git push
