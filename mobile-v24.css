@@ -1,6 +1,6 @@
-@import url("mobile-v23.css?v=24-base");
+@import url("mobile-v23.css?v=25-base");
 
-/* Mobile v24 — final header portrait, dimuat setelah seluruh CSS mobile lama */
+/* Mobile v25 — header portrait + paragraf konten rata kanan-kiri */
 @media (max-width:680px){
   body .top .topBar{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;gap:10px!important;text-align:left!important}
   body .top .topLogos{width:auto!important;min-width:0!important;display:flex!important;flex-direction:row!important;justify-content:flex-start!important;align-items:center!important;gap:6px!important}
@@ -9,6 +9,15 @@
   body .top .topText{width:auto!important;min-width:0!important}
   body .top .topText h1{margin:0!important;font-size:13px!important;line-height:1.25!important;text-align:left!important}
   body .top .topText p{width:100%!important;max-width:none!important;margin:5px 0 0!important;font-size:9.5px!important;line-height:1.5!important;text-align:justify!important;text-align-last:left!important;text-justify:inter-word!important;hyphens:auto!important;overflow-wrap:break-word!important}
+
+  /* Tentang Ekstrakurikuler — rata kanan-kiri di HP */
+  body .exkulInfo p{
+    text-align:justify!important;
+    text-align-last:left!important;
+    text-justify:inter-word!important;
+    hyphens:auto!important;
+    overflow-wrap:break-word!important;
+  }
 }
 @media (max-width:390px){
   body .top .topBar{gap:7px!important}
