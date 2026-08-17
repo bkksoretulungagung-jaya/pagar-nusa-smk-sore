@@ -4,7 +4,7 @@
   const link=document.createElement('link');
   link.id='pnMobileCss';
   link.rel='stylesheet';
-  link.href='mobile-v23.css?v=23';
+  link.href='mobile-v24.css?v=24';
   document.head.appendChild(link);
 })();
 
