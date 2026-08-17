@@ -112,3 +112,22 @@ body{background:#eef4f0}
   .reviewEmpty{flex:0 0 100%!important;padding:10px!important;font-size:9px!important;line-height:1.35!important}
   .reviewFormWrap{margin-top:8px!important;padding:10px!important;border-radius:8px!important}
 }
+
+/* MOBILE HEADER PORTRAIT V46 — layout tetap seperti desktop, teks rata kanan-kiri */
+@media(max-width:680px) and (orientation:portrait){
+  body .topBar{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important}
+  body .topLogos{display:flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-height:0!important;overflow:visible!important}
+  body .logoFrame{width:58px!important;height:58px!important;min-width:58px!important;min-height:58px!important;padding:5px!important;border-radius:10px!important}
+  body .logoFrame img{width:48px!important;height:48px!important;max-width:48px!important;max-height:48px!important;object-fit:contain!important}
+  body .topText{flex:1 1 auto!important;min-width:0!important}
+  body .topText h1{margin:0!important;font-size:13px!important;line-height:1.25!important;text-align:left!important}
+  body .topText p{margin:5px 0 0!important;font-size:9.5px!important;line-height:1.45!important;text-align:justify!important;text-justify:inter-word!important;hyphens:auto;overflow-wrap:break-word!important}
+}
+@media(max-width:360px) and (orientation:portrait){
+  body .topBar{gap:6px!important}
+  body .topLogos{gap:4px!important}
+  body .logoFrame{width:52px!important;height:52px!important;min-width:52px!important;min-height:52px!important;padding:4px!important}
+  body .logoFrame img{width:42px!important;height:42px!important;max-width:42px!important;max-height:42px!important}
+  body .topText h1{font-size:12px!important}
+  body .topText p{font-size:9px!important;line-height:1.4!important}
+}
