@@ -81,6 +81,13 @@ function installTopCards(){
     const title=card.querySelector(':scope>.cardTitle');
     const body=card.querySelector(':scope>.cardBody');
     if(!title||!body)return;
+    // DATA / HASIL khusus selalu terbuka dan tidak memakai tombol BUKA/TUTUP.
+    if(card.id==='dataResultsCard'){
+      card.classList.remove('pnAdminAutoCard','pnAdminCardClosed');
+      delete card.dataset.pnAdminCompactInit;
+      title.querySelector('.pnAdminCardToggle')?.remove();
+      return;
+    }
     card.classList.add('pnAdminAutoCard');
     if(!card.dataset.pnAdminCompactInit){
       card.dataset.pnAdminCompactInit='1';
@@ -107,7 +114,10 @@ function openInputCard(){
 
 function openResultsCard(){
   const card=$('dataResultsCard');
-  if(card)setCardOpen(card,true,true);
+  if(!card)return;
+  card.classList.remove('pnAdminAutoCard','pnAdminCardClosed');
+  delete card.dataset.pnAdminCompactInit;
+  card.querySelector(':scope>.cardTitle .pnAdminCardToggle')?.remove();
 }
 
 function stateText(){
