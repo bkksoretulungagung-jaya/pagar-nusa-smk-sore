@@ -28,6 +28,8 @@ const PN_EXCEL_MAX_BASE64_CHARS = 28 * 1024 * 1024;
 const PN_EXCEL_CHUNK_BYTES = 512 * 1024;
 const PN_EXCEL_BACKUP_PREFIX = 'PN_EXCEL_BACKUP_';
 const PN_EXCEL_BACKUP_KEEP = 5;
+const PN_EXCEL_HISTORY_SHEET_NAME = 'Riwayat Perubahan Database Excel';
+const PN_EXCEL_HISTORY_KEEP = 2000;
 const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
 const PN_BIODATA_LOG_SHEET_NAME = 'Log Perubahan Biodata';
 const PN_PORTAL_ACCOUNT_SHEET_NAME = 'Akun Portal Siswa';
@@ -161,6 +163,18 @@ function doGet(e) {
     return json_(result);
   }
 
+  if (action === 'databaseHistoryList') {
+    let result;
+    try {
+      result = excelDatabaseHistoryList_(data);
+    } catch (err) {
+      result = {ok:false, history:[], message:String(err && err.message || err)};
+    }
+    result.rid = String(data.rid || '');
+    if (data.callback) return jsonp_(result, data.callback);
+    return json_(result);
+  }
+
   if (action === 'contentResult') {
     let result;
     try {
@@ -207,6 +221,13 @@ function doPost(e) {
   try {
     if (action === 'register') {
       return json_(saveRegistration_(data));
+    }
+
+    if (action === 'databaseHistoryAdd') {
+      result = excelDatabaseHistoryAdd_(data);
+      result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
+      return iframeResult_(result, 'pn-database');
     }
 
     if (action === 'databaseManifest') {
@@ -341,8 +362,8 @@ function doPost(e) {
       rid:String(data.rid || ''),
       message:String(err && err.message || err)
     };
-    if (['databaseManifest','databaseChunk','databaseGet','databaseSave'].includes(action)) {
-      if (['databaseManifest','databaseSave'].includes(action)) contentRememberResult_(data.rid, result);
+    if (['databaseManifest','databaseChunk','databaseGet','databaseSave','databaseHistoryAdd'].includes(action)) {
+      if (['databaseManifest','databaseSave','databaseHistoryAdd'].includes(action)) contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-database');
     }
     if (action === 'biodataGet' || action === 'biodataUpdate') {
@@ -1553,6 +1574,80 @@ function aspelMonitorAdminList_(data) {
   };
 }
 
+
+/* ===== RIWAYAT PERUBAHAN DATABASE EXCEL V1 ===== */
+function excelDatabaseHistorySheet_() {
+  const book = SpreadsheetApp.openById(PN_REG_SPREADSHEET_ID);
+  let sheet = book.getSheetByName(PN_EXCEL_HISTORY_SHEET_NAME);
+  if (!sheet) {
+    sheet = book.insertSheet(PN_EXCEL_HISTORY_SHEET_NAME);
+    sheet.appendRow(['Waktu','Admin','Aksi','Modul','Nama / Subjek','Baris','Detail']);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function excelDatabaseHistoryText_(value, maxLen) {
+  return String(value || '').replace(/[\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLen || 300);
+}
+
+function excelDatabaseHistoryAdd_(data) {
+  const admin = requireReviewAdmin_(data.token);
+  const action = excelDatabaseHistoryText_(data.changeAction, 20).toUpperCase();
+  if (!['SIMPAN','UBAH','HAPUS'].includes(action)) throw new Error('Aksi riwayat perubahan tidak valid.');
+  const moduleName = excelDatabaseHistoryText_(data.module, 100) || 'Database Excel';
+  const subject = excelDatabaseHistoryText_(data.subject, 160);
+  const row = excelDatabaseHistoryText_(data.row, 20);
+  const detail = excelDatabaseHistoryText_(data.detail, 500);
+  const now = new Date();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = excelDatabaseHistorySheet_();
+    sheet.appendRow([now, admin, action, moduleName, subject, row, detail]);
+    const dataRows = Math.max(0, sheet.getLastRow() - 1);
+    if (dataRows > PN_EXCEL_HISTORY_KEEP) {
+      sheet.deleteRows(2, dataRows - PN_EXCEL_HISTORY_KEEP);
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  return {
+    ok:true,
+    saved:true,
+    at:Utilities.formatDate(now, 'Asia/Jakarta', "yyyy-MM-dd'T'HH:mm:ss"),
+    action:action,
+    module:moduleName
+  };
+}
+
+function excelDatabaseHistoryList_(data) {
+  requireReviewAdmin_(data.token);
+  const requested = Math.floor(Number(data.limit || 100));
+  const limit = Math.max(1, Math.min(Number.isFinite(requested) ? requested : 100, 200));
+  const sheet = excelDatabaseHistorySheet_();
+  const last = sheet.getLastRow();
+  if (last < 2) return {ok:true, history:[], count:0, version:'1'};
+  const count = Math.min(limit, last - 1);
+  const start = last - count + 1;
+  const values = sheet.getRange(start, 1, count, 7).getValues();
+  const history = values.reverse().map(function(row, index) {
+    const when = row[0] instanceof Date && !isNaN(row[0].getTime())
+      ? Utilities.formatDate(row[0], 'Asia/Jakarta', "yyyy-MM-dd'T'HH:mm:ss")
+      : String(row[0] || '');
+    return {
+      id:String(start + (count - 1 - index)),
+      at:when,
+      admin:String(row[1] || ''),
+      action:String(row[2] || ''),
+      module:String(row[3] || ''),
+      subject:String(row[4] || ''),
+      row:String(row[5] || ''),
+      detail:String(row[6] || '')
+    };
+  });
+  return {ok:true, history:history, count:history.length, version:'1'};
+}
 
 /* ===== EXCEL CLOUD DATABASE V1 ===== */
 function excelDatabaseFolder_() {

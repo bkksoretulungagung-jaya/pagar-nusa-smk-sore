@@ -167,9 +167,77 @@ function pnDatabasePost(action,payload={},timeoutMs=90000){
     document.body.appendChild(frame);
     document.body.appendChild(form);
     form.submit();
-    if(action==='databaseManifest'||action==='databaseSave')pollTimer=setTimeout(poll,900);
+    if(action==='databaseManifest'||action==='databaseSave'||action==='databaseHistoryAdd')pollTimer=setTimeout(poll,900);
   });
 }
+function pnHistoryEsc(value){
+  return String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function pnHistoryFormatTime(value){
+  const d=pnParseWibTime(value);
+  if(!d)return String(value||'-');
+  const date=new Intl.DateTimeFormat('id-ID',{day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Jakarta'}).format(d);
+  const time=new Intl.DateTimeFormat('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Jakarta'}).format(d).replace(/\./g,':');
+  return date+' • '+time+' WIB';
+}
+function pnEnsureHistoryUi(){
+  if(document.getElementById('pnHistoryBtn'))return;
+  const sync=pnEnsureLastSyncElement();
+  if(!sync)return;
+  const btn=document.createElement('button');
+  btn.id='pnHistoryBtn';btn.type='button';btn.textContent='🕘 RIWAYAT PERUBAHAN';
+  btn.style.cssText='width:100%;margin:8px 0 0;padding:10px 12px;border:0;border-radius:9px;background:#0f3d24;color:#fff;font-weight:900;cursor:pointer';
+  btn.onclick=()=>window.pnOpenDatabaseHistory();
+  sync.insertAdjacentElement('afterend',btn);
+
+  const modal=document.createElement('div');
+  modal.id='pnHistoryModal';
+  modal.style.cssText='display:none;position:fixed;inset:0;z-index:10050;background:rgba(15,23,42,.58);padding:18px;overflow:auto';
+  modal.innerHTML='<div style="max-width:900px;margin:4vh auto;background:#fff;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.25);overflow:hidden">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:#0f172a;color:#fff"><div><b>RIWAYAT PERUBAHAN DATA</b><div style="font-size:11px;opacity:.8;margin-top:3px">100 perubahan terbaru • tersimpan di server</div></div><button id="pnHistoryClose" type="button" style="border:0;border-radius:8px;background:#334155;color:#fff;font-size:20px;width:36px;height:36px;cursor:pointer">×</button></div>'
+    +'<div style="padding:12px 14px"><div style="display:flex;justify-content:flex-end;margin-bottom:9px"><button id="pnHistoryReload" type="button" style="border:0;border-radius:8px;background:#166534;color:#fff;padding:8px 12px;font-weight:800;cursor:pointer">↻ MUAT ULANG</button></div><div id="pnHistoryBody" style="min-height:110px"><div style="padding:18px;text-align:center;color:#64748b">Memuat riwayat…</div></div></div></div>';
+  modal.addEventListener('click',e=>{if(e.target===modal)window.pnCloseDatabaseHistory()});
+  document.body.appendChild(modal);
+  document.getElementById('pnHistoryClose').onclick=()=>window.pnCloseDatabaseHistory();
+  document.getElementById('pnHistoryReload').onclick=()=>pnLoadDatabaseHistory();
+}
+async function pnLoadDatabaseHistory(){
+  pnEnsureHistoryUi();
+  const body=document.getElementById('pnHistoryBody');
+  const token=pnDbToken();
+  if(!body)return;
+  if(!token){body.innerHTML='<div style="padding:18px;text-align:center;color:#991b1b">HUBUNGKAN AKSES admin terlebih dahulu.</div>';return}
+  body.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">Memuat riwayat dari server…</div>';
+  try{
+    const r=await pnDatabaseJsonp('databaseHistoryList',{token,limit:100},20000);
+    const rows=Array.isArray(r.history)?r.history:[];
+    if(!rows.length){body.innerHTML='<div style="padding:22px;text-align:center;color:#64748b">Belum ada riwayat perubahan. Perubahan berikutnya akan dicatat otomatis.</div>';return}
+    body.innerHTML='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f1f5f9;color:#334155"><th style="padding:9px;text-align:left">Waktu</th><th style="padding:9px;text-align:left">Aksi</th><th style="padding:9px;text-align:left">Modul / Subjek</th><th style="padding:9px;text-align:left">Detail</th><th style="padding:9px;text-align:left">Admin</th></tr></thead><tbody>'
+      +rows.map(x=>{const action=String(x.action||'').toUpperCase();const badge=action==='HAPUS'?'#b91c1c':action==='UBAH'?'#b45309':'#166534';const subject=[x.module,x.subject,x.row?('Baris '+x.row):''].filter(Boolean).join(' • ');return '<tr style="border-top:1px solid #e2e8f0"><td style="padding:9px;white-space:nowrap">'+pnHistoryEsc(pnHistoryFormatTime(x.at))+'</td><td style="padding:9px"><span style="display:inline-block;padding:3px 7px;border-radius:999px;background:'+badge+';color:#fff;font-weight:900">'+pnHistoryEsc(action)+'</span></td><td style="padding:9px">'+pnHistoryEsc(subject||'-')+'</td><td style="padding:9px;min-width:220px">'+pnHistoryEsc(x.detail||'-')+'</td><td style="padding:9px">'+pnHistoryEsc(x.admin||'-')+'</td></tr>'}).join('')
+      +'</tbody></table></div>';
+  }catch(err){body.innerHTML='<div style="padding:18px;text-align:center;color:#991b1b">Gagal memuat riwayat: '+pnHistoryEsc(err.message)+'</div>'}
+}
+window.pnOpenDatabaseHistory=function(){pnEnsureHistoryUi();const m=document.getElementById('pnHistoryModal');if(m){m.style.display='block';void pnLoadDatabaseHistory()}};
+window.pnCloseDatabaseHistory=function(){const m=document.getElementById('pnHistoryModal');if(m)m.style.display='none'};
+async function pnLogDatabaseHistory(message){
+  const token=pnDbToken();
+  if(!token)return false;
+  const text=String(message||'').trim();
+  const match=text.match(/^\s*(SIMPAN|UBAH|HAPUS)\b/i);
+  if(!match)return false;
+  const changeAction=match[1].toUpperCase();
+  let moduleName='',subject='',row='';
+  try{moduleName=(typeof modules!=='undefined'&&modules[activeModule])?String(modules[activeModule].title||activeModule):String(activeModule||'')}catch(_){}
+  try{subject=(typeof selectedPerson!=='undefined'&&selectedPerson)?String(selectedPerson.name||selectedPerson.id||''):''}catch(_){}
+  try{row=(typeof selectedRow!=='undefined'&&selectedRow)?String(selectedRow):''}catch(_){}
+  try{
+    await pnDatabasePost('databaseHistoryAdd',{token,changeAction,module:moduleName,subject,row,detail:text},30000);
+    const modal=document.getElementById('pnHistoryModal');
+    if(modal&&modal.style.display!=='none')void pnLoadDatabaseHistory();
+    return true;
+  }catch(err){console.warn('Riwayat perubahan belum dapat dicatat:',err);return false}
+}
+
 function pnCloudStatus(label='DATABASE CLOUD'){
   const badge=document.getElementById('saveMode');
   if(badge){
@@ -483,6 +551,8 @@ if(typeof pnOriginalPersistWorkingCopy==='function'){
 window.afterMutation=async function(msg){
   const p=await window.persistWorkingCopy();
 
+  void pnLogDatabaseHistory(msg);
+
   if(p&&p.cloudQueued){
     setStatus('<b>'+esc(msg)+'</b>. Tersimpan langsung di perangkat/browser. <b>Sinkronisasi cloud berjalan otomatis di belakang</b>; Anda dapat lanjut bekerja.','ok');
     return;
@@ -514,6 +584,7 @@ function pnMaybeLoadCloud(){
 }
 
 setTimeout(()=>pnRenderLastSync('idle'),120);
+setTimeout(()=>pnEnsureHistoryUi(),180);
 setTimeout(pnMaybeLoadCloud,700);
 setInterval(pnMaybeLoadCloud,2500);
 window.addEventListener('online',()=>{
