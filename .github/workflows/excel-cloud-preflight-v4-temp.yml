@@ -1,0 +1,35 @@
+name: Temporary Excel Cloud V4 preflight installer
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    if: github.head_ref == 'agent/excel-cloud-preflight-v4'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Install preflight hotfix
+        run: python tools/patch-excel-cloud-preflight-v4.py
+      - name: Remove temporary installer
+        run: |
+          rm -f tools/patch-excel-cloud-preflight-v4.py
+          rm -f .github/workflows/excel-cloud-preflight-v4-temp.yml
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "Perbaiki status pending Excel Cloud V4"
+          git push origin HEAD:${{ github.head_ref }}
