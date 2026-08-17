@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://pagarnusasmksore.com/sitemap.xml
+Sitemap: https://www.pagarnusasmksore.com/sitemap.xml
