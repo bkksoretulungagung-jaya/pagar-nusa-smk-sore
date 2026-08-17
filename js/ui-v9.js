@@ -22,6 +22,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   const adminPass=document.getElementById('adminPass');
   if(adminPass)adminPass.value='';
 
+  const footer=document.querySelector('.footer');
+  if(footer&&footer.firstChild&&footer.firstChild.nodeType===Node.TEXT_NODE){
+    footer.firstChild.nodeValue='Copyright © 2026 ';
+  }
+
   // Jangan tampilkan username admin secara otomatis saat modal login dibuka.
   window.openAdminLogin=function(){
     const modal=document.getElementById('loginModal');
@@ -109,4 +114,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v44: Mobile v25 justify ekstrakurikuler.
+// Build marker v45: Footer copyright 2026.
