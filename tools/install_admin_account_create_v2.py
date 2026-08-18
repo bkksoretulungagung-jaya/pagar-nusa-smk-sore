@@ -13,7 +13,8 @@ compact = COMPACT.read_text(encoding='utf-8')
 index = INDEX.read_text(encoding='utf-8')
 
 # Tandai versi backend portal akun terbaru.
-code = code.replace("      accountAdminPortalVersion:'1',", "      accountAdminPortalVersion:'2',", 1)
+code = code.replace("      accountAdminPortalVersion:'1',", "      accountAdminPortalVersion:'3',", 1)
+code = code.replace("      accountAdminPortalVersion:'2',", "      accountAdminPortalVersion:'3',", 1)
 
 # Routing POST untuk pembuatan akun baru.
 if "if (action === 'portalAccountAdminCreate')" not in code:
@@ -53,10 +54,27 @@ if not current_match:
 if "username.split('').some(function(ch)" not in current_match.group(0):
     code = code[:current_match.start()] + username_replacement + code[current_match.end():]
 
-# Gabungkan backend V2 ke Code.gs agar pengguna cukup menyalin satu file ke Apps Script.
-marker = 'AKUN ANGGOTA ADMIN V2 — BUAT AKUN DARI BIODATA'
-if marker not in code:
-    code = code.rstrip() + '\n\n' + backend_v2 + '\n'
+# Baris akun yang hanya punya username + ID, namun email dan UID masih kosong,
+# belum dapat dipakai login. Jangan dianggap sebagai akun selesai.
+old_ready = """      accountStatus:account ? account.status : 'BELUM ADA',
+      hasAccount:!!account"""
+new_ready = """      accountStatus:(account && (account.email || account.uid)) ? account.status : 'BELUM ADA',
+      hasAccount:!!(account && (account.email || account.uid))"""
+if old_ready in code:
+    code = code.replace(old_ready, new_ready, 1)
+
+# Selalu sinkronkan blok backend Buat/Lengkapi Akun di bagian akhir Code.gs.
+old_module = re.search(
+    r"/\* =========================================================\n   AKUN ANGGOTA ADMIN V[23] — .*?\n========================================================= \*/.*\Z",
+    code,
+    re.DOTALL
+)
+if old_module:
+    code = code[:old_module.start()] + backend_v2 + '\n'
+else:
+    marker = 'AKUN ANGGOTA ADMIN V3 — BUAT / LENGKAPI AKUN DARI BIODATA'
+    if marker not in code:
+        code = code.rstrip() + '\n\n' + backend_v2 + '\n'
 
 # Muat enhancer frontend Akun Anggota. V3 menampilkan tombol BUAT AKUN di bagian atas.
 if "js/admin-account-create-v2.js?v=2" in compact:
@@ -84,4 +102,4 @@ if 'js/admin-compact-v1.js?v=7' not in index:
 CODE.write_text(code, encoding='utf-8')
 COMPACT.write_text(compact, encoding='utf-8')
 INDEX.write_text(index, encoding='utf-8')
-print('Akun Anggota V3 aktif: tombol BUAT AKUN selalu terlihat di bagian atas.')
+print('Akun Anggota V3 aktif: akun setengah jadi dapat dilengkapi lewat BUAT AKUN.')
