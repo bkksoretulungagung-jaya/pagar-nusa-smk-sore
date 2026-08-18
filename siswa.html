@@ -113,25 +113,36 @@ function applyCbtConfig(items){
 async function loadCbtConfig(){
   try{const r=await contentJsonp('contentPublicList');if(r?.ok)applyCbtConfig(r.content);else applyCbtConfig([])}catch(_){applyCbtConfig([])}
 }
-function cbtRequest(action,payload={},timeout=35000){return new Promise((resolve,reject)=>{
+function cbtRequest(action,payload={},timeout=22000){return new Promise((resolve,reject)=>{
   const rid='cbt-'+Date.now()+'-'+Math.random().toString(36).slice(2);
   const frame=document.createElement('iframe');frame.name='pnCbtFrame'+rid.replace(/\W/g,'');frame.style.display='none';
   const form=document.createElement('form');form.method='POST';form.action=CONTENT_ENDPOINT;form.target=frame.name;form.style.display='none';
   Object.entries({action,rid,...payload}).forEach(([k,v])=>{const i=document.createElement('input');i.type='hidden';i.name=k;i.value=String(v??'');form.appendChild(i)});
-  let done=false;const clean=()=>{window.removeEventListener('message',onMsg);clearTimeout(timer);form.remove();setTimeout(()=>frame.remove(),250)};
-  const onMsg=e=>{const d=e.data;if(!d||d.source!=='pn-cbt'||d.rid!==rid||done)return;done=true;clean();d.ok?resolve(d):reject(new Error(d.message||'Verifikasi jadwal CBT gagal.'))};
-  window.addEventListener('message',onMsg);const timer=setTimeout(()=>{if(done)return;done=true;clean();reject(new Error('Koneksi CBT sedang sibuk. Silakan coba sekali lagi.'))},timeout);
-  document.body.append(frame,form);form.submit();
+  let done=false,pollBusy=false,lastErr=null;
+  const started=Date.now();
+  const clean=()=>{window.removeEventListener('message',onMsg);clearTimeout(timer);try{form.remove()}catch(_){};setTimeout(()=>{try{frame.remove()}catch(_){}},200)};
+  const finish=(ok,value)=>{if(done)return;done=true;clean();ok?resolve(value):reject(value instanceof Error?value:new Error(String(value||'Verifikasi jadwal CBT gagal.')))};
+  const onMsg=e=>{const d=e.data;if(!d||d.source!=='pn-cbt'||d.rid!==rid||done)return;d.ok?finish(true,d):finish(false,new Error(d.message||'Verifikasi jadwal CBT gagal.'))};
+  window.addEventListener('message',onMsg);
+  async function poll(){if(pollBusy||done)return;pollBusy=true;try{
+    while(!done&&Date.now()-started<timeout){
+      await new Promise(r=>setTimeout(r,420));
+      try{
+        const r=await contentJsonp('contentResult',{rid},5000);
+        if(r&&r.pending)continue;
+        if(r&&r.ok){finish(true,r);return}
+        if(r&&!r.pending){finish(false,new Error(r.message||'Verifikasi jadwal CBT ditolak.'));return}
+      }catch(err){lastErr=err}
+    }
+    if(!done)finish(false,lastErr||new Error('Koneksi CBT sedang sibuk. Silakan coba sekali lagi.'));
+  }finally{pollBusy=false}}
+  const timer=setTimeout(()=>{if(!done)finish(false,lastErr||new Error('Koneksi CBT sedang sibuk. Silakan coba sekali lagi.'))},timeout+1000);
+  document.body.append(frame,form);form.submit();poll();
 })}
 async function authorizeCbt(user,uname){
   if(!CBT_ENABLED)throw new Error('Portal CBT sedang ditutup oleh admin.');
   const idToken=await user.getIdToken();
-  let r;
-  try{r=await cbtRequest('cbtAccessCheck',{username:uname,idToken},22000)}
-  catch(firstErr){
-    await new Promise(resolve=>setTimeout(resolve,500));
-    r=await cbtRequest('cbtAccessCheck',{username:uname,idToken},35000);
-  }
+  const r=await cbtRequest('cbtAccessCheck',{username:uname,idToken},22000);
   if(!r.allowed)throw new Error(r.message||'Akun Anda belum mendapat jadwal CBT.');
   currentFormUrl=String(r.formUrl||'');currentAccessEndAt=String(r.endAt||'');
   if(!/^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(currentFormUrl))throw new Error('Link soal CBT belum tersedia.');

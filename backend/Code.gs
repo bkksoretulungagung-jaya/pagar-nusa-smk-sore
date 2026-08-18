@@ -90,7 +90,7 @@ function doGet(e) {
       cbtSchedule:true,
       cbtScheduleVersion:'1',
       cbtFastLogin:true,
-      cbtFastLoginVersion:'2',
+      cbtFastLoginVersion:'3',
       materiPengurus:true,
       materiPengurusVersion:'1',
       pengurusPortal:true,
@@ -497,6 +497,7 @@ function doPost(e) {
     if (action === 'cbtAccessCheck') {
       result = cbtAccessCheck_(data);
       result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-cbt');
     }
 
@@ -557,6 +558,7 @@ function doPost(e) {
       return iframeResult_(result, 'pn-biodata');
     }
     if (action === 'cbtAccessCheck') {
+      contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-cbt');
     }
     if (['reviewSubmit','reviewPublicList','reviewAdminLogin','reviewAdminList','reviewModerate'].includes(action)) {
