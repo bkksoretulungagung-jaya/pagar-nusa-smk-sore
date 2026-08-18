@@ -551,10 +551,13 @@ function doPost(e) {
     if (action === 'biodataGet' || action === 'biodataUpdate') {
       return iframeResult_(result, 'pn-biodata');
     }
+    if (action === 'cbtAccessCheck') {
+      return iframeResult_(result, 'pn-cbt');
+    }
     if (['reviewSubmit','reviewPublicList','reviewAdminLogin','reviewAdminList','reviewModerate'].includes(action)) {
       return iframeResult_(result, 'pn-reviews');
     }
-    if (['contentAdminLogin','contentAdminSave','contentAdminDelete','contentAdminSeed','contentUploadImage','adminChangePassword','adminPasswordRecover','materiLogin','materiLogout','materiAdminSetAccess','materiAdminUpload','materiAdminDelete','pengurusLogin','pengurusLogout','pengurusAdminSave','pengurusAdminSetStatus'].includes(action)) {
+    if (['contentAdminLogin','contentAdminSave','contentAdminDelete','contentAdminSeed','contentUploadImage','adminChangePassword','adminPasswordRecover','materiLogin','materiLogout','materiAdminSetAccess','materiAdminUpload','materiAdminDelete','pengurusLogin','pengurusLogout','pengurusAdminSave','pengurusAdminSetStatus','cbtScheduleAdminSave'].includes(action)) {
       contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-content');
     }
