@@ -1,0 +1,31 @@
+name: Enable PDF watermark v4
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/enable_pdf_watermark_v4.py'
+      - '.github/workflows/enable-pdf-watermark-v4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  watermark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PDF watermark per pengurus
+        run: python tools/enable_pdf_watermark_v4.py
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portal-pengurus.html backend/Code.gs
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Aktifkan watermark PDF per akun pengurus"
+            git push
+          fi
