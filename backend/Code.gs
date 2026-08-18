@@ -499,6 +499,7 @@ function doPost(e) {
     if (action === 'cbtScheduleAdminSave') {
       result = cbtScheduleAdminSave_(data);
       result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-content');
     }
 
