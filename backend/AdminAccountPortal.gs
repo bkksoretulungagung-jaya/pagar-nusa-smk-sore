@@ -144,6 +144,38 @@ function portalAccountUsername_(value) {
   return username;
 }
 
+function portalFirebaseAdminRequest_(action, payload) {
+  const url = 'https://identitytoolkit.googleapis.com/v1/projects/' + encodeURIComponent(PN_FIREBASE_PROJECT_ID) + '/accounts:' + encodeURIComponent(action) + '?key=' + encodeURIComponent(PN_FIREBASE_API_KEY);
+  const response = UrlFetchApp.fetch(url, {
+    method:'post',
+    contentType:'application/json',
+    headers:{Authorization:'Bearer ' + ScriptApp.getOAuthToken()},
+    payload:JSON.stringify(payload || {}),
+    muteHttpExceptions:true
+  });
+  const code = response.getResponseCode();
+  let body = {};
+  try { body = JSON.parse(response.getContentText() || '{}'); } catch (_) {}
+  if (code < 200 || code >= 300) {
+    const detail = String(body && body.error && body.error.message || ('HTTP ' + code));
+    if (code === 401 || code === 403) {
+      throw new Error('Backend belum memiliki izin Firebase untuk mengelola akun. Berikan izin firebaseauth.users.update / scope Identity Toolkit pada Apps Script, lalu deploy ulang. Detail: ' + detail);
+    }
+    throw new Error('Firebase menolak perubahan akun: ' + detail);
+  }
+  return body;
+}
+
+function portalFirebaseLookupUid_(email, storedUid) {
+  const uid = String(storedUid || '').trim();
+  if (uid) return uid;
+  email = portalAccountEmail_(email);
+  const result = portalFirebaseAdminRequest_('lookup', {email:[email]});
+  const users = Array.isArray(result.users) ? result.users : [];
+  if (!users.length || !String(users[0].localId || '').trim()) throw new Error('Akun Firebase untuk email tersebut belum ditemukan.');
+  return String(users[0].localId || '').trim();
+}
+
 function portalAccountAdminUpdate_(data) {
   const admin = requireReviewAdmin_(data.token);
   const book = SpreadsheetApp.openById(PN_BIODATA_SPREADSHEET_ID);
@@ -169,4 +201,27 @@ function portalAccountAdminUpdate_(data) {
   found.sheet.getRange(found.row,1,1,5).setValues([[username,found.memberId,email,uid,status]]);
   try { adminAudit_('PORTAL_ACCOUNT_UPDATE','OK','Admin ' + admin + ' memperbarui akun ' + found.memberId + ' / ' + username + '.'); } catch (_) {}
   return {ok:true,message:'Data akun berhasil diperbarui.',account:{row:found.row,username:username,memberId:found.memberId,email:email,uid:uid,status:status},version:'1'};
+}
+
+function portalAccountPassword_(value) {
+  const valueText = String(value || '');
+  if (valueText.length < 8) throw new Error('Password baru minimal 8 karakter.');
+  if (valueText.length > 128) throw new Error('Password baru terlalu panjang.');
+  if (!/[A-Za-z]/.test(valueText) || !/[0-9]/.test(valueText)) throw new Error('Password baru harus mengandung huruf dan angka.');
+  return valueText;
+}
+
+function portalAccountAdminResetPassword_(data) {
+  const admin = requireReviewAdmin_(data.token);
+  const nextPassword = portalAccountPassword_(data.password);
+  const book = SpreadsheetApp.openById(PN_BIODATA_SPREADSHEET_ID);
+  const found = portalAccountFindRow_(book, data);
+  if (!found.email) throw new Error('Email akun belum tersedia.');
+
+  const uid = portalFirebaseLookupUid_(found.email, found.uid);
+  portalFirebaseAdminRequest_('update', {localId:uid,password:nextPassword});
+  if (!found.uid) found.sheet.getRange(found.row,4).setValue(uid);
+
+  try { adminAudit_('PORTAL_ACCOUNT_RESET_PASSWORD','OK','Admin ' + admin + ' mereset password akun ' + found.memberId + ' / ' + found.username + '. Password baru tidak dicatat.'); } catch (_) {}
+  return {ok:true,message:'Password berhasil direset langsung oleh Admin. Password baru tidak disimpan di database dan tidak dikirim ke email.',memberId:found.memberId,username:found.username,version:'1'};
 }
