@@ -3459,7 +3459,7 @@ function portalAccountEmail_(value) {
 function portalAccountUsername_(value) {
   const username = String(value || '').trim();
   if (username.length < 3 || username.length > 100) throw new Error('Username harus 3–100 karakter.');
-  if (/[\u0000-\u001F\u007F]/.test(username)) throw new Error('Username mengandung karakter yang tidak diperbolehkan.');
+  if (username.split('').some(function(ch){ const n = ch.charCodeAt(0); return n < 32 || n === 127; })) throw new Error('Username mengandung karakter yang tidak diperbolehkan.');
   if (/^[=+@]/.test(username)) throw new Error('Awal username tidak diperbolehkan.');
   return username;
 }
