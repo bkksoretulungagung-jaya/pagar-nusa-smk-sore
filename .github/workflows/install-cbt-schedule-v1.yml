@@ -1,0 +1,31 @@
+name: Install CBT schedule v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/install_cbt_schedule_v1.py'
+      - '.github/workflows/install-cbt-schedule-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CBT schedule
+        run: python tools/install_cbt_schedule_v1.py
+      - name: Commit installation
+        run: |
+          if git diff --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "418982+github-actions[bot]@users.noreply.github.com"
+          git add backend/Code.gs siswa.html js/cbt-toggle-v1.js
+          git commit -m "Pasang jadwal peserta CBT per akun"
+          git push
