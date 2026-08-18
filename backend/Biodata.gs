@@ -38,7 +38,7 @@ function doGet(e) {
     aspelRelations:true,
     ukt:true,
     uktMax:PN_UKT_MAX,
-    version:'9'
+    version:'10'
   });
 }
 
@@ -162,11 +162,11 @@ function updateStudentBiodata_(data) {
 
 function authorizePortalStudent_(data) {
   const username = String(data.username || '').trim();
-  const memberId = String(data.memberId || '').trim();
+  const requestedMemberId = String(data.memberId || '').trim().toLowerCase();
   const idToken = String(data.idToken || '').trim();
 
-  if (!username || !memberId || !idToken) {
-    throw new Error('Username, ID Anggota, dan sesi login wajib tersedia.');
+  if (!username || !idToken) {
+    throw new Error('Username dan sesi login wajib tersedia.');
   }
 
   const firebaseUser = verifyFirebaseToken_(idToken);
@@ -183,26 +183,29 @@ function authorizePortalStudent_(data) {
 
   const rows = accountSheet.getRange(2,1,last-1,5).getDisplayValues();
   const targetUsername = username.toLowerCase();
-  const targetId = memberId.toLowerCase();
   let rowIndex = -1;
+  let memberId = '';
 
   for (let i=0; i<rows.length; i++) {
     const rowUsername = String(rows[i][0] || '').trim().toLowerCase();
-    const rowId = String(rows[i][1] || '').trim().toLowerCase();
+    const rowIdRaw = String(rows[i][1] || '').trim();
+    const rowId = rowIdRaw.toLowerCase();
     const rowEmail = String(rows[i][2] || '').trim().toLowerCase();
     const rowUid = String(rows[i][3] || '').trim();
     const status = String(rows[i][4] || 'AKTIF').trim().toUpperCase();
 
-    if (rowUsername === targetUsername && rowId === targetId && rowEmail === email) {
+    if (rowUsername === targetUsername && rowEmail === email && (!requestedMemberId || rowId === requestedMemberId)) {
       if (status && status !== 'AKTIF') throw new Error('Akun portal ini sedang nonaktif.');
-      if (rowUid && rowUid !== uid) throw new Error('ID Anggota sudah terhubung dengan akun lain.');
+      if (rowUid && rowUid !== uid) throw new Error('Akun ini sudah terhubung dengan pengguna lain.');
+      if (!rowIdRaw) throw new Error('ID Anggota akun ini belum dihubungkan oleh admin.');
       rowIndex = i + 2;
+      memberId = rowIdRaw;
       break;
     }
   }
 
   if (rowIndex < 0) {
-    throw new Error('Username / ID Anggota tidak cocok dengan akun yang terdaftar. Hubungi admin.');
+    throw new Error('Username atau email tidak cocok dengan akun yang terdaftar. Hubungi admin.');
   }
 
   const savedUid = String(accountSheet.getRange(rowIndex,4).getDisplayValue() || '').trim();
