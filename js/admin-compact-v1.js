@@ -305,3 +305,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   script.dataset.pnAccountCreateV2='1';
   document.head.appendChild(script);
 })();
+
+
+/* Fix konfirmasi pembuatan akun: verifikasi hasil ke database jika iframe lambat. */
+(()=>{
+  if(document.querySelector('script[data-pn-account-create-timeout-fix]'))return;
+  const script=document.createElement('script');
+  script.src='js/admin-account-create-timeout-fix-v1.js?v=1';
+  script.async=false;
+  script.dataset.pnAccountCreateTimeoutFix='1';
+  document.head.appendChild(script);
+})();
