@@ -1,0 +1,33 @@
+name: Install admin account portal v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/install_admin_account_portal_v1.py'
+      - 'backend/AdminAccountPortal.gs'
+      - 'js/admin-account-portal-v1.js'
+      - '.github/workflows/install-admin-account-portal-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install admin account portal
+        run: python tools/install_admin_account_portal_v1.py
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/Code.gs js/admin-compact-v1.js index.html
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+          else
+            git commit -m "Aktifkan portal akun anggota admin"
+            git push
+          fi
