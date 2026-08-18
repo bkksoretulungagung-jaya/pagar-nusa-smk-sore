@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 (()=>{
   if(document.querySelector('script[data-pn-account-create-v2]'))return;
   const script=document.createElement('script');
-  script.src='js/admin-account-create-v2.js?v=2';
+  script.src='js/admin-account-create-v2.js?v=3';
   script.async=false;
   script.dataset.pnAccountCreateV2='1';
   document.head.appendChild(script);
