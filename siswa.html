@@ -63,9 +63,10 @@ const FIREBASE_CONFIG={
 };
 
 const CONTENT_ENDPOINT='https://script.google.com/macros/s/AKfycbyJi_83lJ11JshOLCzIBRMX6fEi-y9UGR9eYULuqH1BivdxeqcgMB0l2ehWBIgaad8Oyw/exec';
-const FALLBACK_GOOGLE_FORM_URL='https://forms.gle/tNFHcxG1FNJFmbNw8';
-let GOOGLE_FORM_URL=FALLBACK_GOOGLE_FORM_URL;
 let CBT_ENABLED=true;
+let currentFormUrl='';
+let currentAccessEndAt='';
+let loginInFlight=false;
 
 const $=id=>document.getElementById(id);
 const loginView=$('loginView'),studentView=$('studentView'),form=$('loginForm'),username=$('username'),email=$('email'),password=$('password'),loginBtn=$('loginBtn'),loginError=$('loginError'),notice=$('setupNotice'),studentName=$('studentName'),studentEmail=$('studentEmail'),logoutBtn=$('logoutBtn'),examBtn=$('examBtn'),formNote=$('formNote'),examCard=$('examCard'),finishWrap=$('finishWrap'),finishExamBtn=$('finishExamBtn'),cbtThanksView=$('cbtThanksView'),cbtThanksName=$('cbtThanksName'),cbtLogoutBtn=$('cbtLogoutBtn');
@@ -86,7 +87,6 @@ function syncCbtState(user,name){
   finishWrap.classList.toggle('hidden',!started);
 }
 
-function validGoogleFormUrl(value){return /^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(String(value||'').trim())}
 function contentJsonp(action,payload={},timeout=12000){
   return new Promise((resolve,reject)=>{
     const cb='pnCbtCfg_'+Date.now()+'_'+Math.random().toString(36).slice(2).replace(/\W/g,'');
@@ -106,46 +106,59 @@ function applyCbtConfig(items){
   const item=arr.find(x=>String(x?.id||'')==='CFG-CBT')||arr.find(x=>String(x?.type||'').toUpperCase()==='PENGATURAN'&&String(x?.title||'').toUpperCase()==='PORTAL CBT ONLINE');
   const state=String(item?.body||item?.summary||'ON').trim().toUpperCase();
   CBT_ENABLED=state!=='OFF';
-  const savedLink=String(item?.link||'').trim();
-  GOOGLE_FORM_URL=validGoogleFormUrl(savedLink)?savedLink:FALLBACK_GOOGLE_FORM_URL;
-  if(CBT_ENABLED&&validGoogleFormUrl(GOOGLE_FORM_URL)){
-    examBtn.href=GOOGLE_FORM_URL;
-    examBtn.classList.remove('disabled');
-    formNote.innerHTML='Jawaban dan nilai akan disimpan melalui Google Form/Google Sheets.<br><b>Sesudah menekan Kirim di Google Form, kembali ke portal ini untuk mengonfirmasi bahwa CBT sudah selesai.</b>';
-  }else if(!CBT_ENABLED){
-    examBtn.removeAttribute('href');examBtn.classList.add('disabled');
-    formNote.textContent='Portal CBT sedang ditutup oleh admin.';
-  }else{
-    examBtn.removeAttribute('href');examBtn.classList.add('disabled');
-    formNote.textContent='Link Google Form CBT belum dipasang oleh admin.';
-  }
+  currentFormUrl='';currentAccessEndAt='';
+  examBtn.removeAttribute('href');examBtn.classList.add('disabled');
+  formNote.textContent=CBT_ENABLED?'Login akan diverifikasi dengan jadwal ujian oleh server.':'Portal CBT sedang ditutup oleh admin.';
 }
 async function loadCbtConfig(){
-  try{
-    const r=await contentJsonp('contentPublicList');
-    if(r?.ok)applyCbtConfig(r.content);else applyCbtConfig([]);
-  }catch(_){applyCbtConfig([])}
+  try{const r=await contentJsonp('contentPublicList');if(r?.ok)applyCbtConfig(r.content);else applyCbtConfig([])}catch(_){applyCbtConfig([])}
+}
+function cbtRequest(action,payload={},timeout=25000){return new Promise((resolve,reject)=>{
+  const rid='cbt-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+  const frame=document.createElement('iframe');frame.name='pnCbtFrame'+rid.replace(/\W/g,'');frame.style.display='none';
+  const form=document.createElement('form');form.method='POST';form.action=CONTENT_ENDPOINT;form.target=frame.name;form.style.display='none';
+  Object.entries({action,rid,...payload}).forEach(([k,v])=>{const i=document.createElement('input');i.type='hidden';i.name=k;i.value=String(v??'');form.appendChild(i)});
+  let done=false;const clean=()=>{window.removeEventListener('message',onMsg);clearTimeout(timer);form.remove();setTimeout(()=>frame.remove(),250)};
+  const onMsg=e=>{const d=e.data;if(!d||d.source!=='pn-cbt'||d.rid!==rid||done)return;done=true;clean();d.ok?resolve(d):reject(new Error(d.message||'Verifikasi jadwal CBT gagal.'))};
+  window.addEventListener('message',onMsg);const timer=setTimeout(()=>{if(done)return;done=true;clean();reject(new Error('Server jadwal CBT terlalu lama merespons.'))},timeout);
+  document.body.append(frame,form);form.submit();
+})}
+async function authorizeCbt(user,uname){
+  if(!CBT_ENABLED)throw new Error('Portal CBT sedang ditutup oleh admin.');
+  const idToken=await user.getIdToken(true);
+  const r=await cbtRequest('cbtAccessCheck',{username:uname,idToken});
+  if(!r.allowed)throw new Error(r.message||'Akun Anda belum mendapat jadwal CBT.');
+  currentFormUrl=String(r.formUrl||'');currentAccessEndAt=String(r.endAt||'');
+  if(!/^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(currentFormUrl))throw new Error('Link soal CBT belum tersedia.');
+  examBtn.href=currentFormUrl;examBtn.classList.remove('disabled');
+  formNote.innerHTML='✓ Akun Anda terjadwal mengikuti CBT.<br><b>Akses berlaku sampai '+new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',dateStyle:'medium',timeStyle:'short'}).format(new Date(currentAccessEndAt))+' WIB.</b>';
+  return r;
 }
 loadCbtConfig();
 
 if(configReady){
   notice.textContent='Portal anggota aktif. Silakan login menggunakan akun masing-masing.';notice.classList.add('ok');loginBtn.disabled=false;
   const app=initializeApp(FIREBASE_CONFIG);const auth=getAuth(app);setPersistence(auth,browserSessionPersistence).catch(()=>{});
-  const showLogin=()=>{currentStudentUser=null;loginView.classList.remove('hidden');studentView.classList.add('hidden');password.value=''};
+  const showLogin=()=>{currentStudentUser=null;currentFormUrl='';currentAccessEndAt='';examBtn.removeAttribute('href');examBtn.classList.add('disabled');loginView.classList.remove('hidden');studentView.classList.add('hidden');password.value=''};
   const showStudent=(user,name)=>{studentName.textContent=name||user.displayName||'Anggota';studentEmail.textContent=user.email||'-';loginView.classList.add('hidden');studentView.classList.remove('hidden');syncCbtState(user,name)};
-  onAuthStateChanged(auth,user=>{if(user){const saved=sessionStorage.getItem('pnStudentUsername')||user.displayName||'Anggota';showStudent(user,saved)}else showLogin()});
+  onAuthStateChanged(auth,async user=>{
+    if(!user){showLogin();return}
+    if(loginInFlight)return;
+    const saved=sessionStorage.getItem('pnStudentUsername')||String(user.displayName||'').trim();
+    if(!saved){try{await signOut(auth)}catch(_){};return}
+    try{await authorizeCbt(user,saved);showStudent(user,saved)}catch(err){loginError.textContent=err.message||'Akun Anda belum dijadwalkan CBT.';try{await signOut(auth)}catch(_){}}
+  });
   form.addEventListener('submit',async e=>{
-    e.preventDefault();loginError.textContent='';loginBtn.disabled=true;loginBtn.textContent='MEMERIKSA...';
-    const uname=username.value.trim();
+    e.preventDefault();loginError.textContent='';loginBtn.disabled=true;loginBtn.textContent='MEMERIKSA JADWAL...';
+    const uname=username.value.trim();loginInFlight=true;
     try{
       const cred=await signInWithEmailAndPassword(auth,email.value.trim(),password.value);
       const display=String(cred.user.displayName||'').trim();
-      if(display && display.toLowerCase()!==uname.toLowerCase()){
-        await signOut(auth);throw new Error('USERNAME_MISMATCH');
-      }
+      if(display && display.toLowerCase()!==uname.toLowerCase())throw new Error('Username tidak sesuai dengan akun tersebut.');
+      await authorizeCbt(cred.user,uname);
       sessionStorage.setItem('pnStudentUsername',uname);showStudent(cred.user,uname);
-    }catch(err){loginError.textContent=err?.message==='USERNAME_MISMATCH'?'Username tidak sesuai dengan akun tersebut.':'Username, email, atau password salah / akun belum dibuat.'}
-    finally{loginBtn.disabled=false;loginBtn.textContent='MASUK PORTAL CBT ONLINE'}
+    }catch(err){sessionStorage.removeItem('pnStudentUsername');loginError.textContent=err?.message||'Username, email, atau password salah / akun belum dijadwalkan.';try{await signOut(auth)}catch(_){}}
+    finally{loginInFlight=false;loginBtn.disabled=false;loginBtn.textContent='MASUK PORTAL CBT ONLINE'}
   });
   examBtn.addEventListener('click',()=>{
     if(!currentStudentUser||examBtn.classList.contains('disabled')) return;
