@@ -283,3 +283,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   script.dataset.pnAspelMonitor='1';
   document.head.appendChild(script);
 })();
+
+
+/* Load Portal Akun Anggota khusus area admin. */
+(()=>{
+  if(document.querySelector('script[data-pn-account-admin]'))return;
+  const script=document.createElement('script');
+  script.src='js/admin-account-portal-v1.js?v=1';
+  script.async=false;
+  script.dataset.pnAccountAdmin='1';
+  document.head.appendChild(script);
+})();

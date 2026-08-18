@@ -48,6 +48,7 @@ const PN_BIODATA_SHEET_NAME = 'Data Biodata Siswa Anggota';
 const PN_BIODATA_LOG_SHEET_NAME = 'Log Perubahan Biodata';
 const PN_PORTAL_ACCOUNT_SHEET_NAME = 'Akun Portal Siswa';
 const PN_FIREBASE_API_KEY = 'AIzaSyCMWsvVJPem3_5Y-x8Zrjz90LodbNLkxUs';
+const PN_FIREBASE_PROJECT_ID = 'pagar-nusa-smk-sore';
 const PN_CBT_SCHEDULE_SHEET_NAME = 'Jadwal CBT';
 const PN_CBT_LOG_SHEET_NAME = 'Log CBT';
 const PN_CBT_CONFIG_PROPERTY = 'PN_CBT_CONFIG_V2';
@@ -99,6 +100,8 @@ function doGet(e) {
       pdfWatermarkVersion:'1',
       aspelMonitor:true,
       aspelMonitorVersion:'1',
+      accountAdminPortal:true,
+      accountAdminPortalVersion:'1',
       adminPassword:true,
       adminPasswordVersion:'4',
       adminPersistentSession:true,
@@ -174,6 +177,15 @@ function doGet(e) {
     } catch (err) {
       result = {ok:false, coordinators:[], summary:{coordinatorCount:0,memberCount:0,candidateCount:0,unassignedCount:0,ignoredNonCandidateCount:0}, message:String(err && err.message || err)};
     }
+    result.rid = String(data.rid || '');
+    if (data.callback) return jsonp_(result, data.callback);
+    return json_(result);
+  }
+
+  if (action === 'portalAccountAdminList') {
+    let result;
+    try { result = portalAccountAdminList_(data); }
+    catch (err) { result = {ok:false, accounts:[], summary:{total:0,anggota:0,calon:0,activeAccounts:0,missingAccounts:0}, message:String(err && err.message || err)}; }
     result.rid = String(data.rid || '');
     if (data.callback) return jsonp_(result, data.callback);
     return json_(result);
@@ -508,6 +520,18 @@ function doPost(e) {
       return iframeResult_(result, 'pn-content');
     }
 
+    if (action === 'portalAccountAdminUpdate') {
+      result = portalAccountAdminUpdate_(data);
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-account-admin');
+    }
+
+    if (action === 'portalAccountAdminResetPassword') {
+      result = portalAccountAdminResetPassword_(data);
+      result.rid = String(data.rid || '');
+      return iframeResult_(result, 'pn-account-admin');
+    }
+
     if (action === 'contentAdminLogin') {
       result = reviewAdminLogin_(data);
       result.rid = String(data.rid || '');
@@ -563,6 +587,9 @@ function doPost(e) {
     }
     if (['reviewSubmit','reviewPublicList','reviewAdminLogin','reviewAdminList','reviewModerate'].includes(action)) {
       return iframeResult_(result, 'pn-reviews');
+    }
+    if (['portalAccountAdminUpdate','portalAccountAdminResetPassword'].includes(action)) {
+      return iframeResult_(result, 'pn-account-admin');
     }
     if (['contentAdminLogin','contentAdminSave','contentAdminDelete','contentAdminSeed','contentUploadImage','adminChangePassword','adminPasswordRecover','materiLogin','materiLogout','materiAdminSetAccess','materiAdminUpload','materiAdminDelete','pengurusLogin','pengurusLogout','pengurusAdminSave','pengurusAdminSetStatus','cbtScheduleAdminSave'].includes(action)) {
       contentRememberResult_(data.rid, result);
