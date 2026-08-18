@@ -35,3 +35,4 @@ if shortcut not in text and marker in text:
 
 path.write_text(text, encoding='utf-8')
 print('materi-pengurus.html dibersihkan ke sistem akun pribadi V3')
+# trigger workflow v3
