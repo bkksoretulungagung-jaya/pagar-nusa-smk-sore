@@ -50,6 +50,8 @@ const PN_PORTAL_ACCOUNT_SHEET_NAME = 'Akun Portal Siswa';
 const PN_FIREBASE_API_KEY = 'AIzaSyCMWsvVJPem3_5Y-x8Zrjz90LodbNLkxUs';
 const PN_CBT_SCHEDULE_SHEET_NAME = 'Jadwal CBT';
 const PN_CBT_LOG_SHEET_NAME = 'Log CBT';
+const PN_CBT_CONFIG_PROPERTY = 'PN_CBT_CONFIG_V2';
+const PN_CBT_TOKEN_CACHE_SECONDS = 300;
 const PN_CONSENT = 'Saya bersedia mengikuti Ekstrakurikuler Pencak Silat Pagar Nusa. Saya Siap dan bersedia mengikuti Ekstrakurikuler Pencak Silat Pagar Nusa Rayon SMK Sore Tulungagung, dan Sudah dapat izin dari kedua orang tua.';
 const PN_MAJORS = ['DPIB','TITL','TPM','TKR','TP','TSM','TEI','TKJ'];
 const PN_BIODATA_HEADERS = [
@@ -87,6 +89,8 @@ function doGet(e) {
       contentVersion:'1',
       cbtSchedule:true,
       cbtScheduleVersion:'1',
+      cbtFastLogin:true,
+      cbtFastLoginVersion:'2',
       materiPengurus:true,
       materiPengurusVersion:'1',
       pengurusPortal:true,
@@ -1508,38 +1512,120 @@ function cbtFormSetting_() {
   return {enabled:state !== 'OFF', link:valid ? link : ''};
 }
 
+function cbtStoreConfigProperty_(state, link) {
+  const normalizedState = String(state || 'ON').trim().toUpperCase() === 'OFF' ? 'OFF' : 'ON';
+  const rawLink = String(link || '').trim();
+  const safeLink = /^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(rawLink) ? rawLink : '';
+  PropertiesService.getScriptProperties().setProperty(PN_CBT_CONFIG_PROPERTY, JSON.stringify({
+    enabled:normalizedState !== 'OFF',
+    link:safeLink,
+    updatedAt:Date.now()
+  }));
+}
+
+function cbtFormSettingFast_() {
+  const props = PropertiesService.getScriptProperties();
+  const raw = String(props.getProperty(PN_CBT_CONFIG_PROPERTY) || '');
+  if (raw) {
+    try {
+      const saved = JSON.parse(raw);
+      return {enabled:saved.enabled !== false, link:String(saved.link || '')};
+    } catch (_) {}
+  }
+  const cfg = cbtFormSetting_();
+  cbtStoreConfigProperty_(cfg.enabled ? 'ON' : 'OFF', cfg.link);
+  return cfg;
+}
+
+function verifyFirebaseTokenCached_(idToken) {
+  const token = String(idToken || '').trim();
+  if (!token) throw new Error('Sesi login tidak tersedia.');
+  const cache = CacheService.getScriptCache();
+  const key = 'pn-cbt-firebase-v2:' + sha256Hex_(token).slice(0,40);
+  try {
+    const raw = cache.get(key);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj && obj.email && obj.localId) return obj;
+    }
+  } catch (_) {}
+  const user = verifyFirebaseToken_(token);
+  const compact = {email:String(user.email || ''), localId:String(user.localId || '')};
+  try { cache.put(key, JSON.stringify(compact), PN_CBT_TOKEN_CACHE_SECONDS); } catch (_) {}
+  return compact;
+}
+
+function cbtAccountScheduleFast_(username, email) {
+  const book = SpreadsheetApp.openById(PN_BIODATA_SPREADSHEET_ID);
+  const accountSheet = book.getSheetByName(PN_PORTAL_ACCOUNT_SHEET_NAME);
+  if (!accountSheet) throw new Error('Sheet Akun Portal Siswa tidak ditemukan.');
+
+  const u = String(username || '').trim().toLowerCase();
+  const e = String(email || '').trim().toLowerCase();
+  let account = null;
+  const lastAccount = accountSheet.getLastRow();
+  if (lastAccount >= 2) {
+    const rows = accountSheet.getRange(2,1,lastAccount-1,5).getDisplayValues();
+    for (let i=0;i<rows.length;i++) {
+      const rowUser = String(rows[i][0] || '').trim().toLowerCase();
+      const rowEmail = String(rows[i][2] || '').trim().toLowerCase();
+      if (rowUser === u && rowEmail === e) {
+        account = {
+          row:i+2,
+          username:String(rows[i][0] || '').trim(),
+          memberId:String(rows[i][1] || '').trim(),
+          email:rowEmail,
+          uid:String(rows[i][3] || '').trim(),
+          status:String(rows[i][4] || 'AKTIF').trim().toUpperCase()
+        };
+        break;
+      }
+    }
+  }
+
+  let schedule = null;
+  const scheduleSheet = book.getSheetByName(PN_CBT_SCHEDULE_SHEET_NAME);
+  if (account && scheduleSheet && scheduleSheet.getLastRow() >= 2) {
+    const rows = scheduleSheet.getRange(2,1,scheduleSheet.getLastRow()-1,9).getValues();
+    const target = account.username.toLowerCase();
+    for (let i=0;i<rows.length;i++) {
+      if (String(rows[i][0] || '').trim().toLowerCase() === target) {
+        schedule = cbtScheduleObject_(rows[i]);
+        break;
+      }
+    }
+  }
+  return {book:book, accountSheet:accountSheet, account:account, schedule:schedule};
+}
+
 function cbtAccessCheck_(data) {
+  const startedAt = Date.now();
   const username = String(data.username || '').trim();
   const idToken = String(data.idToken || '').trim();
   if (!username || !idToken) throw new Error('Username dan sesi login CBT wajib tersedia.');
-  const firebaseUser = verifyFirebaseToken_(idToken);
+
+  const firebaseUser = verifyFirebaseTokenCached_(idToken);
   const email = String(firebaseUser.email || '').trim().toLowerCase();
   const uid = String(firebaseUser.localId || '').trim();
   if (!email || !uid) throw new Error('Akun Firebase tidak valid.');
 
-  const accounts = cbtPortalAccounts_();
-  const account = accounts.find(function(x){
-    return x.username.toLowerCase() === username.toLowerCase() && x.email === email;
-  });
+  const dataFast = cbtAccountScheduleFast_(username, email);
+  const account = dataFast.account;
   if (!account) {
-    cbtScheduleLog_(username,'',email,'AKSES_DITOLAK','Username/email tidak cocok dengan Akun Portal Siswa.');
     return {ok:true,allowed:false,code:'ACCOUNT_NOT_FOUND',message:'Akun CBT tidak terdaftar. Hubungi admin.'};
   }
   if (account.status !== 'AKTIF') {
-    cbtScheduleLog_(account.username,account.memberId,email,'AKSES_DITOLAK','Akun portal NONAKTIF.');
     return {ok:true,allowed:false,code:'ACCOUNT_INACTIVE',message:'Akun portal Anda sedang nonaktif.'};
   }
   if (account.uid && account.uid !== uid) {
-    cbtScheduleLog_(account.username,account.memberId,email,'AKSES_DITOLAK','UID Firebase tidak cocok.');
     return {ok:true,allowed:false,code:'UID_MISMATCH',message:'Akun ini sudah terhubung dengan pengguna lain. Hubungi admin.'};
   }
   if (!account.uid) {
-    try { cbtScheduleSheets_().book.getSheetByName(PN_PORTAL_ACCOUNT_SHEET_NAME).getRange(account.row,4).setValue(uid); } catch (_) {}
+    try { dataFast.accountSheet.getRange(account.row,4).setValue(uid); } catch (_) {}
   }
 
-  const schedule = cbtScheduleMap_()[account.username.toLowerCase()] || null;
+  const schedule = dataFast.schedule;
   if (!schedule || !schedule.exists || schedule.status !== 'AKTIF') {
-    cbtScheduleLog_(account.username,account.memberId,email,'AKSES_DITOLAK','Belum memiliki jadwal CBT aktif.');
     return {ok:true,allowed:false,code:'NOT_SCHEDULED',message:'Anda belum dijadwalkan mengikuti CBT. Hubungi admin/pengurus.'};
   }
   const start = new Date(schedule.startAt).getTime();
@@ -1547,18 +1633,16 @@ function cbtAccessCheck_(data) {
   const now = Date.now();
   if (!start || !end) return {ok:true,allowed:false,code:'INVALID_SCHEDULE',message:'Jadwal CBT akun Anda belum valid. Hubungi admin.'};
   if (now < start) {
-    cbtScheduleLog_(account.username,account.memberId,email,'AKSES_DITOLAK','Belum waktunya ujian.');
     return {ok:true,allowed:false,code:'NOT_STARTED',message:'Jadwal CBT Anda belum dimulai.',startAt:schedule.startAt,endAt:schedule.endAt};
   }
   if (now > end) {
-    cbtScheduleLog_(account.username,account.memberId,email,'AKSES_DITOLAK','Waktu ujian sudah selesai.');
     return {ok:true,allowed:false,code:'EXPIRED',message:'Waktu CBT Anda sudah selesai.',startAt:schedule.startAt,endAt:schedule.endAt};
   }
-  const cfg = cbtFormSetting_();
+
+  const cfg = cbtFormSettingFast_();
   if (!cfg.enabled) return {ok:true,allowed:false,code:'PORTAL_OFF',message:'Portal CBT sedang ditutup oleh admin.'};
   if (!cfg.link) return {ok:true,allowed:false,code:'NO_FORM',message:'Link soal CBT belum dipasang oleh admin.'};
 
-  cbtScheduleLog_(account.username,account.memberId,email,'AKSES_DIBERIKAN','Jadwal aktif sampai ' + schedule.endAt);
   return {
     ok:true,
     allowed:true,
@@ -1568,8 +1652,9 @@ function cbtAccessCheck_(data) {
     startAt:schedule.startAt,
     endAt:schedule.endAt,
     formUrl:cfg.link,
+    responseMs:Date.now()-startedAt,
     message:'Akses CBT diizinkan sesuai jadwal.',
-    version:'1'
+    version:'2'
   };
 }
 
@@ -1711,6 +1796,9 @@ function contentSaveItem_(section, item, admin) {
     const order=Math.max(1,Math.min(999,Number(item.order||999)));
     const row=[id,type,title,summary,body,date,badge,link,status,order,admin,now];
     contentUpsertRow_(sheets.content,id,row,12);
+    if (id === 'CFG-CBT') {
+      try { cbtStoreConfigProperty_(body || summary || 'ON', link); } catch (_) {}
+    }
     return {id:id,type:type,title:title,summary:summary,body:body,date:date,badge:badge,link:link,status:status,order:order};
   }
   if (section === 'gallery') {
