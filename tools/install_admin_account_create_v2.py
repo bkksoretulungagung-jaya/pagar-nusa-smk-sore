@@ -51,7 +51,7 @@ username_replacement = """function portalAccountUsername_(value) {
   return username;
 }"""
 if "Username harus 3–100 karakter." not in code:
-    code, count = username_pattern.subn(username_replacement, code, count=1)
+    code, count = username_pattern.subn(lambda _match: username_replacement, code, count=1)
     if count != 1:
         raise SystemExit('Fungsi portalAccountUsername_ lama tidak ditemukan')
 
@@ -85,5 +85,3 @@ CODE.write_text(code, encoding='utf-8')
 COMPACT.write_text(compact, encoding='utf-8')
 INDEX.write_text(index, encoding='utf-8')
 print('Akun Anggota V2 aktif pada source website dan backend Code.gs.')
-
-# Perubahan kecil ini sengaja dipertahankan agar workflow V2 terpanggil setelah workflow terdaftar.
