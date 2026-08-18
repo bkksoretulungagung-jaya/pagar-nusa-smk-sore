@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+import runpy
 
 ROOT = Path(__file__).resolve().parents[1]
 CODE = ROOT / 'backend' / 'Code.gs'
@@ -12,7 +13,7 @@ backend_v2 = BACKEND_V2.read_text(encoding='utf-8').strip()
 compact = COMPACT.read_text(encoding='utf-8')
 index = INDEX.read_text(encoding='utf-8')
 
-# Tandai versi backend portal akun terbaru.
+# Tandai versi backend portal akun terbaru sebelum kebijakan aktif diterapkan.
 code = code.replace("      accountAdminPortalVersion:'1',", "      accountAdminPortalVersion:'3',", 1)
 code = code.replace("      accountAdminPortalVersion:'2',", "      accountAdminPortalVersion:'3',", 1)
 
@@ -93,13 +94,16 @@ elif 'admin-account-create-v2.js' not in compact:
 })();
 """
 
-# Paksa browser mengambil admin loader terbaru.
-if 'js/admin-compact-v1.js?v=7' not in index:
-    if 'js/admin-compact-v1.js?v=6' not in index:
-        raise SystemExit('Anchor cache admin-compact v6 tidak ditemukan')
+# Cache lama hanya dinaikkan bila masih ada. Versi yang lebih baru dibiarkan.
+if 'js/admin-compact-v1.js?v=6' in index:
     index = index.replace('js/admin-compact-v1.js?v=6', 'js/admin-compact-v1.js?v=7', 1)
 
 CODE.write_text(code, encoding='utf-8')
 COMPACT.write_text(compact, encoding='utf-8')
 INDEX.write_text(index, encoding='utf-8')
-print('Akun Anggota V3 aktif: akun setengah jadi dapat dilengkapi lewat BUAT AKUN.')
+
+# Terapkan kebijakan final: hanya Anggota / Calon Anggota yang masih Aktif
+# yang ditampilkan, dapat dibuatkan akun, dan dapat login.
+runpy.run_path(str(ROOT / 'tools' / 'install_active_member_account_policy_v1.py'), run_name='__main__')
+
+print('Akun Anggota aktif: hanya biodata Anggota/Calon Anggota berstatus Aktif yang digunakan.')
