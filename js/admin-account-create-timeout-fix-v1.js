@@ -23,7 +23,7 @@ function setBusy(value){
   });
 }
 
-function jsonp(action,payload={},timeoutMs=18000){
+function jsonp(action,payload={},timeoutMs=6000){
   return new Promise((resolve,reject)=>{
     const cb='pnAccountCreateVerify_'+Date.now()+'_'+Math.random().toString(36).slice(2).replace(/[^a-z0-9_]/gi,'');
     const script=document.createElement('script');
@@ -39,15 +39,19 @@ function jsonp(action,payload={},timeoutMs=18000){
   });
 }
 
-async function verifyCreated(token,memberId,email,maxMs=70000){
+function sameText(a,b){return String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase()}
+
+async function verifyCreated(token,memberId,email,maxMs=22000){
   const started=Date.now();
+  let first=true;
   while(Date.now()-started<maxMs){
-    await sleep(1800);
+    await sleep(first?400:850);
+    first=false;
     try{
-      const data=await jsonp('portalAccountAdminList',{token},15000);
+      const data=await jsonp('portalAccountAdminList',{token},6000);
       if(data&&data.ok){
-        const found=(data.accounts||[]).find(item=>String(item.memberId||'').trim().toLowerCase()===String(memberId||'').trim().toLowerCase());
-        if(found&&found.hasAccount&&String(found.email||'').trim().toLowerCase()===String(email||'').trim().toLowerCase()){
+        const found=(data.accounts||[]).find(item=>sameText(item.memberId,memberId));
+        if(found&&found.hasAccount&&sameText(found.email,email)&&(String(found.uid||'').trim()||String(found.email||'').trim())){
           return {ok:true,verified:true,message:'Akun berhasil dibuat dan sudah terhubung ke Firebase serta database anggota.'};
         }
       }
@@ -58,9 +62,9 @@ async function verifyCreated(token,memberId,email,maxMs=70000){
 
 function submitPost(payload){
   return new Promise((resolve,reject)=>{
-    const rid='pn-account-create-safe-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+    const rid='pn-account-create-fast-'+Date.now()+'-'+Math.random().toString(36).slice(2);
     const frame=document.createElement('iframe');
-    frame.name='pnAccountCreateSafe_'+rid.replace(/[^a-zA-Z0-9_]/g,'');
+    frame.name='pnAccountCreateFast_'+rid.replace(/[^a-zA-Z0-9_]/g,'');
     frame.style.display='none';frame.setAttribute('aria-hidden','true');
     const form=document.createElement('form');
     form.method='POST';form.action=ENDPOINT;form.target=frame.name;form.style.display='none';
@@ -70,8 +74,7 @@ function submitPost(payload){
     });
 
     let done=false;
-    let verifyDone=false;
-    const cleanup=()=>{window.removeEventListener('message',onMessage);clearTimeout(hardTimer);form.remove();setTimeout(()=>frame.remove(),500)};
+    const cleanup=()=>{window.removeEventListener('message',onMessage);clearTimeout(hardTimer);form.remove();setTimeout(()=>frame.remove(),300)};
     const finishOk=result=>{if(done)return;done=true;cleanup();resolve(result)};
     const finishErr=err=>{if(done)return;done=true;cleanup();reject(err instanceof Error?err:new Error(String(err||'Pembuatan akun gagal.')))};
     const onMessage=event=>{
@@ -81,18 +84,19 @@ function submitPost(payload){
     };
     window.addEventListener('message',onMessage);
 
-    verifyCreated(payload.token,payload.memberId,payload.email,70000).then(result=>{
-      verifyDone=true;
+    document.body.appendChild(frame);
+    document.body.appendChild(form);
+    form.submit();
+
+    // Jangan menunggu postMessage sampai timeout. Mulai cek database hampir seketika.
+    verifyCreated(payload.token,payload.memberId,payload.email,22000).then(result=>{
       if(result)finishOk(result);
-    }).catch(()=>{verifyDone=true});
+    }).catch(()=>{});
 
     const hardTimer=setTimeout(()=>{
       if(done)return;
-      const suffix=verifyDone?'':' Pemeriksaan database juga belum selesai.';
-      finishErr(new Error('Belum menerima konfirmasi akhir dari server.'+suffix+' Klik MUAT ULANG sebelum mencoba lagi agar tidak membuat akun ganda.'));
-    },85000);
-
-    document.body.appendChild(frame);document.body.appendChild(form);form.submit();
+      finishErr(new Error('Konfirmasi server belum diterima. Klik MUAT ULANG untuk mengecek hasil sebelum mencoba lagi.'));
+    },25000);
   });
 }
 
@@ -124,13 +128,13 @@ async function handleSubmit(event){
 
   try{
     setBusy(true);
-    setMessage('','Membuat akun Firebase... Sistem juga akan memeriksa database sampai akun benar-benar tercatat.');
+    setMessage('','Membuat akun... Sistem akan langsung selesai begitu akun terdeteksi di database.');
     const res=await submitPost({token,memberId,username,email,status,password:p1});
     setMessage('ok',res.message||'Akun berhasil dibuat.');
     if($('pnAccountCreateV2Password'))$('pnAccountCreateV2Password').value='';
     if($('pnAccountCreateV2Password2'))$('pnAccountCreateV2Password2').value='';
     $('pnAccountRefresh')?.click();
-    setTimeout(()=>$('pnAccountCreateV2Modal')?.classList.add('hidden'),1400);
+    setTimeout(()=>$('pnAccountCreateV2Modal')?.classList.add('hidden'),900);
   }catch(err){
     setMessage('err',err&&err.message?err.message:String(err));
   }finally{
