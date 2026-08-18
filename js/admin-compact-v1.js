@@ -294,3 +294,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   script.dataset.pnAccountAdmin='1';
   document.head.appendChild(script);
 })();
+
+
+/* Akun Anggota V2: nama portal ringkas + buat akun dari biodata. */
+(()=>{
+  if(document.querySelector('script[data-pn-account-create-v2]'))return;
+  const script=document.createElement('script');
+  script.src='js/admin-account-create-v2.js?v=2';
+  script.async=false;
+  script.dataset.pnAccountCreateV2='1';
+  document.head.appendChild(script);
+})();
