@@ -29,3 +29,5 @@ if 'js/admin-compact-v1.js?v=8' not in index:
 COMPACT.write_text(compact, encoding='utf-8')
 INDEX.write_text(index, encoding='utf-8')
 print('Fix timeout pembuatan akun anggota aktif.')
+
+# Trigger workflow setelah workflow terdaftar.
