@@ -316,3 +316,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   script.dataset.pnAccountCreateTimeoutFix='1';
   document.head.appendChild(script);
 })();
+
+
+/* Simpan perubahan akun cepat: verifikasi hasil langsung ke database. */
+(()=>{
+  if(document.querySelector('script[data-pn-account-save-fast]'))return;
+  const script=document.createElement('script');
+  script.src='js/admin-account-save-fast-v1.js?v=1';
+  script.async=false;
+  script.dataset.pnAccountSaveFast='1';
+  document.head.appendChild(script);
+})();
