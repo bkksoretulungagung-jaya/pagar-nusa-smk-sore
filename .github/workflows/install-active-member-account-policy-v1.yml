@@ -1,0 +1,32 @@
+name: Install active member account policy v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/ActiveMemberAccountPolicyV1.gs'
+      - 'tools/install_active_member_account_policy_v1.py'
+      - '.github/workflows/install-active-member-account-policy-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install active member account policy
+        run: python tools/install_active_member_account_policy_v1.py
+      - name: Commit generated Code.gs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "4189826+github-actions[bot]@users.noreply.github.com"
+          git add backend/Code.gs
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+          else
+            git commit -m "Aktifkan kebijakan akun anggota aktif"
+            git push
+          fi
