@@ -1,0 +1,31 @@
+name: Add Materi Pengurus admin menu v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/add_materi_admin_menu_v1.py'
+      - '.github/workflows/add-materi-admin-menu-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add Materi Pengurus menu
+        run: python tools/add_materi_admin_menu_v1.py
+      - name: Commit menu
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Tampilkan menu Materi Pengurus di Area Admin"
+            git push
+          fi
