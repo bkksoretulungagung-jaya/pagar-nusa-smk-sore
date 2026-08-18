@@ -1,0 +1,31 @@
+name: Upgrade pengurus accounts v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/upgrade_pengurus_accounts_v2.py'
+      - '.github/workflows/upgrade-pengurus-accounts-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pengurus account portal v2
+        run: python tools/upgrade_pengurus_accounts_v2.py
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/Code.gs index.html materi-pengurus.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Aktifkan akun email password pengurus"
+            git push
+          fi
