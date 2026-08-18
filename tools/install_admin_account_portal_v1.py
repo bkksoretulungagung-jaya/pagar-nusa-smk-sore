@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CODE = ROOT / 'backend' / 'Code.gs'
+PORTAL = ROOT / 'backend' / 'AdminAccountPortal.gs'
 COMPACT = ROOT / 'js' / 'admin-compact-v1.js'
 INDEX = ROOT / 'index.html'
 
@@ -15,6 +16,7 @@ def insert_before(text, anchor, block, marker):
 
 
 code = CODE.read_text(encoding='utf-8')
+portal_backend = PORTAL.read_text(encoding='utf-8').strip()
 compact = COMPACT.read_text(encoding='utf-8')
 index = INDEX.read_text(encoding='utf-8')
 
@@ -66,6 +68,9 @@ if "['portalAccountAdminUpdate','portalAccountAdminResetPassword'].includes(acti
     if catch_anchor not in code:
         raise SystemExit('Anchor catch tidak ditemukan')
     code = code.replace(catch_anchor, catch_block + catch_anchor, 1)
+
+if 'function portalAccountAdminList_(' not in code:
+    code = code.rstrip() + "\n\n/* PORTAL AKUN ANGGOTA ADMIN V1 */\n" + portal_backend + "\n"
 
 if 'admin-account-portal-v1.js' not in compact:
     compact += """
