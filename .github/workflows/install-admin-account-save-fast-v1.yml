@@ -1,0 +1,32 @@
+name: Install admin account save fast v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/install_admin_account_save_fast_v1.py'
+      - 'js/admin-account-save-fast-v1.js'
+      - '.github/workflows/install-admin-account-save-fast-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install fast account save
+        run: python tools/install_admin_account_save_fast_v1.py
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/admin-compact-v1.js index.html
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+          else
+            git commit -m "Aktifkan simpan akun cepat"
+            git push
+          fi
