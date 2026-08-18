@@ -101,7 +101,7 @@ function doGet(e) {
       aspelMonitor:true,
       aspelMonitorVersion:'1',
       accountAdminPortal:true,
-      accountAdminPortalVersion:'3',
+      accountAdminPortalVersion:'4',
       adminPassword:true,
       adminPasswordVersion:'4',
       adminPersistentSession:true,
@@ -774,6 +774,8 @@ function authorizePortalStudent_(data) {
 
   const currentUid = String(accountSheet.getRange(rowIndex,4).getDisplayValue() || '').trim();
   if (!currentUid) accountSheet.getRange(rowIndex,4).setValue(uid);
+
+  portalAccountRequireActiveLogin_(book, memberId);
 
   return {
     book:book,
@@ -3358,17 +3360,18 @@ function portalAccountAdminList_(data) {
     if (key && !byMemberId[key]) byMemberId[key] = a;
   });
 
-  const usedRows = {};
   const accounts = [];
   const last = biodataSheet.getLastRow();
   const rows = last >= 2 ? biodataSheet.getRange(2,1,last-1,PN_BIODATA_HEADERS.length).getDisplayValues() : [];
 
   rows.forEach(function(r) {
+    if (!portalAccountActiveBiodata_(r[14], r[15])) return;
+
     const group = portalAccountMembershipGroup_(r[14]);
-    if (!group) return;
     const memberId = String(r[0] || '').trim();
     const account = byMemberId[memberId.toLowerCase()] || null;
-    if (account) usedRows[account.row] = true;
+    const hasFirebaseAccount = !!(account && (String(account.email || '').trim() || String(account.uid || '').trim()));
+
     accounts.push({
       accountRow:account ? account.row : 0,
       memberId:memberId,
@@ -3381,32 +3384,13 @@ function portalAccountAdminList_(data) {
       username:account ? account.username : '',
       email:account ? account.email : '',
       uid:account ? account.uid : '',
-      accountStatus:(account && (account.email || account.uid)) ? account.status : 'BELUM ADA',
-      hasAccount:!!(account && (account.email || account.uid))
-    });
-  });
-
-  accountRows.forEach(function(account) {
-    if (usedRows[account.row]) return;
-    accounts.push({
-      accountRow:account.row,
-      memberId:account.memberId,
-      name:'(Biodata tidak ditemukan)',
-      className:'',
-      program:'',
-      membershipStatus:'Akun tanpa biodata',
-      membershipGroup:'LAINNYA',
-      studentStatus:'',
-      username:account.username,
-      email:account.email,
-      uid:account.uid,
-      accountStatus:account.status,
-      hasAccount:true
+      accountStatus:hasFirebaseAccount ? account.status : 'BELUM ADA',
+      hasAccount:hasFirebaseAccount
     });
   });
 
   accounts.sort(function(a,b) {
-    const order = {ANGGOTA:1,CALON:2,LAINNYA:3};
+    const order = {ANGGOTA:1,CALON:2};
     const diff = (order[a.membershipGroup] || 9) - (order[b.membershipGroup] || 9);
     if (diff) return diff;
     return String(a.name || a.username || a.memberId).localeCompare(String(b.name || b.username || b.memberId),'id');
@@ -3420,7 +3404,14 @@ function portalAccountAdminList_(data) {
     missingAccounts:accounts.filter(function(x){ return !x.hasAccount; }).length
   };
 
-  return {ok:true,admin:admin,accounts:accounts,summary:summary,message:'Database akun Anggota dan Calon Anggota berhasil dimuat.',version:'1'};
+  return {
+    ok:true,
+    admin:admin,
+    accounts:accounts,
+    summary:summary,
+    message:'Hanya Anggota dan Calon Anggota berstatus Aktif pada biodata yang ditampilkan.',
+    version:'4'
+  };
 }
 
 function portalAccountFindRow_(book, data) {
@@ -3606,13 +3597,16 @@ function portalAccountBiodataForCreateV2_(book, memberId) {
     const id = String(rows[i][0] || '').trim();
     if (id.toLowerCase() !== wanted) continue;
     const group = portalAccountMembershipGroup_(rows[i][14]);
-    if (!group) throw new Error('Data tersebut bukan Anggota atau Calon Anggota yang dapat dibuatkan akun portal.');
+    if (!portalAccountActiveBiodata_(rows[i][14], rows[i][15])) {
+      throw new Error('Akun hanya dapat dibuat untuk Anggota atau Calon Anggota yang masih berstatus Aktif pada biodata.');
+    }
     return {
       row:i+2,
       memberId:id,
       name:String(rows[i][1] || '').trim(),
       membershipStatus:String(rows[i][14] || '').trim(),
-      membershipGroup:group
+      membershipGroup:group,
+      studentStatus:String(rows[i][15] || '').trim()
     };
   }
   throw new Error('ID Anggota tidak ditemukan pada database biodata.');
@@ -3681,4 +3675,42 @@ function portalAccountAdminCreate_(data) {
     },
     version:'3'
   };
+}
+
+/* =========================================================
+   KEBIJAKAN AKUN ANGGOTA AKTIF V1
+   Hanya Anggota / Calon Anggota dengan Status Siswa AKTIF
+   yang boleh ditampilkan, dibuatkan akun, dan login portal.
+========================================================= */
+
+function portalAccountActiveBiodata_(membershipStatus, studentStatus) {
+  const membership = String(membershipStatus || '').trim().toUpperCase();
+  const student = String(studentStatus || '').trim().toUpperCase();
+  const group = portalAccountMembershipGroup_(membershipStatus);
+
+  if (!group) return false;
+  if (membership.indexOf('ALUMNI') >= 0) return false;
+  if (membership.indexOf('NONAKTIF') >= 0 || membership.indexOf('NON AKTIF') >= 0) return false;
+  return student === 'AKTIF';
+}
+
+function portalAccountRequireActiveLogin_(book, memberId) {
+  const sheet = book.getSheetByName(PN_BIODATA_SHEET_NAME);
+  if (!sheet) throw new Error('Sheet Data Biodata Siswa Anggota tidak ditemukan.');
+
+  const wanted = String(memberId || '').trim().toLowerCase();
+  const last = sheet.getLastRow();
+  if (!wanted || last < 2) throw new Error('Biodata anggota aktif tidak ditemukan.');
+
+  const rows = sheet.getRange(2,1,last-1,PN_BIODATA_HEADERS.length).getDisplayValues();
+  for (let i = 0; i < rows.length; i++) {
+    const id = String(rows[i][0] || '').trim().toLowerCase();
+    if (id !== wanted) continue;
+    if (!portalAccountActiveBiodata_(rows[i][14], rows[i][15])) {
+      throw new Error('Akun portal hanya dapat digunakan oleh Anggota atau Calon Anggota yang masih berstatus Aktif pada biodata.');
+    }
+    return true;
+  }
+
+  throw new Error('Biodata anggota aktif tidak ditemukan. Hubungi Admin.');
 }
