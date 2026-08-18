@@ -85,3 +85,5 @@ CODE.write_text(code, encoding='utf-8')
 COMPACT.write_text(compact, encoding='utf-8')
 INDEX.write_text(index, encoding='utf-8')
 print('Akun Anggota V2 aktif pada source website dan backend Code.gs.')
+
+# Perubahan kecil ini sengaja dipertahankan agar workflow V2 terpanggil setelah workflow terdaftar.
