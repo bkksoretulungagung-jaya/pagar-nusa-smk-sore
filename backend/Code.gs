@@ -13,6 +13,11 @@ const PN_MATERI_SESSION_PREFIX = 'PN_MATERI_SESSION_V1_';
 const PN_MATERI_SESSION_SECONDS = 21600;
 const PN_MATERI_MAX_BYTES = 5 * 1024 * 1024;
 const PN_MATERI_CHUNK_BYTES = 256 * 1024;
+const PN_PENGURUS_ACCOUNT_SHEET_NAME = 'Akun Pengurus';
+const PN_PENGURUS_LOG_SHEET_NAME = 'Log Portal Pengurus';
+const PN_PENGURUS_PEPPER_PROPERTY = 'PN_PENGURUS_ACCOUNT_PEPPER_V2';
+const PN_PENGURUS_SESSION_SECONDS = 21600;
+
 const PN_CONTENT_FOLDER_ID = '1DaUWvaUAMTIPm1PbVdrQilv83vN6XMKv';
 const PN_REVIEW_ADMIN_USER = 'admin';
 const PN_ADMIN_PASS_PROPERTY = 'PN_ADMIN_PASS_HASH_V1'; // legacy Script Property; dimigrasikan otomatis lalu dihapus
@@ -80,6 +85,8 @@ function doGet(e) {
       contentVersion:'1',
       materiPengurus:true,
       materiPengurusVersion:'1',
+      pengurusPortal:true,
+      pengurusPortalVersion:'2',
       aspelMonitor:true,
       aspelMonitorVersion:'1',
       adminPassword:true,
@@ -217,6 +224,43 @@ function doGet(e) {
     let result;
     try { result = materiChunk_(data); }
     catch (err) { result = {ok:false, message:String(err && err.message || err)}; }
+    result.rid = String(data.rid || '');
+    if (data.callback) return jsonp_(result, data.callback);
+    return json_(result);
+  }
+
+
+  if (action === 'pengurusMateriList') {
+    let result;
+    try { result = pengurusMateriList_(data); }
+    catch (err) { result = {ok:false, items:[], message:String(err && err.message || err)}; }
+    result.rid = String(data.rid || '');
+    if (data.callback) return jsonp_(result, data.callback);
+    return json_(result);
+  }
+
+  if (action === 'pengurusMateriManifest') {
+    let result;
+    try { result = pengurusMateriManifest_(data); }
+    catch (err) { result = {ok:false, message:String(err && err.message || err)}; }
+    result.rid = String(data.rid || '');
+    if (data.callback) return jsonp_(result, data.callback);
+    return json_(result);
+  }
+
+  if (action === 'pengurusMateriChunk') {
+    let result;
+    try { result = pengurusMateriChunk_(data); }
+    catch (err) { result = {ok:false, message:String(err && err.message || err)}; }
+    result.rid = String(data.rid || '');
+    if (data.callback) return jsonp_(result, data.callback);
+    return json_(result);
+  }
+
+  if (action === 'pengurusAdminList') {
+    let result;
+    try { result = pengurusAdminList_(data); }
+    catch (err) { result = {ok:false, accounts:[], message:String(err && err.message || err)}; }
     result.rid = String(data.rid || '');
     if (data.callback) return jsonp_(result, data.callback);
     return json_(result);
@@ -367,6 +411,35 @@ function doPost(e) {
       return iframeResult_(result, 'pn-content');
     }
 
+
+    if (action === 'pengurusLogin') {
+      result = pengurusLogin_(data);
+      result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
+      return iframeResult_(result, 'pn-content');
+    }
+
+    if (action === 'pengurusLogout') {
+      result = pengurusLogout_(data);
+      result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
+      return iframeResult_(result, 'pn-content');
+    }
+
+    if (action === 'pengurusAdminSave') {
+      result = pengurusAdminSave_(data);
+      result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
+      return iframeResult_(result, 'pn-content');
+    }
+
+    if (action === 'pengurusAdminSetStatus') {
+      result = pengurusAdminSetStatus_(data);
+      result.rid = String(data.rid || '');
+      contentRememberResult_(data.rid, result);
+      return iframeResult_(result, 'pn-content');
+    }
+
     if (action === 'materiLogin') {
       result = materiLogin_(data);
       result.rid = String(data.rid || '');
@@ -454,7 +527,7 @@ function doPost(e) {
     if (['reviewSubmit','reviewPublicList','reviewAdminLogin','reviewAdminList','reviewModerate'].includes(action)) {
       return iframeResult_(result, 'pn-reviews');
     }
-    if (['contentAdminLogin','contentAdminSave','contentAdminDelete','contentAdminSeed','contentUploadImage','adminChangePassword','adminPasswordRecover','materiLogin','materiLogout','materiAdminSetAccess','materiAdminUpload','materiAdminDelete'].includes(action)) {
+    if (['contentAdminLogin','contentAdminSave','contentAdminDelete','contentAdminSeed','contentUploadImage','adminChangePassword','adminPasswordRecover','materiLogin','materiLogout','materiAdminSetAccess','materiAdminUpload','materiAdminDelete','pengurusLogin','pengurusLogout','pengurusAdminSave','pengurusAdminSetStatus'].includes(action)) {
       contentRememberResult_(data.rid, result);
       return iframeResult_(result, 'pn-content');
     }
@@ -2387,23 +2460,7 @@ function materiDeleteSession_(token) {
 }
 
 function materiRequireSession_(token) {
-  token = String(token || '').trim();
-  if (!/^[A-Fa-f0-9]{64}$/.test(token)) throw new Error('Sesi pengurus tidak valid. Silakan masuk kembali.');
-  const key = materiSessionKey_(token);
-  let raw = '';
-  try { raw = CacheService.getScriptCache().get(key) || ''; } catch (_) {}
-  if (!raw) raw = String(PropertiesService.getScriptProperties().getProperty(key) || '');
-  if (!raw) throw new Error('Sesi pengurus sudah berakhir. Silakan masuk kembali.');
-  let obj = null;
-  try { obj = JSON.parse(raw); } catch (_) {}
-  const issuedAt = Number(obj && obj.issuedAt || 0);
-  const version = String(obj && obj.version || '');
-  if (!issuedAt || Date.now() - issuedAt > PN_MATERI_SESSION_SECONDS * 1000 || version !== materiAccessHash_()) {
-    materiDeleteSession_(token);
-    throw new Error('Sesi pengurus sudah berakhir atau kode akses telah diganti.');
-  }
-  try { CacheService.getScriptCache().put(key, raw, PN_MATERI_SESSION_SECONDS); } catch (_) {}
-  return true;
+  throw new Error('Akses kode bersama dinonaktifkan. Gunakan akun email dan password pengurus.');
 }
 
 function materiRequireViewer_(data) {
@@ -2417,16 +2474,7 @@ function materiRequireViewer_(data) {
 }
 
 function materiLogin_(data) {
-  if (!materiAccessConfigured_()) throw new Error('Kode akses pengurus belum dibuat oleh admin.');
-  const code = String(data.code || '');
-  if (code.length < 8 || materiHashCode_(code) !== materiAccessHash_()) {
-    Utilities.sleep(250);
-    throw new Error('Kode akses pengurus tidak benar.');
-  }
-  const requested = String(data.token || '').trim();
-  const token = /^[A-Fa-f0-9]{64}$/.test(requested) ? requested : materiSecret_();
-  materiStoreSession_(token);
-  return {ok:true, token:token, expiresIn:PN_MATERI_SESSION_SECONDS, version:'1'};
+  throw new Error('Akses kode bersama dinonaktifkan. Gunakan Portal Pengurus dengan email dan password.');
 }
 
 function materiLogout_(data) {
@@ -2596,3 +2644,263 @@ function materiChunk_(data) {
   return {ok:true, index:index, totalChunks:total, base64:Utilities.base64Encode(part)};
 }
 
+
+
+/* =========================================================
+   PORTAL AKUN PENGURUS V2 — EMAIL + PASSWORD PRIBADI
+========================================================= */
+function pengurusSheets_() {
+  const book = SpreadsheetApp.openById(PN_REG_SPREADSHEET_ID);
+  let accounts = book.getSheetByName(PN_PENGURUS_ACCOUNT_SHEET_NAME);
+  let log = book.getSheetByName(PN_PENGURUS_LOG_SHEET_NAME);
+  if (!accounts) {
+    accounts = book.insertSheet(PN_PENGURUS_ACCOUNT_SHEET_NAME);
+    accounts.appendRow(['ID','Nama','Email','Password Salt','Password Hash','Status','Session Hash','Session Issued','Login Terakhir','Dibuat Oleh','Waktu Dibuat','Waktu Update']);
+    accounts.setFrozenRows(1);
+  }
+  if (!log) {
+    log = book.insertSheet(PN_PENGURUS_LOG_SHEET_NAME);
+    log.appendRow(['Waktu','ID Pengurus','Nama','Email','Aksi','Detail']);
+    log.setFrozenRows(1);
+  }
+  return {book:book, accounts:accounts, log:log};
+}
+
+function pengurusPepper_() {
+  const props = PropertiesService.getScriptProperties();
+  let value = String(props.getProperty(PN_PENGURUS_PEPPER_PROPERTY) || '');
+  if (!value) {
+    value = materiSecret_();
+    props.setProperty(PN_PENGURUS_PEPPER_PROPERTY, value);
+  }
+  return value;
+}
+
+function pengurusNormalizeEmail_(email) {
+  const value = String(email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || value.length > 160) throw new Error('Format email pengurus tidak valid.');
+  return value;
+}
+
+function pengurusPasswordHash_(salt, password) {
+  return sha256Hex_(pengurusPepper_() + '|' + String(salt || '') + '|' + String(password || ''));
+}
+
+function pengurusAccountObject_(r) {
+  return {
+    id:String(r[0] || ''), name:String(r[1] || ''), email:String(r[2] || ''),
+    status:String(r[5] || 'NONAKTIF').toUpperCase(),
+    sessionIssued:materiDateTime_(r[7]), lastLogin:materiDateTime_(r[8]),
+    createdBy:String(r[9] || ''), createdAt:materiDateTime_(r[10]), updatedAt:materiDateTime_(r[11])
+  };
+}
+
+function pengurusFindByEmail_(email) {
+  const sheet = pengurusSheets_().accounts;
+  const last = sheet.getLastRow();
+  if (last < 2) return null;
+  const emails = sheet.getRange(2,3,last-1,1).getDisplayValues();
+  for (let i=0;i<emails.length;i++) {
+    if (String(emails[i][0] || '').trim().toLowerCase() === email) {
+      const row=i+2;
+      return {sheet:sheet,row:row,values:sheet.getRange(row,1,1,12).getValues()[0]};
+    }
+  }
+  return null;
+}
+
+function pengurusFindById_(id) {
+  id=String(id || '').trim();
+  const sheet=pengurusSheets_().accounts;
+  const last=sheet.getLastRow();
+  if (last < 2) return null;
+  const ids=sheet.getRange(2,1,last-1,1).getDisplayValues();
+  for (let i=0;i<ids.length;i++) {
+    if (String(ids[i][0] || '').trim() === id) {
+      const row=i+2;
+      return {sheet:sheet,row:row,values:sheet.getRange(row,1,1,12).getValues()[0]};
+    }
+  }
+  return null;
+}
+
+function pengurusLog_(account, action, detail) {
+  try {
+    const log=pengurusSheets_().log;
+    log.appendRow([new Date(),String(account.id||''),String(account.name||''),String(account.email||''),String(action||'').slice(0,40),String(detail||'').slice(0,500)]);
+  } catch (_) {}
+}
+
+function pengurusLoginFailureKey_(email) {
+  return 'pn-pengurus-login:' + sha256Hex_(String(email || '')).slice(0,40);
+}
+
+function pengurusLogin_(data) {
+  const email=pengurusNormalizeEmail_(data.email);
+  const password=String(data.password || '');
+  if (password.length < 12) throw new Error('Email atau password tidak benar.');
+  const cache=CacheService.getScriptCache();
+  const failKey=pengurusLoginFailureKey_(email);
+  const failures=Number(cache.get(failKey) || 0);
+  if (failures >= 8) throw new Error('Terlalu banyak percobaan login. Tunggu sekitar 15 menit.');
+  const found=pengurusFindByEmail_(email);
+  let valid=false;
+  if (found) {
+    const status=String(found.values[5] || '').toUpperCase();
+    const salt=String(found.values[3] || '');
+    const expected=String(found.values[4] || '');
+    valid=status === 'AKTIF' && salt && expected && pengurusPasswordHash_(salt,password) === expected;
+  }
+  if (!valid) {
+    cache.put(failKey,String(failures+1),900);
+    Utilities.sleep(300);
+    throw new Error('Email atau password tidak benar, atau akun sedang nonaktif.');
+  }
+  try { cache.remove(failKey); } catch (_) {}
+  const requested=String(data.token || '').trim();
+  const token=/^[A-Fa-f0-9]{64}$/.test(requested) ? requested : materiSecret_();
+  const tokenHash=sha256Hex_(token);
+  const now=new Date();
+  found.sheet.getRange(found.row,7,1,3).setValues([[tokenHash,now,now]]);
+  const account=pengurusAccountObject_(found.sheet.getRange(found.row,1,1,12).getValues()[0]);
+  pengurusLog_(account,'LOGIN','Login berhasil; sesi sebelumnya akun ini digantikan.');
+  return {ok:true,token:token,expiresIn:PN_PENGURUS_SESSION_SECONDS,account:account,version:'2'};
+}
+
+function pengurusRequireSession_(token) {
+  token=String(token || '').trim();
+  if (!/^[A-Fa-f0-9]{64}$/.test(token)) throw new Error('Sesi pengurus tidak valid. Silakan login kembali.');
+  const tokenHash=sha256Hex_(token);
+  const sheet=pengurusSheets_().accounts;
+  const last=sheet.getLastRow();
+  if (last < 2) throw new Error('Sesi pengurus tidak ditemukan.');
+  const hashes=sheet.getRange(2,7,last-1,1).getDisplayValues();
+  for (let i=0;i<hashes.length;i++) {
+    if (String(hashes[i][0] || '').trim() !== tokenHash) continue;
+    const row=i+2;
+    const values=sheet.getRange(row,1,1,12).getValues()[0];
+    const status=String(values[5] || '').toUpperCase();
+    const issued=values[7] instanceof Date ? values[7].getTime() : new Date(values[7]).getTime();
+    if (status !== 'AKTIF' || !issued || Date.now()-issued > PN_PENGURUS_SESSION_SECONDS*1000) {
+      sheet.getRange(row,7,1,2).clearContent();
+      throw new Error('Sesi pengurus sudah berakhir atau akun telah dinonaktifkan.');
+    }
+    return {found:{sheet:sheet,row:row,values:values},account:pengurusAccountObject_(values)};
+  }
+  throw new Error('Sesi pengurus sudah berakhir. Silakan login kembali.');
+}
+
+function pengurusLogout_(data) {
+  try {
+    const auth=pengurusRequireSession_(data.token);
+    auth.found.sheet.getRange(auth.found.row,7,1,2).clearContent();
+    pengurusLog_(auth.account,'LOGOUT','Keluar dari Portal Pengurus.');
+  } catch (_) {}
+  return {ok:true,loggedOut:true};
+}
+
+function pengurusAdminList_(data) {
+  requireReviewAdmin_(data.token);
+  const sheet=pengurusSheets_().accounts;
+  const last=sheet.getLastRow();
+  if (last < 2) return {ok:true,accounts:[],version:'2'};
+  const rows=sheet.getRange(2,1,last-1,12).getValues();
+  const accounts=rows.map(pengurusAccountObject_).filter(x=>x.id && x.email).sort((a,b)=>String(a.name).localeCompare(String(b.name),'id'));
+  return {ok:true,accounts:accounts,version:'2'};
+}
+
+function pengurusAdminSave_(data) {
+  const admin=requireReviewAdmin_(data.token);
+  const id=String(data.id || '').trim();
+  const name=sanitize_(String(data.name || '').trim()).slice(0,100);
+  const password=String(data.password || '');
+  const status=String(data.status || 'AKTIF').trim().toUpperCase();
+  if (!name) throw new Error('Nama pengurus wajib diisi.');
+  if (!['AKTIF','NONAKTIF'].includes(status)) throw new Error('Status akun tidak valid.');
+  const now=new Date();
+  let found=id ? pengurusFindById_(id) : null;
+  if (id && !found) throw new Error('Akun pengurus tidak ditemukan.');
+  if (found) {
+    const values=found.values.slice();
+    values[1]=name;
+    values[5]=status;
+    values[11]=now;
+    if (password) {
+      if (password.length < 12 || password.length > 100) throw new Error('Password harus 12–100 karakter.');
+      const salt=materiSecret_();
+      values[3]=salt;
+      values[4]=pengurusPasswordHash_(salt,password);
+      values[6]=''; values[7]='';
+    }
+    if (status !== 'AKTIF') { values[6]=''; values[7]=''; }
+    found.sheet.getRange(found.row,1,1,12).setValues([values]);
+    const obj=pengurusAccountObject_(values);
+    pengurusLog_(obj,'ADMIN_UPDATE','Akun diperbarui oleh '+admin+'.');
+    return {ok:true,account:obj,message:'Akun pengurus berhasil diperbarui.'};
+  }
+  const email=pengurusNormalizeEmail_(data.email);
+  if (pengurusFindByEmail_(email)) throw new Error('Email tersebut sudah digunakan akun pengurus lain.');
+  if (password.length < 12 || password.length > 100) throw new Error('Akun baru wajib memakai password 12–100 karakter.');
+  const salt=materiSecret_();
+  const accountId='PGR-'+now.getTime()+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
+  const row=[accountId,name,email,salt,pengurusPasswordHash_(salt,password),status,'','', '',admin,now,now];
+  const sheet=pengurusSheets_().accounts;
+  sheet.appendRow(row);
+  const obj=pengurusAccountObject_(row);
+  pengurusLog_(obj,'ADMIN_CREATE','Akun dibuat oleh '+admin+'.');
+  return {ok:true,account:obj,message:'Akun pengurus berhasil dibuat.'};
+}
+
+function pengurusAdminSetStatus_(data) {
+  const admin=requireReviewAdmin_(data.token);
+  const id=String(data.id || '').trim();
+  const status=String(data.status || '').trim().toUpperCase();
+  if (!['AKTIF','NONAKTIF'].includes(status)) throw new Error('Status akun tidak valid.');
+  const found=pengurusFindById_(id);
+  if (!found) throw new Error('Akun pengurus tidak ditemukan.');
+  found.sheet.getRange(found.row,6).setValue(status);
+  if (status !== 'AKTIF') found.sheet.getRange(found.row,7,1,2).clearContent();
+  found.sheet.getRange(found.row,12).setValue(new Date());
+  const values=found.sheet.getRange(found.row,1,1,12).getValues()[0];
+  const obj=pengurusAccountObject_(values);
+  pengurusLog_(obj,'ADMIN_STATUS','Status menjadi '+status+' oleh '+admin+'.');
+  return {ok:true,account:obj,message:'Status akun berhasil diperbarui.'};
+}
+
+function pengurusMateriList_(data) {
+  const auth=pengurusRequireSession_(data.token);
+  return {ok:true,account:auth.account,items:materiRead_(false),version:'2'};
+}
+
+function pengurusMateriManifest_(data) {
+  const auth=pengurusRequireSession_(data.token);
+  const found=materiFindRow_(data.id);
+  const obj=materiObject_(found.values);
+  if (obj.status !== 'AKTIF') throw new Error('Materi tidak tersedia.');
+  const fileId=String(found.values[6] || '').trim();
+  if (!fileId) throw new Error('File materi tidak ditemukan.');
+  const file=DriveApp.getFileById(fileId);
+  const size=Number(file.getSize() || obj.size || 0);
+  const totalChunks=Math.max(1,Math.ceil(size/PN_MATERI_CHUNK_BYTES));
+  const downloads=Number(found.values[12] || 0);
+  found.sheet.getRange(found.row,13,1,2).setValues([[downloads+1,new Date()]]);
+  pengurusLog_(auth.account,'DOWNLOAD',obj.title+' | '+(obj.fileName || file.getName()));
+  return {ok:true,id:obj.id,fileName:obj.fileName||file.getName(),mime:obj.mime||file.getMimeType(),size:size,totalChunks:totalChunks,chunkBytes:PN_MATERI_CHUNK_BYTES};
+}
+
+function pengurusMateriChunk_(data) {
+  pengurusRequireSession_(data.token);
+  const found=materiFindRow_(data.id);
+  const obj=materiObject_(found.values);
+  if (obj.status !== 'AKTIF') throw new Error('Materi tidak tersedia.');
+  const index=Number(data.index);
+  if (!Number.isInteger(index) || index < 0) throw new Error('Nomor potongan file tidak valid.');
+  const fileId=String(found.values[6] || '').trim();
+  if (!fileId) throw new Error('File materi tidak ditemukan.');
+  const bytes=DriveApp.getFileById(fileId).getBlob().getBytes();
+  const total=Math.max(1,Math.ceil(bytes.length/PN_MATERI_CHUNK_BYTES));
+  if (index >= total) throw new Error('Potongan file di luar batas.');
+  const start=index*PN_MATERI_CHUNK_BYTES;
+  const end=Math.min(bytes.length,start+PN_MATERI_CHUNK_BYTES);
+  return {ok:true,index:index,totalChunks:total,base64:Utilities.base64Encode(bytes.slice(start,end))};
+}

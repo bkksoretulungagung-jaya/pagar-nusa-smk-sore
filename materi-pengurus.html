@@ -24,6 +24,8 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}
 </style>
 </head>
 <body>
+<style id="pnMateriAdminOnlyV2">#loginCard{display:none!important}</style>
+<script>if(!/^[A-Fa-f0-9]{64}$/.test(String(sessionStorage.getItem('pnReviewAdminToken')||''))){location.replace('portal-pengurus.html');}</script>
 <header class="top">
   <div class="topInner">
     <div class="logos">
