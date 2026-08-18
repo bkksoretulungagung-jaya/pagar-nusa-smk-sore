@@ -35,25 +35,23 @@ new_catch = "['portalAccountAdminCreate','portalAccountAdminUpdate','portalAccou
 if old_catch in code:
     code = code.replace(old_catch, new_catch, 1)
 
-# Username akun anggota harus kompatibel dengan data lama: nama lengkap dengan spasi/apostrof diperbolehkan.
+# Username akun anggota kompatibel dengan data lama: nama lengkap, spasi, dan apostrof diperbolehkan.
 username_pattern = re.compile(
-    r"function portalAccountUsername_\(value\) \{\n"
-    r"  const username = String\(value \|\| ''\)\.trim\(\);\n"
-    r"  if \(!/\^\[A-Za-z0-9\._-\]\{3,80\}\$/\.test\(username\)\) throw new Error\('Username minimal 3 karakter dan hanya boleh berisi huruf, angka, titik, garis bawah, atau tanda minus\.'\);\n"
-    r"  return username;\n"
-    r"\}"
+    r"function portalAccountUsername_\(value\) \{.*?\n\}",
+    re.DOTALL
 )
 username_replacement = """function portalAccountUsername_(value) {
   const username = String(value || '').trim();
   if (username.length < 3 || username.length > 100) throw new Error('Username harus 3–100 karakter.');
-  if (/[\\u0000-\\u001F\\u007F]/.test(username)) throw new Error('Username mengandung karakter yang tidak diperbolehkan.');
+  if (username.split('').some(function(ch){ const n = ch.charCodeAt(0); return n < 32 || n === 127; })) throw new Error('Username mengandung karakter yang tidak diperbolehkan.');
   if (/^[=+@]/.test(username)) throw new Error('Awal username tidak diperbolehkan.');
   return username;
 }"""
-if "Username harus 3–100 karakter." not in code:
-    code, count = username_pattern.subn(lambda _match: username_replacement, code, count=1)
-    if count != 1:
-        raise SystemExit('Fungsi portalAccountUsername_ lama tidak ditemukan')
+current_match = username_pattern.search(code)
+if not current_match:
+    raise SystemExit('Fungsi portalAccountUsername_ tidak ditemukan')
+if "username.split('').some(function(ch)" not in current_match.group(0):
+    code = code[:current_match.start()] + username_replacement + code[current_match.end():]
 
 # Gabungkan backend V2 ke Code.gs agar pengguna cukup menyalin satu file ke Apps Script.
 marker = 'AKUN ANGGOTA ADMIN V2 — BUAT AKUN DARI BIODATA'
