@@ -1,0 +1,31 @@
+name: Move Pedoman Pengurus to menu bar
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/move_pedoman_pengurus_to_menu_v1.py'
+      - '.github/workflows/move-pedoman-pengurus-menu-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  move-menu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move Pedoman Pengurus to dashboard menu
+        run: python tools/move_pedoman_pengurus_to_menu_v1.py
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html js/dashboard-shortcuts-v2.js
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Pindahkan Pedoman Pengurus ke menu bar"
+            git push
+          fi
