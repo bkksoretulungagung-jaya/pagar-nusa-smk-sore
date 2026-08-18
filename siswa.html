@@ -38,7 +38,7 @@
 
 <section id="studentView" class="hidden">
   <div class="studentbar"><div class="who"><strong id="studentName">Anggota</strong><span id="studentEmail">-</span></div><button id="logoutBtn" class="logout" type="button">KELUAR</button></div>
-  <article id="examCard" class="exam"><span class="badge">CBT TERSEDIA</span><h2>Test Teori CBT Kenaikan Tingkat</h2><p>Pastikan identitas pada Google Form sesuai dengan akun anggota. Kerjakan sampai selesai lalu kirim jawaban.</p><a id="examBtn" class="examBtn disabled" target="_blank" rel="noopener">MULAI KERJAKAN SOAL →</a><div id="formNote" class="formNote">Link Google Form belum dipasang.</div><div id="finishWrap" class="finishWrap hidden"><p class="finishHint">Setelah Anda menekan <b>Kirim</b> pada Google Form dan jawaban benar-benar terkirim, kembali ke halaman ini lalu tekan tombol di bawah.</p><button id="finishExamBtn" class="finishBtn" type="button">✓ SAYA SUDAH SELESAI MENGERJAKAN CBT</button></div></article>
+  <article id="examCard" class="exam"><span class="badge">CBT TERSEDIA</span><h2>Test Teori CBT Kenaikan Tingkat</h2><p>Pastikan identitas pada Google Form sesuai dengan akun anggota. Kerjakan sampai selesai lalu kirim jawaban.</p><a id="examBtn" class="examBtn disabled" target="_blank" rel="noopener">MULAI KERJAKAN SOAL →</a><div id="formNote" class="formNote">Memuat link Google Form dari pengaturan admin...</div><div id="finishWrap" class="finishWrap hidden"><p class="finishHint">Setelah Anda menekan <b>Kirim</b> pada Google Form dan jawaban benar-benar terkirim, kembali ke halaman ini lalu tekan tombol di bawah.</p><button id="finishExamBtn" class="finishBtn" type="button">✓ SAYA SUDAH SELESAI MENGERJAKAN CBT</button></div></article>
 
   <article id="cbtThanksView" class="cbtThanks hidden" aria-live="polite">
     <div class="cbtThanksTop"><div class="cbtThanksIcon">✓</div><h2>TERIMA KASIH</h2><p>Test CBT online sudah selesai Anda kerjakan.</p></div>
@@ -62,12 +62,14 @@ const FIREBASE_CONFIG={
   measurementId:'G-VDK3CY3ZT0'
 };
 
-const GOOGLE_FORM_URL='https://forms.gle/tNFHcxG1FNJFmbNw8';
+const CONTENT_ENDPOINT='https://script.google.com/macros/s/AKfycbyJi_83lJ11JshOLCzIBRMX6fEi-y9UGR9eYULuqH1BivdxeqcgMB0l2ehWBIgaad8Oyw/exec';
+const FALLBACK_GOOGLE_FORM_URL='https://forms.gle/tNFHcxG1FNJFmbNw8';
+let GOOGLE_FORM_URL=FALLBACK_GOOGLE_FORM_URL;
+let CBT_ENABLED=true;
 
 const $=id=>document.getElementById(id);
 const loginView=$('loginView'),studentView=$('studentView'),form=$('loginForm'),username=$('username'),email=$('email'),password=$('password'),loginBtn=$('loginBtn'),loginError=$('loginError'),notice=$('setupNotice'),studentName=$('studentName'),studentEmail=$('studentEmail'),logoutBtn=$('logoutBtn'),examBtn=$('examBtn'),formNote=$('formNote'),examCard=$('examCard'),finishWrap=$('finishWrap'),finishExamBtn=$('finishExamBtn'),cbtThanksView=$('cbtThanksView'),cbtThanksName=$('cbtThanksName'),cbtLogoutBtn=$('cbtLogoutBtn');
 const configReady=Object.values(FIREBASE_CONFIG).every(v=>String(v||'').trim());
-const formReady=/^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(GOOGLE_FORM_URL.trim());
 let currentStudentUser=null;
 let currentStudentLabel='Anggota';
 
@@ -84,11 +86,47 @@ function syncCbtState(user,name){
   finishWrap.classList.toggle('hidden',!started);
 }
 
-if(formReady){
-  examBtn.href=GOOGLE_FORM_URL.trim();
-  examBtn.classList.remove('disabled');
-  formNote.innerHTML='Jawaban dan nilai akan disimpan melalui Google Form/Google Sheets.<br><b>Sesudah menekan Kirim di Google Form, kembali ke portal ini untuk mengonfirmasi bahwa CBT sudah selesai.</b>';
+function validGoogleFormUrl(value){return /^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(String(value||'').trim())}
+function contentJsonp(action,payload={},timeout=12000){
+  return new Promise((resolve,reject)=>{
+    const cb='pnCbtCfg_'+Date.now()+'_'+Math.random().toString(36).slice(2).replace(/\W/g,'');
+    const s=document.createElement('script');let done=false;
+    const clean=()=>{clearTimeout(timer);try{delete window[cb]}catch(_){};s.remove()};
+    window[cb]=d=>{if(done)return;done=true;clean();resolve(d)};
+    const q=new URLSearchParams({action,callback:cb,_ts:String(Date.now())});
+    Object.entries(payload).forEach(([k,v])=>q.set(k,String(v??'')));
+    s.src=CONTENT_ENDPOINT+'?'+q.toString();s.async=true;
+    s.onerror=()=>{if(done)return;done=true;clean();reject(new Error('Pengaturan CBT tidak dapat dimuat.'))};
+    const timer=setTimeout(()=>{if(done)return;done=true;clean();reject(new Error('Pengaturan CBT terlalu lama dimuat.'))},timeout);
+    document.head.appendChild(s);
+  });
 }
+function applyCbtConfig(items){
+  const arr=Array.isArray(items)?items:[];
+  const item=arr.find(x=>String(x?.id||'')==='CFG-CBT')||arr.find(x=>String(x?.type||'').toUpperCase()==='PENGATURAN'&&String(x?.title||'').toUpperCase()==='PORTAL CBT ONLINE');
+  const state=String(item?.body||item?.summary||'ON').trim().toUpperCase();
+  CBT_ENABLED=state!=='OFF';
+  const savedLink=String(item?.link||'').trim();
+  GOOGLE_FORM_URL=validGoogleFormUrl(savedLink)?savedLink:FALLBACK_GOOGLE_FORM_URL;
+  if(CBT_ENABLED&&validGoogleFormUrl(GOOGLE_FORM_URL)){
+    examBtn.href=GOOGLE_FORM_URL;
+    examBtn.classList.remove('disabled');
+    formNote.innerHTML='Jawaban dan nilai akan disimpan melalui Google Form/Google Sheets.<br><b>Sesudah menekan Kirim di Google Form, kembali ke portal ini untuk mengonfirmasi bahwa CBT sudah selesai.</b>';
+  }else if(!CBT_ENABLED){
+    examBtn.removeAttribute('href');examBtn.classList.add('disabled');
+    formNote.textContent='Portal CBT sedang ditutup oleh admin.';
+  }else{
+    examBtn.removeAttribute('href');examBtn.classList.add('disabled');
+    formNote.textContent='Link Google Form CBT belum dipasang oleh admin.';
+  }
+}
+async function loadCbtConfig(){
+  try{
+    const r=await contentJsonp('contentPublicList');
+    if(r?.ok)applyCbtConfig(r.content);else applyCbtConfig([]);
+  }catch(_){applyCbtConfig([])}
+}
+loadCbtConfig();
 
 if(configReady){
   notice.textContent='Portal anggota aktif. Silakan login menggunakan akun masing-masing.';notice.classList.add('ok');loginBtn.disabled=false;
@@ -110,7 +148,7 @@ if(configReady){
     finally{loginBtn.disabled=false;loginBtn.textContent='MASUK PORTAL CBT ONLINE'}
   });
   examBtn.addEventListener('click',()=>{
-    if(!currentStudentUser) return;
+    if(!currentStudentUser||examBtn.classList.contains('disabled')) return;
     sessionStorage.setItem(startedKey(currentStudentUser),'1');
     sessionStorage.setItem(startedKey(currentStudentUser)+':at',String(Date.now()));
     finishWrap.classList.add('hidden');
