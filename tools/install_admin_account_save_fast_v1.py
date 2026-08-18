@@ -32,3 +32,5 @@ index = index[:m.start(1)] + str(next_version) + index[m.end(1):]
 COMPACT.write_text(compact, encoding='utf-8')
 INDEX.write_text(index, encoding='utf-8')
 print(f'Simpan perubahan akun cepat aktif. Cache admin-compact v{next_version}.')
+
+# Trigger workflow setelah workflow terdaftar.
