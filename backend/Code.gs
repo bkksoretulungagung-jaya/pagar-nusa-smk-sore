@@ -87,6 +87,8 @@ function doGet(e) {
       materiPengurusVersion:'1',
       pengurusPortal:true,
       pengurusPortalVersion:'2',
+      pdfWatermark:true,
+      pdfWatermarkVersion:'1',
       aspelMonitor:true,
       aspelMonitorVersion:'1',
       adminPassword:true,
@@ -2882,10 +2884,30 @@ function pengurusMateriManifest_(data) {
   const file=DriveApp.getFileById(fileId);
   const size=Number(file.getSize() || obj.size || 0);
   const totalChunks=Math.max(1,Math.ceil(size/PN_MATERI_CHUNK_BYTES));
+  const downloadedAt=new Date();
+  const traceId='PN-'+Utilities.formatDate(downloadedAt,'Asia/Jakarta','yyyyMMdd-HHmmss')+'-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();
   const downloads=Number(found.values[12] || 0);
-  found.sheet.getRange(found.row,13,1,2).setValues([[downloads+1,new Date()]]);
-  pengurusLog_(auth.account,'DOWNLOAD',obj.title+' | '+(obj.fileName || file.getName()));
-  return {ok:true,id:obj.id,fileName:obj.fileName||file.getName(),mime:obj.mime||file.getMimeType(),size:size,totalChunks:totalChunks,chunkBytes:PN_MATERI_CHUNK_BYTES};
+  found.sheet.getRange(found.row,13,1,2).setValues([[downloads+1,downloadedAt]]);
+  const resolvedName=obj.fileName||file.getName();
+  const resolvedMime=obj.mime||file.getMimeType();
+  const pdf=/pdf/i.test(String(resolvedMime||'')) || /\.pdf$/i.test(String(resolvedName||''));
+  pengurusLog_(auth.account,pdf?'DOWNLOAD_PDF_WM':'DOWNLOAD','TRACE '+traceId+' | '+obj.title+' | '+resolvedName);
+  return {
+    ok:true,
+    id:obj.id,
+    fileName:resolvedName,
+    mime:resolvedMime,
+    size:size,
+    totalChunks:totalChunks,
+    chunkBytes:PN_MATERI_CHUNK_BYTES,
+    watermark:{
+      enabled:pdf,
+      name:String(auth.account.name||''),
+      email:String(auth.account.email||''),
+      downloadedAt:downloadedAt.toISOString(),
+      traceId:traceId
+    }
+  };
 }
 
 function pengurusMateriChunk_(data) {

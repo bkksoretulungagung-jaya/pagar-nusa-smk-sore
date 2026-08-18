@@ -12,10 +12,11 @@
 <body>
 <header class="top"><div class="topin"><span class="logo"><img src="assets/logo-pagar-nusa-v3.svg?v=17" alt="Logo Pagar Nusa"></span><div class="head"><h1>🔐 PORTAL PENGURUS</h1><p>Pagar Nusa Rayon SMK Sore Tulungagung</p></div><a class="back" href="index.html">← BERANDA</a></div></header>
 <main class="wrap">
-<section class="hero"><h2>Portal Materi Pengurus</h2><p>Masuk menggunakan akun pengurus pribadi. Tidak tersedia pendaftaran umum; akun hanya dibuat dan diaktifkan oleh Admin.</p><div class="note">🔒 Jangan membagikan email dan password. Satu akun menggunakan satu sesi aktif; login baru akan menggantikan sesi lama dan aktivitas download dicatat oleh server.</div></section>
+<section class="hero"><h2>Portal Materi Pengurus</h2><p>Masuk menggunakan akun pengurus pribadi. Tidak tersedia pendaftaran umum; akun hanya dibuat dan diaktifkan oleh Admin.</p><div class="note">🔒 Jangan membagikan email dan password. Satu akun menggunakan satu sesi aktif; login baru menggantikan sesi lama. Setiap PDF yang diunduh otomatis diberi watermark nama, email, waktu unduh, dan Trace ID unik; aktivitas download juga dicatat oleh server.</div></section>
 <section id="loginCard" class="card"><div class="ch"><h3>MASUK AKUN PENGURUS</h3></div><div class="cb"><div id="loginStatus" class="status">Masukkan email dan password yang diberikan Admin.</div><form id="loginForm" class="login"><input id="email" class="input" type="email" autocomplete="username" placeholder="Email pengurus" required><input id="password" class="input" type="password" autocomplete="current-password" placeholder="Password" minlength="12" required><button id="loginBtn" class="btn primary" type="submit">MASUK</button></form></div></section>
 <section id="contentCard" class="card hidden"><div class="ch"><div><h3>📚 MATERI PENGURUS</h3><div id="accountText" class="account"></div></div><span class="badge">✓ AKUN AKTIF</span></div><div class="cb"><div class="toolbar"><input id="search" class="input" type="search" placeholder="Cari materi..."><select id="category" class="select"><option value="">Semua kategori</option></select><button id="logoutBtn" class="btn secondary" type="button">KELUAR</button></div><div id="contentStatus" class="status hidden"></div><div id="grid" class="grid"></div></div></section>
 </main><div class="footer">© 2026 Pagar Nusa Rayon SMK Sore Tulungagung</div>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>
 (()=>{'use strict';
 const ENDPOINT='https://script.google.com/macros/s/AKfycbyJi_83lJ11JshOLCzIBRMX6fEi-y9UGR9eYULuqH1BivdxeqcgMB0l2ehWBIgaad8Oyw/exec';
@@ -32,7 +33,46 @@ async function load(){const token=sessionStorage.getItem(KEY)||'';if(!token){log
 function categories(){const cur=$('category').value;const cats=[...new Set(items.map(x=>String(x.category||'Lainnya')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id'));$('category').innerHTML='<option value="">Semua kategori</option>'+cats.map(c=>'<option>'+esc(c)+'</option>').join('');if(cats.includes(cur))$('category').value=cur}
 function render(){const q=$('search').value.trim().toLowerCase(),cat=$('category').value;const list=items.filter(x=>(!q||[x.title,x.category,x.description,x.fileName].join(' ').toLowerCase().includes(q))&&(!cat||x.category===cat));$('grid').innerHTML=list.length?list.map(x=>`<article class="item"><div class="ico">${icon(x.fileName)}</div><h4>${esc(x.title)}</h4><div class="meta">${esc(x.category||'Materi')} • ${esc(x.uploadedAt||'')}</div><p class="desc">${esc(x.description||'Materi pengurus.')}</p><div class="foot"><div class="file">${esc(x.fileName)}<br>${fmt(x.size)}</div><button class="down" data-id="${esc(x.id)}">⬇ DOWNLOAD</button></div></article>`).join(''):'<div class="empty">Belum ada materi yang sesuai.</div>';$('grid').querySelectorAll('.down').forEach(b=>b.onclick=()=>download(b.dataset.id,b))}
 function b64(s){const bin=atob(s),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a}
-async function download(id,btn){const old=btn.textContent;btn.disabled=true;btn.textContent='0%';status('contentStatus','Menyiapkan file...');try{const token=sessionStorage.getItem(KEY)||'';const m=await jsonp('pengurusMateriManifest',{token,id},15000);if(!m?.ok)throw new Error(m?.message||'File tidak tersedia.');const parts=[],total=Math.max(1,Number(m.totalChunks||1));for(let i=0;i<total;i++){const c=await jsonp('pengurusMateriChunk',{token,id,index:i},20000);if(!c?.ok)throw new Error(c?.message||'File gagal dimuat.');parts.push(b64(String(c.base64||'')));btn.textContent=Math.round((i+1)/total*100)+'%'}const blob=new Blob(parts,{type:m.mime||'application/octet-stream'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=m.fileName||'materi';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);status('contentStatus','✓ Download dimulai.','ok')}catch(e){status('contentStatus',String(e.message||e),'err')}finally{btn.disabled=false;btn.textContent=old}}
+function joinBytes(parts){let total=0;for(const p of parts)total+=p.length;const out=new Uint8Array(total);let offset=0;for(const p of parts){out.set(p,offset);offset+=p.length}return out}
+function isPdfFile(m){return /pdf/i.test(String(m?.mime||''))||/\.pdf$/i.test(String(m?.fileName||''))}
+function wmFileName(name){name=String(name||'materi.pdf');if(/\.pdf$/i.test(name))return name.replace(/\.pdf$/i,'-watermark.pdf');return name+'-watermark.pdf'}
+function wibText(value){try{return new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date(value))+' WIB'}catch(_){return String(value||'')}}
+function fitPdfText(font,text,maxWidth,startSize,minSize){let size=startSize;while(size>minSize&&font.widthOfTextAtSize(text,size)>maxWidth)size-=.5;return size}
+async function addPdfWatermark(rawBytes,wm){
+  if(!window.PDFLib)throw new Error('Mesin watermark PDF belum termuat. Muat ulang halaman lalu coba lagi.');
+  const {PDFDocument,StandardFonts,rgb,degrees}=window.PDFLib;
+  let pdf;
+  try{pdf=await PDFDocument.load(rawBytes)}catch(_){throw new Error('PDF tidak dapat diproses untuk watermark. File PDF tidak diunduh tanpa watermark; hubungi Admin.')}
+  const regular=await pdf.embedFont(StandardFonts.Helvetica);
+  const bold=await pdf.embedFont(StandardFonts.HelveticaBold);
+  const name=String(wm?.name||account?.name||'PENGURUS').replace(/[\r\n]+/g,' ').slice(0,100);
+  const email=String(wm?.email||account?.email||'').replace(/[\r\n]+/g,' ').slice(0,120);
+  const trace=String(wm?.traceId||'TRACE-TIDAK-TERSEDIA').replace(/[\r\n]+/g,' ').slice(0,80);
+  const when=wibText(wm?.downloadedAt||new Date().toISOString());
+  const pages=pdf.getPages();
+  pages.forEach((page,index)=>{
+    const {width,height}=page.getSize();
+    const main='KHUSUS PENGURUS - '+name;
+    const sub=email+' • '+when;
+    const max=Math.max(180,width*.82);
+    const mainSize=fitPdfText(bold,main,max,Math.min(24,width/18),9);
+    const subSize=fitPdfText(regular,sub,max,Math.min(11,width/34),6.5);
+    const markColor=rgb(.55,.10,.10);
+    [0.23,0.50,0.77].forEach(pos=>{
+      const mw=bold.widthOfTextAtSize(main,mainSize);
+      const sw=regular.widthOfTextAtSize(sub,subSize);
+      page.drawText(main,{x:Math.max(12,(width-mw)/2-18),y:height*pos,size:mainSize,font:bold,color:markColor,opacity:.13,rotate:degrees(-30)});
+      page.drawText(sub,{x:Math.max(12,(width-sw)/2-12),y:height*pos-18,size:subSize,font:regular,color:markColor,opacity:.13,rotate:degrees(-30)});
+    });
+    const footer='INTERNAL PENGURUS • '+email+' • TRACE '+trace+' • Halaman '+(index+1)+'/'+pages.length;
+    const footerSize=fitPdfText(regular,footer,Math.max(120,width-28),7,5.5);
+    page.drawRectangle({x:0,y:0,width:width,height:18,color:rgb(.98,.96,.96),opacity:.72});
+    page.drawText(footer,{x:10,y:6,size:footerSize,font:regular,color:rgb(.35,.08,.08),opacity:.75});
+  });
+  try{pdf.setSubject('Materi internal Pagar Nusa - Trace '+trace);pdf.setKeywords(['Pagar Nusa','Pengurus','Trace '+trace]);pdf.setProducer('Portal Pengurus Pagar Nusa SMK Sore Tulungagung')}catch(_){}
+  return await pdf.save({useObjectStreams:true});
+}
+async function download(id,btn){const old=btn.textContent;btn.disabled=true;btn.textContent='0%';status('contentStatus','Menyiapkan file dan identitas download...');try{const token=sessionStorage.getItem(KEY)||'';const m=await jsonp('pengurusMateriManifest',{token,id},15000);if(!m?.ok)throw new Error(m?.message||'File tidak tersedia.');const parts=[],total=Math.max(1,Number(m.totalChunks||1));for(let i=0;i<total;i++){const c=await jsonp('pengurusMateriChunk',{token,id,index:i},20000);if(!c?.ok)throw new Error(c?.message||'File gagal dimuat.');parts.push(b64(String(c.base64||'')));btn.textContent=Math.round((i+1)/total*82)+'%'}let bytes=joinBytes(parts);let fileName=m.fileName||'materi';let mime=m.mime||'application/octet-stream';if(isPdfFile(m)){btn.textContent='WM';status('contentStatus','Menerapkan watermark nama, email, waktu, dan Trace ID ke setiap halaman PDF...');bytes=await addPdfWatermark(bytes,m.watermark||{});fileName=wmFileName(fileName);mime='application/pdf'}const blob=new Blob([bytes],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1800);const trace=String(m?.watermark?.traceId||'');status('contentStatus',isPdfFile(m)?'✓ PDF ber-watermark berhasil dibuat'+(trace?' • Trace '+trace:''):'✓ Download dimulai.','ok')}catch(e){status('contentStatus',String(e.message||e),'err')}finally{btn.disabled=false;btn.textContent=old}}
 $('loginForm').onsubmit=login;$('logoutBtn').onclick=logout;$('search').oninput=render;$('category').onchange=render;load();
 })();
 </script>
