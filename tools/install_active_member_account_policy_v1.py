@@ -145,3 +145,5 @@ elif 'portalAccountRequireActiveLogin_(book, memberId);' not in code:
 
 CODE.write_text(code, encoding='utf-8')
 print('Kebijakan akun aktif V1 terpasang: hanya Anggota/Calon Anggota aktif yang ditampilkan, dibuatkan akun, dan dapat login.')
+
+# Trigger workflow setelah workflow terdaftar.
