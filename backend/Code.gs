@@ -101,7 +101,7 @@ function doGet(e) {
       aspelMonitor:true,
       aspelMonitorVersion:'1',
       accountAdminPortal:true,
-      accountAdminPortalVersion:'2',
+      accountAdminPortalVersion:'3',
       adminPassword:true,
       adminPasswordVersion:'4',
       adminPersistentSession:true,
@@ -3381,8 +3381,8 @@ function portalAccountAdminList_(data) {
       username:account ? account.username : '',
       email:account ? account.email : '',
       uid:account ? account.uid : '',
-      accountStatus:account ? account.status : 'BELUM ADA',
-      hasAccount:!!account
+      accountStatus:(account && (account.email || account.uid)) ? account.status : 'BELUM ADA',
+      hasAccount:!!(account && (account.email || account.uid))
     });
   });
 
@@ -3547,8 +3547,8 @@ function portalAccountAdminResetPassword_(data) {
 }
 
 /* =========================================================
-   AKUN ANGGOTA ADMIN V2 — BUAT AKUN DARI BIODATA
-   Dipasang ke backend/Code.gs oleh installer V2.
+   AKUN ANGGOTA ADMIN V3 — BUAT / LENGKAPI AKUN DARI BIODATA
+   Dipasang ke backend/Code.gs oleh installer V2/V3.
 ========================================================= */
 
 function portalFirebaseCreateUserV2_(email, password) {
@@ -3629,34 +3629,46 @@ function portalAccountAdminCreate_(data) {
   if (status !== 'AKTIF' && status !== 'NONAKTIF') throw new Error('Status akun harus AKTIF atau NONAKTIF.');
 
   const accountRows = portalAccountRows_(book);
+  const memberKey = biodata.memberId.toLowerCase();
+  let existing = null;
   accountRows.forEach(function(a) {
-    if (String(a.memberId || '').trim().toLowerCase() === biodata.memberId.toLowerCase()) {
-      throw new Error('ID Anggota tersebut sudah mempunyai akun portal. Muat ulang daftar akun.');
-    }
-    if (String(a.username || '').trim().toLowerCase() === username.toLowerCase()) {
+    if (String(a.memberId || '').trim().toLowerCase() === memberKey && !existing) existing = a;
+  });
+
+  // Baris lama yang hanya berisi Username + ID (tanpa email dan UID) dianggap belum selesai,
+  // sehingga Admin dapat melengkapinya menjadi akun Firebase yang benar.
+  if (existing && (String(existing.email || '').trim() || String(existing.uid || '').trim())) {
+    throw new Error('ID Anggota tersebut sudah mempunyai akun Firebase. Gunakan DETAIL atau RESET PASSWORD.');
+  }
+
+  accountRows.forEach(function(a) {
+    const sameRow = !!(existing && Number(a.row) === Number(existing.row));
+    if (!sameRow && String(a.username || '').trim().toLowerCase() === username.toLowerCase()) {
       throw new Error('Username sudah digunakan akun lain.');
     }
-    if (String(a.email || '').trim().toLowerCase() === email) {
+    if (!sameRow && String(a.email || '').trim().toLowerCase() === email) {
       throw new Error('Email sudah digunakan akun lain.');
     }
   });
 
   const firebase = portalFirebaseCreateUserV2_(email, password);
   const sheet = portalAccountSheet_(book);
+  const values = [[username,biodata.memberId,email,firebase.uid,status]];
   try {
-    sheet.appendRow([username,biodata.memberId,email,firebase.uid,status]);
+    if (existing) sheet.getRange(existing.row,1,1,5).setValues(values);
+    else sheet.appendRow(values[0]);
   } catch (err) {
     portalFirebaseRollbackCreatedV2_(firebase.idToken);
     throw new Error('Akun Firebase sempat dibuat tetapi pencatatan ke database gagal dan dibatalkan. ' + String(err && err.message || err));
   }
 
   try {
-    adminAudit_('PORTAL_ACCOUNT_CREATE','OK','Admin ' + admin + ' membuat akun ' + biodata.memberId + ' / ' + username + '. Password tidak dicatat.');
+    adminAudit_('PORTAL_ACCOUNT_CREATE','OK','Admin ' + admin + (existing ? ' melengkapi' : ' membuat') + ' akun ' + biodata.memberId + ' / ' + username + '. Password tidak dicatat.');
   } catch (_) {}
 
   return {
     ok:true,
-    message:'Akun berhasil dibuat dan langsung terhubung ke Firebase serta database anggota.',
+    message:existing ? 'Akun yang belum lengkap berhasil dilengkapi dan terhubung ke Firebase.' : 'Akun berhasil dibuat dan langsung terhubung ke Firebase serta database anggota.',
     account:{
       memberId:biodata.memberId,
       name:biodata.name,
@@ -3667,6 +3679,6 @@ function portalAccountAdminCreate_(data) {
       uid:firebase.uid,
       status:status
     },
-    version:'2'
+    version:'3'
   };
 }
