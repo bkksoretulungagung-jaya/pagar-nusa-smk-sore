@@ -58,15 +58,17 @@ marker = 'AKUN ANGGOTA ADMIN V2 — BUAT AKUN DARI BIODATA'
 if marker not in code:
     code = code.rstrip() + '\n\n' + backend_v2 + '\n'
 
-# Muat enhancer frontend V2 setelah portal akun V1.
-if 'admin-account-create-v2.js' not in compact:
+# Muat enhancer frontend Akun Anggota. V3 menampilkan tombol BUAT AKUN di bagian atas.
+if "js/admin-account-create-v2.js?v=2" in compact:
+    compact = compact.replace("js/admin-account-create-v2.js?v=2", "js/admin-account-create-v2.js?v=3", 1)
+elif 'admin-account-create-v2.js' not in compact:
     compact += """
 
-/* Akun Anggota V2: nama portal ringkas + buat akun dari biodata. */
+/* Akun Anggota V3: tombol buat akun selalu terlihat di bagian atas. */
 (()=>{
   if(document.querySelector('script[data-pn-account-create-v2]'))return;
   const script=document.createElement('script');
-  script.src='js/admin-account-create-v2.js?v=2';
+  script.src='js/admin-account-create-v2.js?v=3';
   script.async=false;
   script.dataset.pnAccountCreateV2='1';
   document.head.appendChild(script);
@@ -74,12 +76,12 @@ if 'admin-account-create-v2.js' not in compact:
 """
 
 # Paksa browser mengambil admin loader terbaru.
-if 'js/admin-compact-v1.js?v=6' not in index:
-    if 'js/admin-compact-v1.js?v=5' not in index:
-        raise SystemExit('Anchor cache admin-compact v5 tidak ditemukan')
-    index = index.replace('js/admin-compact-v1.js?v=5', 'js/admin-compact-v1.js?v=6', 1)
+if 'js/admin-compact-v1.js?v=7' not in index:
+    if 'js/admin-compact-v1.js?v=6' not in index:
+        raise SystemExit('Anchor cache admin-compact v6 tidak ditemukan')
+    index = index.replace('js/admin-compact-v1.js?v=6', 'js/admin-compact-v1.js?v=7', 1)
 
 CODE.write_text(code, encoding='utf-8')
 COMPACT.write_text(compact, encoding='utf-8')
 INDEX.write_text(index, encoding='utf-8')
-print('Akun Anggota V2 aktif pada source website dan backend Code.gs.')
+print('Akun Anggota V3 aktif: tombol BUAT AKUN selalu terlihat di bagian atas.')
