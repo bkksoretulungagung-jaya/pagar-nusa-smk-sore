@@ -136,8 +136,8 @@ code = replace_between(
 
 # Saat login siswa, biodata harus tetap aktif. Akun lama Alumni/Nonaktif tidak dihapus,
 # tetapi tidak dapat dipakai login.
-login_anchor = "  const savedUid = String(accountSheet.getRange(rowIndex,4).getDisplayValue() || '').trim();\n  if (!savedUid) accountSheet.getRange(rowIndex,4).setValue(uid);\n\n  return {book, accountSheet, accountRow:rowIndex, username, memberId, email, uid};"
-login_replacement = "  const savedUid = String(accountSheet.getRange(rowIndex,4).getDisplayValue() || '').trim();\n  if (!savedUid) accountSheet.getRange(rowIndex,4).setValue(uid);\n\n  portalAccountRequireActiveLogin_(book, memberId);\n\n  return {book, accountSheet, accountRow:rowIndex, username, memberId, email, uid};"
+login_anchor = "  const currentUid = String(accountSheet.getRange(rowIndex,4).getDisplayValue() || '').trim();\n  if (!currentUid) accountSheet.getRange(rowIndex,4).setValue(uid);\n\n  return {\n    book:book,"
+login_replacement = "  const currentUid = String(accountSheet.getRange(rowIndex,4).getDisplayValue() || '').trim();\n  if (!currentUid) accountSheet.getRange(rowIndex,4).setValue(uid);\n\n  portalAccountRequireActiveLogin_(book, memberId);\n\n  return {\n    book:book,"
 if login_anchor in code:
     code = code.replace(login_anchor, login_replacement, 1)
 elif 'portalAccountRequireActiveLogin_(book, memberId);' not in code:
@@ -145,5 +145,3 @@ elif 'portalAccountRequireActiveLogin_(book, memberId);' not in code:
 
 CODE.write_text(code, encoding='utf-8')
 print('Kebijakan akun aktif V1 terpasang: hanya Anggota/Calon Anggota aktif yang ditampilkan, dibuatkan akun, dan dapat login.')
-
-# Trigger workflow setelah workflow terdaftar.
