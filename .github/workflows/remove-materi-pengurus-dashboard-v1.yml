@@ -1,0 +1,31 @@
+name: Hapus Materi Pengurus dari dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/remove_materi_pengurus_dashboard_v1.py'
+      - '.github/workflows/remove-materi-pengurus-dashboard-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hapus blok Materi Pengurus dari dashboard
+        run: python tools/remove_materi_pengurus_dashboard_v1.py
+      - name: Commit perubahan dashboard
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Hapus Materi Pengurus dari dashboard publik"
+            git push
+          fi
