@@ -13,13 +13,29 @@ document.write('<script src="js/registration-v2.js?v=4"><\/script>');
 document.write('<script src="js/registration-transport-v1.js?v=5"><\/script>');
 
 const PN_FOOTER_FALLBACK='Copyright © 2026 Pagar Nusa Rayon SMK SORE Tulungagung';
+const PN_FOOTER_ADMIN_LABEL='Pagar Nusa Rayon SMK SORE Tulungagung';
 function pnApplyFooter(items){
   const footer=document.querySelector('.footer');
   if(!footer)return;
   const list=Array.isArray(items)?items:[];
   const setting=list.find(item=>String(item?.id||'')==='CFG-FOOTER');
-  const value=String(setting?.body||setting?.summary||PN_FOOTER_FALLBACK).trim();
-  footer.textContent=value||PN_FOOTER_FALLBACK;
+  const full=String(setting?.body||setting?.summary||PN_FOOTER_FALLBACK).trim()||PN_FOOTER_FALLBACK;
+
+  // Pertahankan tombol admin tersembunyi yang memang berada di teks copyright.
+  let adminBtn=document.getElementById('topLoginBtn');
+  if(!adminBtn){
+    adminBtn=document.createElement('button');
+    adminBtn.id='topLoginBtn';
+    adminBtn.type='button';
+    adminBtn.setAttribute('onclick','openAdminLogin()');
+    adminBtn.setAttribute('aria-label','Pagar Nusa Rayon SMK Sore Tulungagung');
+    adminBtn.setAttribute('style','all:unset;color:inherit;font:inherit;letter-spacing:inherit;cursor:default;display:inline');
+  }
+  adminBtn.textContent=PN_FOOTER_ADMIN_LABEL;
+
+  const pos=full.lastIndexOf(PN_FOOTER_ADMIN_LABEL);
+  const prefix=pos>=0?full.slice(0,pos):(full+' ');
+  footer.replaceChildren(document.createTextNode(prefix),adminBtn);
 }
 window.addEventListener('pn:cms-public-data',event=>pnApplyFooter(event?.detail?.content));
 
@@ -33,8 +49,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const adminPass=document.getElementById('adminPass');
   if(adminPass)adminPass.value='';
 
-  // Footer memakai CFG-FOOTER dari database Konten Website.
-  // Jika data belum selesai dimuat, tampilkan teks lengkap sebagai fallback.
+  // Footer memakai CFG-FOOTER dari database Konten Website tanpa menghapus tombol admin.
   pnApplyFooter(window.__pnCmsPublicData?.content);
 
   // Jangan tampilkan username admin secara otomatis saat modal login dibuka.
@@ -124,4 +139,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v46: Footer reads CFG-FOOTER from database.
+// Build marker v47: Footer lengkap + tombol admin tetap aktif.
