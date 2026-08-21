@@ -89,12 +89,15 @@ async function sha256Hex(text){
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 function openAdminLogin(){
+  const adminVisible=!document.getElementById('adminApp')?.classList.contains('hidden');
+  if(adminVisible)return false;
   document.getElementById('loginModal')?.classList.remove('hidden');
   const u=document.getElementById('adminUser');const p=document.getElementById('adminPass');const e=document.getElementById('loginError');
   if(e)e.textContent='';
   if(u){u.value='';u.removeAttribute('value');u.setAttribute('autocomplete','off')}
   if(p)p.value='';
-  setTimeout(()=>u?.focus(),60)
+  setTimeout(()=>u?.focus(),60);
+  return true
 }
 function closeAdminLogin(){document.getElementById('loginModal')?.classList.add('hidden')}
 async function submitAdminLogin(ev){
@@ -112,7 +115,8 @@ function setAdminControls(show){
 function enterAdmin(openDb=false){
   document.getElementById('publicHome')?.classList.add('hidden');
   document.getElementById('adminApp')?.classList.remove('hidden');
-  document.getElementById('topLoginBtn')?.classList.add('hidden');
+  const footerAdminBtn=document.getElementById('topLoginBtn');
+  if(footerAdminBtn){footerAdminBtn.classList.remove('hidden');footerAdminBtn.setAttribute('aria-disabled','true')}
   setAdminControls(true);
   window.scrollTo({top:0,behavior:'smooth'});
   const dbReady=typeof zipEntries!=='undefined'&&!!zipEntries;
@@ -128,7 +132,8 @@ function showPublicDashboard(force=false){
   if(force!==true&&authActive&&adminVisible)return false;
   document.getElementById('adminApp')?.classList.add('hidden');
   document.getElementById('publicHome')?.classList.remove('hidden');
-  document.getElementById('topLoginBtn')?.classList.remove('hidden');
+  const footerAdminBtn=document.getElementById('topLoginBtn');
+  if(footerAdminBtn){footerAdminBtn.classList.remove('hidden');footerAdminBtn.removeAttribute('aria-disabled')}
   toggleDatabasePanel(false);setAdminControls(false);refreshPublicDashboardV9();window.scrollTo({top:0,behavior:'smooth'});return true
 }
 function logoutAdmin(){const token=localStorage.getItem('pnReviewAdminToken')||sessionStorage.getItem('pnReviewAdminToken')||'';try{if(token&&typeof window.pnRevokeAdminSession==='function')window.pnRevokeAdminSession(token)}catch(_){};['pnAdminAuth','pnReviewAdminToken'].forEach(k=>{try{localStorage.removeItem(k)}catch(_){};try{sessionStorage.removeItem(k)}catch(_){}});showPublicDashboard(true)}
