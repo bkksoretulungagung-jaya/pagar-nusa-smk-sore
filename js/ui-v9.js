@@ -12,6 +12,17 @@ document.write('<script src="js/ui-v9-core.js?v=34"><\/script>');
 document.write('<script src="js/registration-v2.js?v=4"><\/script>');
 document.write('<script src="js/registration-transport-v1.js?v=5"><\/script>');
 
+const PN_FOOTER_FALLBACK='Copyright © 2026 Pagar Nusa Rayon SMK SORE Tulungagung';
+function pnApplyFooter(items){
+  const footer=document.querySelector('.footer');
+  if(!footer)return;
+  const list=Array.isArray(items)?items:[];
+  const setting=list.find(item=>String(item?.id||'')==='CFG-FOOTER');
+  const value=String(setting?.body||setting?.summary||PN_FOOTER_FALLBACK).trim();
+  footer.textContent=value||PN_FOOTER_FALLBACK;
+}
+window.addEventListener('pn:cms-public-data',event=>pnApplyFooter(event?.detail?.content));
+
 document.addEventListener('DOMContentLoaded',()=>{
   const adminUser=document.getElementById('adminUser');
   if(adminUser){
@@ -22,10 +33,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   const adminPass=document.getElementById('adminPass');
   if(adminPass)adminPass.value='';
 
-  const footer=document.querySelector('.footer');
-  if(footer&&footer.firstChild&&footer.firstChild.nodeType===Node.TEXT_NODE){
-    footer.firstChild.nodeValue='Copyright © 2026 ';
-  }
+  // Footer memakai CFG-FOOTER dari database Konten Website.
+  // Jika data belum selesai dimuat, tampilkan teks lengkap sebagai fallback.
+  pnApplyFooter(window.__pnCmsPublicData?.content);
 
   // Jangan tampilkan username admin secara otomatis saat modal login dibuka.
   window.openAdminLogin=function(){
@@ -114,4 +124,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
-// Build marker v45: Footer copyright 2026.
+// Build marker v46: Footer reads CFG-FOOTER from database.
